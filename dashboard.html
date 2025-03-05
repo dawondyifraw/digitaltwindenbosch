@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IKDB Den Bosch - Futuristic Analytics Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Futuristic Theme */
+        body, html {
+            width: 100%;
+            height: 100%;
+            font-family: 'Roboto', sans-serif;
+            background-color: #1c1f2b;
+            color: #d0d5df;
+        }
+
+        .section {
+            background: #2a2f3e;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            padding: 10px; /* Compact padding */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section h2 {
+            font-size: 1.1rem;
+            color: #00bcd4;
+            margin-bottom: 8px;
+        }
+
+        #map {
+            width: 100%;
+            height: 150px; /* Smaller map height */
+            border-radius: 8px;
+        }
+
+        .chart-container {
+            height: 300px; /* Reduced chart height */
+            width: 100%;
+        }
+        .alert-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 400px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+ <!-- Alert Message -->
+    <div id="simulationAlert" class="alert alert-warning alert-dismissible fade show alert-box" role="alert">
+        <strong>Notice:</strong> The data used in this dashboard is for simulation purposes only.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="container-fluid">
+        <!-- Map Section -->
+        <div class="row">
+            <div class="col-12 section">
+                <h2>Digital Twins Den Bosch - Analytics Dashboard</h2>
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Chart Sections -->
+        <div class="row">
+            <div class="col-6 col-lg-3 section">
+                <h2>Population Growth</h2>
+                <div class="chart-container">
+                    <canvas id="populationGrowthChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Age Demographics</h2>
+                <div class="chart-container">
+                    <canvas id="ageDemographicsChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Housing Statistics</h2>
+                <div class="chart-container">
+                    <canvas id="housingChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Pollution Levels</h2>
+                <div class="chart-container">
+                    <canvas id="pollutionChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Emissions</h2>
+                <div class="chart-container">
+                    <canvas id="emissionsChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Sensor Data</h2>
+                <div class="chart-container">
+                    <canvas id="sensorChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Energy Usage</h2>
+                <div class="chart-container">
+                    <canvas id="energyUsageChart"></canvas>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 section">
+                <h2>Traffic Density</h2>
+                <div class="chart-container">
+                    <canvas id="trafficDensityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for Charts and Map -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chartConfigs = {
+                populationGrowthChart: { type: 'line', labels: ['2018', '2019', '2020', '2021', '2022'], data: [1200, 1250, 1300, 1370, 1450], color: 'rgba(75, 192, 192, 0.5)', label: 'Population Growth' },
+                ageDemographicsChart: { type: 'bar', labels: ['0-18', '19-35', '36-50', '51-65', '65+'], data: [20, 30, 25, 15, 10], color: 'rgba(153, 102, 255, 0.5)', label: 'Age Groups' },
+                housingChart: { type: 'pie', labels: ['Owned', 'Rented', 'Social Housing'], data: [50, 35, 15], colors: ['rgba(54, 162, 235, 0.5)', 'rgba(255, 206, 86, 0.5)', 'rgba(255, 99, 132, 0.5)'], label: 'Housing Types' },
+                pollutionChart: { type: 'doughnut', labels: ['NO2', 'CO2', 'PM2.5', 'O3'], data: [30, 40, 20, 10], colors: ['rgba(255, 159, 64, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 205, 86, 0.8)'], label: 'Pollution' },
+                emissionsChart: { type: 'radar', labels: ['CO2', 'NO2', 'PM10', 'SO2'], data: [65, 59, 80, 81], color: 'rgba(255, 99, 132, 0.5)', label: 'Emissions' },
+                sensorChart: { type: 'bar', labels: ['Sensor A', 'Sensor B', 'Sensor C', 'Sensor D'], data: [30, 50, 70, 90], color: 'rgba(54, 162, 235, 0.5)', label: 'Sensor Data' },
+                energyUsageChart: { type: 'line', labels: ['Q1', 'Q2', 'Q3', 'Q4'], data: [100, 150, 120, 200], color: 'rgba(255, 159, 64, 0.5)', label: 'Energy Usage' },
+                trafficDensityChart: { type: 'line', labels: ['Morning', 'Afternoon', 'Evening', 'Night'], data: [50, 70, 80, 40], color: 'rgba(75, 192, 192, 0.5)', label: 'Traffic Density' }
+            };
+
+            for (const [id, config] of Object.entries(chartConfigs)) {
+                new Chart(document.getElementById(id), {
+                    type: config.type,
+                    data: { 
+                        labels: config.labels, 
+                        datasets: [{
+                            label: config.label, 
+                            data: config.data,
+                            backgroundColor: config.colors || config.color,
+                            borderColor: config.color || 'rgba(0, 188, 212, 1)',
+                            borderWidth: 1 
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Initialize Leaflet map
+            const map = L.map('map').setView([51.6978, 5.3037], 13); // Centered on 's-Hertogenbosch
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add markers with popups
+            const markers = [
+                { coords: [51.6978, 5.3037], popup: "<b>IKDB - Real-Time Data Hub</b>" },
+                { coords: [51.702, 5.304], popup: "<b>Traffic Data</b><br>Current Speed: 45 km/h<br>Volume: Medium" },
+                { coords: [51.695, 5.310], popup: "<b>Weather Station</b><br>Temperature: 20°C<br>Humidity: 60%" }
+            ];
+
+            markers.forEach(markerData => {
+                L.marker(markerData.coords).addTo(map).bindPopup(markerData.popup);
+            });
+        });
+    </script>
+ 
+
+    <!-- Bootstrap JS (Popper included) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

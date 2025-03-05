@@ -1,0 +1,312 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DenBosch Digital Twins JADS v.2.0 - JOS and Daniel</title>
+
+    <!-- External CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet">
+    <link href="main.css" rel="stylesheet">
+    <link href="notificaion_alert.css" rel="stylesheet">
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <!-- External JavaScript -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
+    <script src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js" defer></script>
+<style>
+    /* Chat container styling */
+    .chat-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      z-index: 1000;
+      font-family: sans-serif;
+      color: #030f0f;
+    }
+    .chat-window {
+      height: 300px; /* Increased height */
+      overflow-y: auto;
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .message {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      word-wrap: break-word;
+    }
+    .user-message {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      text-align: right;
+    }
+    .bot-message {
+      background-color: #fff3cd;
+      color: #856404;
+      text-align: left;
+    }
+    /* Spinner styling for waiting indicator */
+    .spinner {
+      display: inline-block;
+      width: 50px;
+      text-align: left;
+    }
+    .spinner span {
+      animation: spinner 1.2s infinite;
+      display: inline-block;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    .spinner span:nth-child(1) { animation-delay: 0s; }
+    .spinner span:nth-child(2) { animation-delay: 0.2s; }
+    .spinner span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes spinner {
+      0%, 20% { opacity: 0; }
+      40% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    /* Clear Chat Button styling */
+    .clear-chat-btn {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <h1>Digital Twins Den Bosch</h1>
+        <div class="logo-container">
+            <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="JADS Logo" class="logo">
+            <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Den Bosch Logo" class="logo">
+        </div>
+        <div class="loading-bar"><div></div></div>
+        <p id="loadingText">Loading...</p>
+    </div>
+
+    <!-- Cesium Map Container -->
+    <div id="cesiumContainer"></div>
+
+    <!-- Hover area for the auto-hide menu -->
+    <div id="menu-hover-area"></div>
+
+    <!-- Auto-Hide Menu for toggling layers -->
+    <div id="menu">
+        <button id="flytoIKDBButton" class="menu-btn">Fly to IKDB</button>
+        <button id="toggleTraffic" class="menu-btn">Real-Time Traffic</button>
+        <button id="stopOrbit" class="menu-btn">Museums</button>
+        <button id="startOrbit" class="menu-btn">Construction Sites</button>
+        <button id="BAGButton" class="menu-btn">Kadaster Data</button>
+        <button class="menu-btn" onclick="toggleMuseums()">High Pedestrian Areas</button>
+        <button class="menu-btn" onclick="">Real-time Biodiversity Data Stream</button>
+        <button class="menu-btn" onclick="togglePollution()">Weather, Traffic, and Noise Information</button>
+        <button id="startNotifications" class="menu-btn">Real-time Alert OFF</button>
+
+        <div class="controls">
+            <button class="menu-btn" id="toggleStreamBtn">Monitor Carbon and Noise Stream ON</button>
+        </div>
+
+        <!-- Legend for building types placed inside the menu -->
+        <div id="legend" class="legend">
+            <h4>Building Type Legend</h4>
+            <ul>
+                <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
+                <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> University</li>
+                <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Hospital</li>
+                <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parking</li>
+                <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Church</li>
+                <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
+                <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrial</li>
+                <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Greenhouse</li>
+                <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercial</li>
+                <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Construction</li>
+                <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
+                <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> House</li>
+                <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Apartments</li>
+                <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Office</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Hover area for the auto-hide right panel -->
+    <div id="rightPanel-hover-area"></div>
+
+    <!-- Right Panel for Charts (Weather & Air Pollution Trends) -->
+    <div id="rightPanel">
+        <button id="closePanelBtn" onclick="toggleRightPanel()">&#x2715;</button>
+        <h2>Weather and Air Quality Forecast</h2>
+
+        <!-- Chart Containers -->
+        <div class="chart-container">
+            <canvas id="temperatureChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="humidityChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="aqiChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="no2Chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Left-side Notification Area -->
+    <div id="notificationArea">
+        <!-- Predefined Alert Boxes -->
+        <div id="trafficAlert" class="alert-box traffic">
+            <h4>Traffic Alert</h4>
+            <p class="alert-content">No traffic updates at the moment.</p>
+        </div>
+
+        <div id="weatherAlert" class="alert-box weather">
+            <h4>Weather Alert</h4>
+            <p class="alert-content">No weather updates at the moment.</p>
+        </div>
+
+        <div id="eventAlert" class="alert-box event">
+            <h4>Event Alert</h4>
+            <p class="alert-content">No event updates at the moment.</p>
+        </div>
+    </div>
+
+    <!-- Mini Map Container -->
+    <div id="minimap-container">
+        <div id="minimap"></div>
+    </div>
+
+    <!-- Chat Container -->
+  <div class="chat-container">
+    <div class="card">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>Chat with Odin</span>
+        <div>
+          <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
+          <button id="close-chat-btn" class="btn btn-sm btn-light">&#x2715;</button>
+        </div>
+      </div>
+      <div class="card-body chat-window" id="chat-window">
+        <!-- Chat messages will appear here -->
+      </div>
+      <div class="card-footer">
+        <div class="input-group">
+          <input type="text" id="user-input" class="form-control" placeholder="Type your message...">
+          <div class="input-group-append">
+            <button class="btn btn-primary" id="send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="charts.js" defer></script>
+    <script src="main.js" defer></script>
+    <script src="notifications_alert.js" defer></script>
+    <script src="kafka.js" defer></script>
+    <script src="OSM.js" defer></script>
+
+    
+  <!-- Chat Script -->
+  <script defer>
+    // Get references to DOM elements
+    const chatWindow = document.getElementById('chat-window');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    const closeChatBtn = document.getElementById('close-chat-btn');
+    const chatContainer = document.querySelector('.chat-container');
+    
+    // Function to add messages to the chat window (supports formatted HTML)
+    function addMessage(sender, messageHtml) {
+      const div = document.createElement('div');
+      div.classList.add('message');
+      div.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+      div.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Odin'}:</strong> ${messageHtml}`;
+      chatWindow.appendChild(div);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+    
+    // Function to show an animated spinner while waiting for a response
+    function showSpinner() {
+      const spinnerDiv = document.createElement('div');
+      spinnerDiv.id = 'spinner';
+      spinnerDiv.classList.add('message', 'bot-message');
+      spinnerDiv.innerHTML = `<strong>Odin:</strong> <span class="spinner"><span>.</span><span>.</span><span>.</span></span>`;
+      chatWindow.appendChild(spinnerDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+    
+    // Function to remove the spinner from the chat window
+    function removeSpinner() {
+      const spinnerDiv = document.getElementById('spinner');
+      if (spinnerDiv) {
+        spinnerDiv.remove();
+      }
+    }
+    
+    // Function to send a message to the backend API and process the response
+    async function sendMessage() {
+      const query = userInput.value.trim();
+      if (!query) return;
+      
+      // Add user's message
+      addMessage('user', query);
+      userInput.value = '';
+      sendBtn.disabled = true;  // Disable the send button while waiting
+      showSpinner();
+      console.log("Sending query:", query);
+      
+      try {
+        const response = await fetch('http://127.0.0.1:5050/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        });
+        const data = await response.json();
+        removeSpinner();
+        // Add bot's response (formatted HTML supported)
+        addMessage('bot', data.response);
+      } catch (error) {
+        console.error('Error:', error);
+        removeSpinner();
+        addMessage('bot', 'Sorry, something went wrong.');
+      } finally {
+        sendBtn.disabled = false;  // Re-enable the send button
+      }
+    }
+    
+    // Event listener for the send button
+    sendBtn.addEventListener('click', sendMessage);
+    
+    // Allow sending message when Enter is pressed
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    // Clear chat history when clear button is clicked
+    clearChatBtn.addEventListener('click', () => {
+      chatWindow.innerHTML = '';
+    });
+    
+    // Hide the chat container when the close button is clicked
+    closeChatBtn.addEventListener('click', () => {
+      chatContainer.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
