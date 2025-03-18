@@ -8,8 +8,10 @@
     <!-- External CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet">
-    <link href="main.css" rel="stylesheet">
-    <link href="notificaion_alert.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <link href="notificaionservice/notificaion_alert.css" rel="stylesheet">
+    <link href="chatbotservice/chatbot.css" rel="stylesheet">
+
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 
     <!-- External JavaScript -->
@@ -18,64 +20,7 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
     <script src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js" defer></script>
 <style>
-    /* Chat container styling */
-    .chat-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 350px;
-      z-index: 1000;
-      font-family: sans-serif;
-      color: #030f0f;
-    }
-    .chat-window {
-      height: 300px; /* Increased height */
-      overflow-y: auto;
-      background-color: #f8f9fa;
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .message {
-      margin-bottom: 8px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      word-wrap: break-word;
-    }
-    .user-message {
-      background-color: #d1ecf1;
-      color: #0c5460;
-      text-align: right;
-    }
-    .bot-message {
-      background-color: #fff3cd;
-      color: #856404;
-      text-align: left;
-    }
-    /* Spinner styling for waiting indicator */
-    .spinner {
-      display: inline-block;
-      width: 50px;
-      text-align: left;
-    }
-    .spinner span {
-      animation: spinner 1.2s infinite;
-      display: inline-block;
-      font-weight: bold;
-      font-size: 1.2em;
-    }
-    .spinner span:nth-child(1) { animation-delay: 0s; }
-    .spinner span:nth-child(2) { animation-delay: 0.2s; }
-    .spinner span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes spinner {
-      0%, 20% { opacity: 0; }
-      40% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-    /* Clear Chat Button styling */
-    .clear-chat-btn {
-      margin-right: 5px;
-    }
+   
   </style>
 </head>
 <body>
@@ -138,12 +83,12 @@
     <!-- Hover area for the auto-hide right panel -->
     <div id="rightPanel-hover-area"></div>
 
-    <!-- Right Panel for Charts (Weather & Air Pollution Trends) -->
+    <!-- Weather & Air Pollution Trends  - UDT den bosch - replace with other visulisaion tool boxs -->
     <div id="rightPanel">
         <button id="closePanelBtn" onclick="toggleRightPanel()">&#x2715;</button>
         <h2>Weather and Air Quality Forecast</h2>
 
-        <!-- Chart Containers -->
+        <!-- Chart Containers  - UDT den bosch -->
         <div class="chart-container">
             <canvas id="temperatureChart"></canvas>
         </div>
@@ -158,9 +103,9 @@
         </div>
     </div>
 
-    <!-- Left-side Notification Area -->
+    <!-- Left-side Notification Area - UDT den bosch  -->
     <div id="notificationArea">
-        <!-- Predefined Alert Boxes -->
+        <!-- Predefined Alert Boxes  - UDT den bosch  -->
         <div id="trafficAlert" class="alert-box traffic">
             <h4>Traffic Alert</h4>
             <p class="alert-content">No traffic updates at the moment.</p>
@@ -177,12 +122,12 @@
         </div>
     </div>
 
-    <!-- Mini Map Container -->
+    <!-- Mini Map Container - UDT den bosch  -->
     <div id="minimap-container">
         <div id="minimap"></div>
     </div>
 
-    <!-- Chat Container -->
+    <!-- chat holder - - UDT den bosch  -->
   <div class="chat-container">
     <div class="card">
       <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -193,7 +138,7 @@
         </div>
       </div>
       <div class="card-body chat-window" id="chat-window">
-        <!-- Chat messages will appear here -->
+        <!-- chat messages are her - UDT den bosch -->
       </div>
       <div class="card-footer">
         <div class="input-group">
@@ -210,103 +155,11 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="charts.js" defer></script>
-    <script src="main.js" defer></script>
-    <script src="notifications_alert.js" defer></script>
-    <script src="kafka.js" defer></script>
-    <script src="OSM.js" defer></script>
-
-    
-  <!-- Chat Script -->
-  <script defer>
-    // Get references to DOM elements
-    const chatWindow = document.getElementById('chat-window');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const clearChatBtn = document.getElementById('clear-chat-btn');
-    const closeChatBtn = document.getElementById('close-chat-btn');
-    const chatContainer = document.querySelector('.chat-container');
-    
-    // Function to add messages to the chat window (supports formatted HTML)
-    function addMessage(sender, messageHtml) {
-      const div = document.createElement('div');
-      div.classList.add('message');
-      div.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
-      div.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Odin'}:</strong> ${messageHtml}`;
-      chatWindow.appendChild(div);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-    
-    // Function to show an animated spinner while waiting for a response
-    function showSpinner() {
-      const spinnerDiv = document.createElement('div');
-      spinnerDiv.id = 'spinner';
-      spinnerDiv.classList.add('message', 'bot-message');
-      spinnerDiv.innerHTML = `<strong>Odin:</strong> <span class="spinner"><span>.</span><span>.</span><span>.</span></span>`;
-      chatWindow.appendChild(spinnerDiv);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-    
-    // Function to remove the spinner from the chat window
-    function removeSpinner() {
-      const spinnerDiv = document.getElementById('spinner');
-      if (spinnerDiv) {
-        spinnerDiv.remove();
-      }
-    }
-    
-    // Function to send a message to the backend API and process the response
-    async function sendMessage() {
-      const query = userInput.value.trim();
-      if (!query) return;
-      
-      // Add user's message
-      addMessage('user', query);
-      userInput.value = '';
-      sendBtn.disabled = true;  // Disable the send button while waiting
-      showSpinner();
-      console.log("Sending query:", query);
-      
-      try {
-        const response = await fetch('http://127.0.0.1:5050/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query }),
-        });
-        const data = await response.json();
-        removeSpinner();
-        // Add bot's response (formatted HTML supported)
-        addMessage('bot', data.response);
-      } catch (error) {
-        console.error('Error:', error);
-        removeSpinner();
-        addMessage('bot', 'Sorry, something went wrong.');
-      } finally {
-        sendBtn.disabled = false;  // Re-enable the send button
-      }
-    }
-    
-    // Event listener for the send button
-    sendBtn.addEventListener('click', sendMessage);
-    
-    // Allow sending message when Enter is pressed
-    userInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-    
-    // Clear chat history when clear button is clicked
-    clearChatBtn.addEventListener('click', () => {
-      chatWindow.innerHTML = '';
-    });
-    
-    // Hide the chat container when the close button is clicked
-    closeChatBtn.addEventListener('click', () => {
-      chatContainer.style.display = 'none';
-    });
-  </script>
+    <script src="dashboard/charts.js" defer></script>
+    <script src="js/main.js" defer></script>
+    <script src="notificaionservice/notifications_alert.js" defer></script>
+    <script src="realtimestream/kafka.js" defer></script>
+    <script src="minimap/OSM.js" defer></script>
+    <script src="chatbotservice/chatbot.js"defer>  </script>
 </body>
 </html>
