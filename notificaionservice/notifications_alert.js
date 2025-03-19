@@ -73,8 +73,20 @@ function updateAlertBox(type, message) {
 
 // Function to play a notification sound
 function playNotificationSound() {
-    console.log('Playing notification sound'); // Debugging
-    const audio = new Audio('notification-sound.mp3'); // Ensure the path is correct
+    console.log('Playing notification sound');
+    const audio = new Audio();
+    
+    // Add multiple sources for better compatibility
+    audio.src = 'notification-sound.mp3';
+    audio.type = 'audio/mp3'; // Specify the type if needed
+    
+    // Fallback in case mp3 doesn't work, using ogg as an alternative
+    const oggSource = document.createElement('source');
+    oggSource.src = 'notification-sound.ogg';
+    oggSource.type = 'audio/ogg';
+    
+    audio.appendChild(oggSource);
+
     audio.play().catch(error => {
         console.error('Error playing sound:', error);
     });

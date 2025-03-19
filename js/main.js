@@ -1,15 +1,31 @@
-﻿Cesium.Ion.defaultAccessToken = config.CESIUM_TOKEN
-let isBuildingsLoaded = false; // State tracking
-const Longitude = 5.31541;
-const Latitude = 51.67855;
-let tomTomTrafficLayer;
-let viewer;
-let name = "";
+﻿    let isBuildingsLoaded = false; // State tracking
+    let tomTomTrafficLayer;
+    let viewer;
+    let name = "";
 
-// API keys
-const weatherApiKey = config.WEATHERAPI;
-const airQualityApiKey = config.AIRQUALITYAPI;
-const tomTomApiKey = config.TOMTOMAPI;
+
+document.addEventListener("configLoaded", () => {
+    console.log("Config loaded:", window.config);
+    initializeMain();
+});
+
+async function initializeMain() {
+    // Wait for config to load
+    while (!window.config.conf) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
+    }
+    console.log("Config:", window.config.conf);
+    // Assign variables AFTER the config is loaded
+    const config = window.config.conf;
+    Cesium.Ion.defaultAccessToken = config.CESIUM_TOKEN;
+    const Longitude = 5.31541;
+    const Latitude = 51.67855;
+    // API keys
+    const weatherApiKey = config.WEATHERAPI;
+    const airQualityApiKey = config.AIRQUALITYAPI;
+
+    console.log("Weather API Key:", weatherApiKey);
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     // Show splash screen for 5 seconds

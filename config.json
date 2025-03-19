@@ -1,10 +1,7 @@
-
-//configuraion managemnt 
 {
-    "CESIUM_TOKEN": "token_here",
-    "WEATHERAPI": "keyjere",
-    "TOMTOMAPI": "keyhere",
-    "AIRQUALITYAPI":"keyhere",
+    "CESIUM_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzZGIzMDNjYy0zZTg2LTRhMjAtYjM1MS1hN2IzNDlhMjEzNGYiLCJpZCI6MjM5NDE4LCJpYXQiOjE3MjU1NTg2MDh9.hNdDA8dKIk4eT10b6jkvFHTvuJ1swvu1I2ZEY5FACAI",
+    "WEATHERAPI": "bd5e378503939ddaee76f12ad7a97608",
+    "TOMTOMAPI": "m0lqjskY9lNfIAjWZ99BUOZ31wHQynGA",
+    "AIRQUALITYAPI":"bd5e378503939ddaee76f12ad7a97608",
     "othersconf":"here"
 }
-
