@@ -1,0 +1,10 @@
+
+//configuraion managemnt 
+{
+    "CESIUM_TOKEN": "token_here",
+    "WEATHERAPI": "keyjere",
+    "TOMTOMAPI": "keyhere",
+    "AIRQUALITYAPI":"keyhere",
+    "othersconf":"here"
+}
+

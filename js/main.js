@@ -1,4 +1,4 @@
-﻿Cesium.Ion.defaultAccessToken = 'API_KEY';
+﻿Cesium.Ion.defaultAccessToken = config.CESIUM_TOKEN
 let isBuildingsLoaded = false; // State tracking
 const Longitude = 5.31541;
 const Latitude = 51.67855;
@@ -7,9 +7,9 @@ let viewer;
 let name = "";
 
 // API keys
-const weatherApiKey = 'API_KEY';
-const airQualityApiKey = 'API_KEY';
-const tomTomApiKey = 'API_KEY';
+const weatherApiKey = config.WEATHERAPI;
+const airQualityApiKey = config.AIRQUALITYAPI;
+const tomTomApiKey = config.TOMTOMAPI;
 
 document.addEventListener('DOMContentLoaded', function () {
     // Show splash screen for 5 seconds
