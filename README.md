@@ -127,6 +127,59 @@ To develop with the Urban Digital Twin Core:
 3.  **Start with a simple extension:** Add a small feature, like a custom message on the map.
 4.  **Consult module documentation:** Detailed module documentation should be in the relevant directories.
 
+## Real-time Data Streaming
+
+The Urban Digital Twin Core is capable of displaying real-time data on the map.  This is achieved using a combination of technologies:
+
+  * **Kafka:** Data is streamed using Apache Kafka, a distributed event streaming platform.
+  * **WebSocket:** A WebSocket connection is established to transmit the data from the server to the client.
+  * **CesiumJS:** The 3D map is updated dynamically with the received data.
+
+The `streamkafka` function in `js/main.js` handles the real-time data streaming.  Here's how it works:
+
+1.  **Initialization:**
+
+      * A WebSocket connection is established with the server (running on `http://localhost:5000` in this example).
+      * An empty object `markers` is used to store the map markers, allowing for updates instead of creating new markers for every data point.
+      * A custom icon is used for the markers.
+
+2.  **Data Reception and Map Update:**
+
+      * The `socket.on('kafka_data', ...)` listener receives data from the server.
+      * The received data contains information like latitude, longitude, CO2 level, NO2 level, PM25 level, sound level, and weather.
+      * The `updateMapWithData(data)` function is called to process and display the data on the map.
+
+3.  **`updateMapWithData` Function:**
+
+      * This function extracts the latitude and longitude from the received data.
+      * It generates a unique key based on the coordinates.
+      * If a marker does not exist at the given coordinates:
+          * A new marker is added to the Cesium scene with the following properties:
+              * Position:  Set using `Cesium.Cartesian3.fromDegrees`.
+              * Billboard:  Displays the custom icon.
+              * Label:  Displays the CO2 and NO2 levels.
+              * Description:  Provides a detailed HTML description with all the data.
+          * The camera flies to the location of the new marker.
+      * If a marker already exists at the coordinates:
+          * The existing marker's label and description are updated with the new data.  This ensures smooth updates on the map.
+
+4.  **Start/Stop Streaming:**
+
+      * The `startStreaming()` function initiates the WebSocket connection.
+      * The `stopStreaming()` function closes the WebSocket connection.
+      * The `toggleStream()` function is bound to a button (`toggleStreamBtn`) in the HTML.  When the button is clicked, this function starts or stops the streaming and updates the button text.
+
+This system allows for real-time visualization of sensor data (or other data streamed via Kafka) on a 3D map, providing a dynamic and interactive way to monitor urban data.
+
+## Getting Started with Development
+
+To develop with the Urban Digital Twin Core:
+
+1.  **Familiarize yourself with the codebase:** Explore the file structure, focusing on `index.html`, `js/main.js`, and the `notificationservice` and `chatbotservice` directories.
+2.  **Set up a development environment:** Install Python (for the local server) and use a code editor.  Consider a virtual environment for dependency management.
+3.  **Start with a simple extension:** Add a small feature, like a custom message on the map.
+4.  **Consult module documentation:** Detailed module documentation should be in the relevant directories.
+
 ## Contributing
 
 Contributions are welcome\!
@@ -167,5 +220,10 @@ This project is a 3D web application built with CesiumJS, visualizing geographic
 The 3D Web Application for Den Bosch uses the following data sources:
 
   * 3D building data
+  * OpenStreetMap (OSM)
+  * Weather data
+  * Air quality data
+  * Traffic data
 
 <!-- end list -->
+
