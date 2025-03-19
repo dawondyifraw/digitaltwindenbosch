@@ -20,35 +20,39 @@ Features
 - **Scalability** – Designed to handle large-scale urban datasets.
 
 Project Structure
------------------ 
-   
+-Project Structure
+-----------------
+The project structure is as follows:
+
+.. code-block:: text
+
    ├── 3DModels
-   │   └── car.glb
+   │   └── car.glb
    ├── LICENSE
    ├── OSM.html
    ├── README.md
    ├── chatbotservice
-   │   ├── chatbot.css
-   │   └── chatbot.js
+   │   ├── chatbot.css
+   │   └── chatbot.js
    ├── config.json
    ├── css
-   │   └── main.css
+   │   └── main.css
    ├── dashboard
-   │   └── charts.js
+   │   └── charts.js
    ├── dashboard.html
    ├── index.html
    ├── js
-   │   ├── config.js
-   │   └── main.js
+   │   ├── config.js
+   │   └── main.js
    ├── minimap
-   │   └── OSM.js
-   ├── notificaionservice
-   │   ├── notificaion_alert.css
-   │   ├── notification.js
-   │   ├── notifications.js
-   │   ├── notifications_alert.js
-   │   ├── notifications_weather_traffic_air.js
-   │   └── radom_notfication.js
+   │   └── OSM.js
+   ├── notificationservice
+   │   ├── notification_alert.css
+   │   ├── notification.js
+   │   ├── notifications.js
+   │   ├── notifications_alert.js
+   │   ├── notifications_weather_traffic_air.js
+   │   └── random_notification.js
    ├── notification-sound.mp3
    ├── popup_html.html
    └── realtimestream
