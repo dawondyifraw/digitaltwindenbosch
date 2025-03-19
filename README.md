@@ -20,7 +20,7 @@ Features
 - **Scalability** – Designed to handle large-scale urban datasets.
 
 Project Structure
--Project Structure
+Project Structure
 -----------------
 The project structure is as follows:
 
@@ -57,7 +57,6 @@ The project structure is as follows:
    ├── popup_html.html
    └── realtimestream
        └── kafka.js
-
 ## Installation  
 To get started, clone the repository and install dependencies:  
 
