@@ -21,38 +21,38 @@ Features
 
 Project Structure
 ----------------- 
-
-├── 3DModels
-│   └── car.glb
-├── LICENSE
-├── OSM.html
-├── README.md
-├── chatbotservice
-│   ├── chatbot.css
-│   └── chatbot.js
-├── config.json
-├── css
-│   └── main.css
-├── dashboard
-│   └── charts.js
-├── dashboard.html
-├── index.html
-├── js
-│   ├── config.js
-│   └── main.js
-├── minimap
-│   └── OSM.js
-├── notificaionservice
-│   ├── notificaion_alert.css
-│   ├── notification.js
-│   ├── notifications.js
-│   ├── notifications_alert.js
-│   ├── notifications_weather_traffic_air.js
-│   └── radom_notfication.js
-├── notification-sound.mp3
-├── popup_html.html
-└── realtimestream
-    └── kafka.js
+   
+   ├── 3DModels
+   │   └── car.glb
+   ├── LICENSE
+   ├── OSM.html
+   ├── README.md
+   ├── chatbotservice
+   │   ├── chatbot.css
+   │   └── chatbot.js
+   ├── config.json
+   ├── css
+   │   └── main.css
+   ├── dashboard
+   │   └── charts.js
+   ├── dashboard.html
+   ├── index.html
+   ├── js
+   │   ├── config.js
+   │   └── main.js
+   ├── minimap
+   │   └── OSM.js
+   ├── notificaionservice
+   │   ├── notificaion_alert.css
+   │   ├── notification.js
+   │   ├── notifications.js
+   │   ├── notifications_alert.js
+   │   ├── notifications_weather_traffic_air.js
+   │   └── radom_notfication.js
+   ├── notification-sound.mp3
+   ├── popup_html.html
+   └── realtimestream
+       └── kafka.js
 
 ## Installation  
 To get started, clone the repository and install dependencies:  
