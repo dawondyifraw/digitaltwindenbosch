@@ -52,7 +52,7 @@ This project, part of an **Engineering Doctorate (EngD) program**, serves as the
     └── kafka.js 
 ```
 
-##installation
+#Installation
 To install and run the Urban Digital Twin Core, follow these steps:
 
 Clone the Repository:
