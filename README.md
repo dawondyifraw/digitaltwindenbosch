@@ -52,27 +52,26 @@ This project, part of an **Engineering Doctorate (EngD) program**, serves as the
     └── kafka.js 
 ```
 
-#Installation
+# Installation
+
 To install and run the Urban Digital Twin Core, follow these steps:
 
-Clone the Repository:
+## Clone the Repository:
 
-Bash
+```bash
+    git clone [https://github.com/dadenewyyt/digitaltwindenbosch.git](https://github.com/dadenewyyt/digitaltwindenbosch/.git)
+```
 
-git clone [https://github.com/your-username/urban-digital-twin-core.git](https://github.com/your-username/urban-digital-twin-core.git)
-(Replace your-username with the actual repository owner's username.)
+cd digitaltwindenbosch
 
-#Navigate to the Project Directory:
 
-Bash
+#Start a Local Web Server:
+This project is designed to run in a web browser. You'll need a local web server to serve the files. Python's built-in http.server is a convenient option
 
-cd urban-digital-twin-core
-Start a Local Web Server:
-This project is designed to run in a web browser. You'll need a local web server to serve the files. Python's built-in http.server is a convenient option:
+``` bash
+    python -m http.server
+```
 
-Bash
-
-python -m http.server
 This command starts a simple HTTP server, typically on port 8000.
 
 #Open the Application in Your Browser:
@@ -81,10 +80,8 @@ Open your web browser and navigate to http://localhost:8000. This will load the 
 #Contact
 For inquiries, contact Daniel Adenew Wonyifraw at danielwondyifrawatoutlook.com.
 
-3D Web Application for Den Bosch
+#3D Web Application for Den Bosch
 This project is a 3D web application built with CesiumJS, visualizing geographical data for Den Bosch, Netherlands. It integrates 3D building tiles, OpenStreetMap (OSM) buildings, weather, air quality, and traffic information.
-
-
 
 #Features
 3D Visualization: Displays 3D building tiles and OSM buildings with custom styling.
@@ -95,3 +92,4 @@ Notifications: Displays non-intrusive information popups.
 Location-Specific Popups: Shows details for landmarks like St. John's Cathedral.
 Fly-To and Orbit: Implements camera controls for navigation.
 Traffic Layer: Toggles the TomTom traffic layer.
+
