@@ -1,0 +1,179 @@
+<script>
+    const API_BASE = 'http://localhost:5001';  // your Flask API
+
+    const chartInstances = {};
+
+    function createChart(canvasId, config) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.error(`Canvas '${canvasId}' not found`);
+            return null;
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        return new Chart(ctx, {
+            type: config.type,
+            data: {
+                labels: config.labels || [],
+                datasets: [{
+                    label: config.label,
+                    data: config.data || [],
+                    backgroundColor: config.backgroundColor,
+                    borderColor: config.borderColor || '#00bcd4',
+                    borderWidth: 1,
+                    tension: config.type === 'line' ? 0.25 : 0,
+                    fill: config.type === 'line'
+                }]
+            },
+            options: config.type === 'pie' || config.type === 'doughnut' || config.type === 'radar'
+                ? { responsive: true, maintainAspectRatio: false }
+                : {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+        });
+    }
+
+    function fillSensorTable(rows) {
+        const tbody = document.querySelector('#sensorTable tbody');
+        tbody.innerHTML = '';
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="6">No sensor data available.</td>`;
+            tbody.appendChild(tr);
+            return;
+        }
+
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${r.sensor_id || '-'}</td>
+                <td>${r.location || '-'}</td>
+                <td>${r.metric || '-'}</td>
+                <td>${typeof r.value === 'number' ? r.value.toFixed(2) : r.value}</td>
+                <td>${r.unit || '-'}</td>
+                <td>${r.time ? new Date(r.time).toLocaleString() : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function fetchInfluxDashboardData() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/influx/dashboard`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return await resp.json();
+        } catch (err) {
+            console.error('Influx fetch error:', err);
+            return null;
+        }
+    }
+
+    async function initDashboard() {
+        console.log('Initializing dashboard...');
+        const data = await fetchInfluxDashboardData();
+
+        if (!data) {
+            console.error('No data returned from API');
+            return;
+        }
+
+        console.log('Dashboard data:', data);
+
+        const configs = {
+            populationGrowthChart: {
+                type: 'line',
+                label: 'Population',
+                labels: data.populationGrowth?.labels,
+                data: data.populationGrowth?.values,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            },
+            ageDemographicsChart: {
+                type: 'bar',
+                label: 'Age',
+                labels: data.ageDemographics?.labels,
+                data: data.ageDemographics?.values,
+                backgroundColor: 'rgba(153, 102, 255, 0.5)',
+            },
+            housingChart: {
+                type: 'pie',
+                label: 'Housing',
+                labels: data.housing?.labels,
+                data: data.housing?.values,
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(255, 99, 132, 0.5)'
+                ]
+            },
+            pollutionChart: {
+                type: 'doughnut',
+                label: 'Pollution',
+                labels: data.pollution?.labels,
+                data: data.pollution?.values,
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 205, 86, 0.8)'
+                ]
+            },
+            emissionsChart: {
+                type: 'radar',
+                label: 'Emissions',
+                labels: data.emissions?.labels,
+                data: data.emissions?.values,
+                backgroundColor: 'rgba(255, 99, 132, 0.3)',
+            },
+            sensorChart: {
+                type: 'bar',
+                label: 'Sensors',
+                labels: data.sensorData?.labels,
+                data: data.sensorData?.values,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+            },
+            energyUsageChart: {
+                type: 'line',
+                label: 'Energy',
+                labels: data.energyUsage?.labels,
+                data: data.energyUsage?.values,
+                backgroundColor: 'rgba(255, 159, 64, 0.5)'
+            },
+            trafficDensityChart: {
+                type: 'line',
+                label: 'Traffic',
+                labels: data.trafficDensity?.labels,
+                data: data.trafficDensity?.values,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)'
+            }
+        };
+
+        for (const [id, cfg] of Object.entries(configs)) {
+            chartInstances[id] = createChart(id, cfg);
+        }
+
+        fillSensorTable(data.latestSensors || []);
+
+        initMap();
+    }
+
+    function initMap() {
+        const map = L.map('map').setView([51.6978, 5.3037], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        [
+            { coords: [51.6978, 5.3037], popup: 'IKDB Hub' },
+            { coords: [51.702, 5.304], popup: 'Traffic Node' },
+            { coords: [51.695, 5.310], popup: 'Air Quality Node' }
+        ].forEach(m => L.marker(m.coords).addTo(map).bindPopup(m.popup));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initDashboard();
+    });
+</script>

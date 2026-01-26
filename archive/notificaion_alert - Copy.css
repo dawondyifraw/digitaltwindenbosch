@@ -1,0 +1,39 @@
+﻿/* General Styles for Alert Boxes */
+.alert-box {
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #ffffff;
+    background: rgba(17, 17, 17, 0.9); /* Dark background */
+    border-left: 5px solid;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Specific Alert Box Styles */
+.alert-box.traffic {
+    border-left-color: #ff4d4d; /* Red for traffic alerts */
+     border-left-color: #ffcc00; /* Yellow for event alerts */
+    display:none;
+}
+.alert-box.weather {
+    border-left-color: #4da6ff; /* Blue for weather alerts */
+     border-left-color: #ffcc00; /* Yellow for event alerts */
+    display:none;
+}
+.alert-box.event {
+    border-left-color: #ffcc00; /* Yellow for event alerts */
+    display:none;
+}
+
+/* Flash Effect */
+.flash {
+    animation: flash-animation 1s ease;
+}
+
+@keyframes flash-animation {
+    0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+    50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+    100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+}
