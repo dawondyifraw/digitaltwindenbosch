@@ -1,0 +1,27 @@
+# Ignore secrets and config
+config.local.json
+config.json
+
+# System/IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.vs/
+
+# Python
+__pycache__/
+*.pyc
+
+# Build/output
+dist/
+build/
+
+# Logs
+*.log
+
+# Lock files
+sync.ffs_lock
+
+# Archive and temp
+archive/
+*.tmp
