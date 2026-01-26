@@ -1,0 +1,30 @@
+/* Notification styles (dark, high-contrast to match app theme) */
+.notification {
+	position: relative;
+	padding: 12px 16px;
+	margin: 8px 0;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #ffffff;
+	background: rgba(17,17,17,0.95);
+	border-left: 4px solid #00cccc;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+	width: 320px;
+}
+
+.notification .close-btn {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: transparent;
+	border: none;
+	color: #fff;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+.notification.weather { border-left-color: #4da6ff; }
+.notification.air-quality { border-left-color: #ffcc00; }
+.notification.traffic { border-left-color: #ff4d4d; }
+
+.notification p { margin: 0; color: #e6f7ff; }

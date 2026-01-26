@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UDT — Notifications Sanity</title>
+
+<style>
+  :root {
+    --dt-bg:#0b0f18; --dt-panel:#121826; --dt-text:#e7ecf3; --dt-muted:#9fb0c5;
+    --dt-danger:#ff4d4d; --dt-info:#4da6ff; --dt-warning:#ffcc00;
+  }
+  html,body{height:100%;margin:0;background:var(--dt-bg);color:var(--dt-text);font-family:system-ui,Segoe UI,Roboto,Arial}
+  /* Demo layout */
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:16px;height:100%;padding:16px;box-sizing:border-box}
+  .panel{background:#0f1522;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px}
+  /* Sidebar buttons */
+  .menu-btn{display:block;width:100%;padding:10px 12px;margin:6px 0;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0f1727,#0d1423);color:#e9eef7;cursor:pointer}
+  /* Notification area */
+  #notificationArea{position:fixed;left:360px;bottom:18px;width:320px;display:grid;gap:10px;z-index:99998}
+  .alert-box{display:none;position:relative;z-index:99999;background:var(--dt-panel);border-left:5px solid;box-shadow:0 6px 20px rgba(0,0,0,.35);padding:10px 12px;border-radius:12px}
+  .alert-box.show{display:block}
+  .alert-box h4{margin:0 0 4px}
+  .alert-box p{margin:0;color:var(--dt-muted)}
+  .alert-box.traffic{border-left-color:var(--dt-danger)}
+  .alert-box.weather{border-left-color:var(--dt-info)}
+  .alert-box.event{border-left-color:var(--dt-warning)}
+  /* tiny flash */
+  .flash{animation:flash 0.9s ease}
+  @keyframes flash{0%{transform:scale(1);box-shadow:0 0 10px rgba(255,255,255,.6)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Sidebar -->
+  <aside class="panel" style="width:340px">
+    <h3>UDT Console</h3>
+    <button id="startNotifications" class="menu-btn" aria-pressed="false">Real-time Alerts OFF</button>
+    <button id="triggerTraffic" class="menu-btn">Trigger Traffic</button>
+    <button id="triggerWeather" class="menu-btn">Trigger Weather</button>
+    <button id="triggerEvent" class="menu-btn">Trigger Event</button>
+  </aside>
+
+  <!-- Main area (placeholder) -->
+  <main class="panel">
+    <p>If you can’t see alerts popping bottom-left-ish, your CSS is haunted.</p>
+  </main>
+</div>
+
+<!-- Notifications stack -->
+<section id="notificationArea" aria-label="Live notifications">
+  <div id="trafficAlert" class="alert-box traffic" role="status" aria-live="polite">
+    <h4>Traffic Alert</h4>
+    <p class="alert-content">No traffic updates at the moment.</p>
+  </div>
+  <div id="weatherAlert" class="alert-box weather" role="status" aria-live="polite">
+    <h4>Weather Alert</h4>
+    <p class="alert-content">No weather updates at the moment.</p>
+  </div>
+  <div id="eventAlert" class="alert-box event" role="status" aria-live="polite">
+    <h4>Event Alert</h4>
+    <p class="alert-content">No event updates at the moment.</p>
+  </div>
+</section>
+
+<!-- UNIFIED NOTIFIER (inline, zero path issues) -->
+<script>
+(function(){
+  'use strict';
+  // Public API
+  window.UDTNotify = {
+    notify(type, message, opts={}) {
+      const el = document.getElementById(type + 'Alert');
+      if (!el) return false;
+      const p = el.querySelector('.alert-content');
+      if (p) p.textContent = message;
+      el.classList.add('show','flash');
+      setTimeout(() => el.classList.remove('flash'), opts.flashMs ?? 900);
+      return true;
+    },
+    hide(type){
+      document.getElementById(type + 'Alert')?.classList.remove('show','flash');
+    },
+    hideAll(){
+      document.querySelectorAll('#notificationArea .alert-box')
+        .forEach(b => b.classList.remove('show','flash'));
+    }
+  };
+
+  // Wire demo buttons
+  const btn = id => document.getElementById(id);
+  btn('startNotifications')?.addEventListener('click', function(){
+    const on = this.getAttribute('data-on') === 'true';
+    if (!on){
+      this.textContent = 'Real-time Alerts ON';
+      this.setAttribute('data-on','true');
+      this.setAttribute('aria-pressed','true');
+      UDTNotify.notify('traffic','Diagnostics: notifications online.');
+    } else {
+      this.textContent = 'Real-time Alerts OFF';
+      this.setAttribute('data-on','false');
+      this.setAttribute('aria-pressed','false');
+      UDTNotify.hideAll();
+    }
+  });
+  btn('triggerTraffic')?.addEventListener('click', () => UDTNotify.notify('traffic','A2 northbound +9 min near Empel.'));
+  btn('triggerWeather')?.addEventListener('click', () => UDTNotify.notify('weather','Thunderstorm cell 15:20–16:00.'));
+  btn('triggerEvent')?.addEventListener('click', () => UDTNotify.notify('event','Market day at Parade. Expect closures.'));
+})();
+</script>
+
+</body>
+</html>

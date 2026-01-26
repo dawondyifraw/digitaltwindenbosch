@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DenBosch Digital Twins JADS v2.0 — Jos & Daniel</title>
+
+  <!-- Vendor CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+
+  <!-- App CSS -->
+  <link href="css/main.css" rel="stylesheet" />
+  <link href="chatbotservice/chatbot.css" rel="stylesheet" />
+
+  <!-- Minimal inline styles that your main.css might not guarantee -->
+  <style>
+    /* Ensure splash and canvas stack correctly */
+    #cesiumContainer { position: fixed; inset: 0; }
+    #splashScreen { position: fixed; inset: 0; display: grid; place-items: center; z-index: 9999; background: black; color: #00ffff; }
+    .logo-container { display:flex; gap:16px; align-items:center; justify-content:center; margin:12px 0; }
+    .logo { height: 42px; width: auto; background:#fff; border-radius:6px; padding:6px; }
+
+    /* Notifications contract: hidden by default, visible when .show */
+    #notificationArea { position: fixed; bottom: 18px; left: 18px; display: grid; gap: 10px; width: 320px; z-index: 9998; pointer-events: none; }
+    .alert-box { display: none; pointer-events: auto; border-radius: 12px; padding: 10px 12px; background: rgba(17,17,17,.9); color: #e7ecf3; border-left: 5px solid; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+    .alert-box.show { display: block; }
+    .alert-box h4 { margin: 0 0 4px; font-size: .95rem; color: #00ffff; }
+    .alert-box p { margin: 0; color: #9fb0c5; }
+    .alert-box.traffic { border-left-color: #ff4d4d; }
+    .alert-box.weather { border-left-color: #4da6ff; }
+    .alert-box.event   { border-left-color: #ffcc00; }
+    .flash { animation: flash 0.9s ease; }
+    @keyframes flash { 0% { transform: scale(1); box-shadow: 0 0 10px rgba(255,255,255,.6);} 50% { transform: scale(1.03);} 100% { transform: scale(1);} }
+  </style>
+</head>
+
+<body>
+  <!-- Splash Screen -->
+  <div id="splashScreen" role="alert" aria-live="polite" aria-busy="true">
+    <div>
+      <h1>Digital Twins Den Bosch</h1>
+      <div class="logo-container">
+        <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="JADS Logo" class="logo">
+        <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Den Bosch Logo" class="logo">
+      </div>
+      <div class="loading-bar"><div></div></div>
+      <p id="loadingText">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Cesium Map Container -->
+  <div id="cesiumContainer" aria-label="3D city scene"></div>
+
+  <!-- Hover area for the auto-hide menu -->
+  <div id="menu-hover-area" aria-hidden="true"></div>
+
+  <!-- Auto-Hide Menu -->
+  <div id="menu" aria-label="Layers and Views">
+    <button id="flytoIKDBButton" class="menu-btn">Monitor IKDB</button>
+    <button id="toggleTraffic" class="menu-btn">Monitor Real-Time Traffic Patterns</button>
+    <button id="stopOrbit" class="menu-btn">Fly to Museum Areas</button>
+    <button id="startOrbit" class="menu-btn">Fly to Construction Sites</button>
+    <button id="BAGButton" class="menu-btn">Load Kadaster Building Metadata</button>
+    <button class="menu-btn" id="toggleMuseumsBtn">High Pedestrian Areas</button>
+    <button class="menu-btn" id="toggleBiodiversityBtn">Real-time Biodiversity Stream</button>
+    <button class="menu-btn" id="togglePollutionBtn">Weather, Traffic, and Noise Information</button>
+    <button id="startNotifications" class="menu-btn" aria-pressed="false">Real-time Alerts OFF</button>
+
+    <div class="controls">
+      <button class="menu-btn" id="toggleStreamBtn" aria-pressed="true">Monitor Carbon and Noise Stream ON</button>
+    </div>
+
+    <!-- Legend -->
+    <div id="legend" class="legend">
+      <h4>Building Type Legend</h4>
+      <ul>
+        <li><span class="legend-color" style="background-color: rgba(70,130,180,.8);"></span> School</li>
+        <li><span class="legend-color" style="background-color: rgba(34,139,34,.8);"></span> University</li>
+        <li><span class="legend-color" style="background-color: rgba(255,69,0,.8);"></span> Hospital</li>
+        <li><span class="legend-color" style="background-color: rgba(128,128,128,.7);"></span> Parking</li>
+        <li><span class="legend-color" style="background-color: rgba(148,0,211,.8);"></span> Church</li>
+        <li><span class="legend-color" style="background-color: rgba(255,165,0,.8);"></span> Retail</li>
+        <li><span class="legend-color" style="background-color: rgba(160,82,45,.8);"></span> Industrial</li>
+        <li><span class="legend-color" style="background-color: rgba(144,238,144,.8);"></span> Greenhouse</li>
+        <li><span class="legend-color" style="background-color: rgba(0,0,139,.8);"></span> Commercial</li>
+        <li><span class="legend-color" style="background-color: rgba(255,215,0,.8);"></span> Construction</li>
+        <li><span class="legend-color" style="background-color: rgba(255,223,0,.8);"></span> Hotel</li>
+        <li><span class="legend-color" style="background-color: rgba(255,182,193,.8);"></span> House</li>
+        <li><span class="legend-color" style="background-color: rgba(135,206,235,.8);"></span> Apartments</li>
+        <li><span class="legend-color" style="background-color: rgba(105,105,105,.8);"></span> Office</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Hover area for the auto-hide right panel -->
+  <div id="rightPanel-hover-area" aria-hidden="true"></div>
+
+  <!-- Right panel -->
+  <div id="rightPanel" aria-label="Weather and air quality">
+    <button id="closePanelBtn" title="Close panel" aria-label="Close panel">&#x2715;</button>
+    <h2>Weather and Air Quality Forecast</h2>
+    <div class="chart-container"><canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas></div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="notificationArea" aria-label="Live notifications">
+    <div id="trafficAlert" class="alert-box traffic" role="status" aria-live="polite">
+      <h4>Traffic Alert</h4>
+      <p class="alert-content">No traffic updates at the moment.</p>
+    </div>
+    <div id="weatherAlert" class="alert-box weather" role="status" aria-live="polite">
+      <h4>Weather Alert</h4>
+      <p class="alert-content">No weather updates at the moment.</p>
+    </div>
+    <div id="eventAlert" class="alert-box event" role="status" aria-live="polite">
+      <h4>Event Alert</h4>
+      <p class="alert-content">No event updates at the moment.</p>
+    </div>
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap-container">
+    <div id="minimap"></div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-container">
+    <div class="card">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>Chat with Odin</span>
+        <div>
+          <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
+          <button id="close-chat-btn" class="btn btn-sm btn-light" aria-label="Close chat">&#x2715;</button>
+        </div>
+      </div>
+      <div class="card-body chat-window" id="chat-window"></div>
+      <div class="card-footer">
+        <div class="input-group">
+          <input type="text" id="user-input" class="form-control" placeholder="Type your message...">
+          <div class="input-group-append">
+            <button class="btn btn-primary" id="send-btn" type="button">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor JS -->
+  <script defer src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+  <script defer src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script defer src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
+
+  <!-- App JS -->
+  <script defer src="js/config.js"></script>
+  <script defer src="dashboard/charts.js"></script>
+  <script defer src="js/main.js"></script>
+  <script defer src="realtimestream/kafka.js"></script>
+  <script defer src="minimap/OSM.js"></script>
+  <script defer src="chatbotservice/chatbot.js"></script>
+
+  <!-- Unified notifier INLINE (no path issues) -->
+  <script>
+    (function(){
+      'use strict';
+      window.UDTNotify = {
+        notify(type, message, opts={}) {
+          const el = document.getElementById(type + 'Alert');
+          if (!el) return false;
+          const p = el.querySelector('.alert-content');
+          if (p) p.textContent = message;
+          el.classList.add('show','flash');
+          setTimeout(() => el.classList.remove('flash'), opts.flashMs ?? 900);
+          return true;
+        },
+        hide(type){ document.getElementById(type + 'Alert')?.classList.remove('show','flash'); },
+        hideAll(){ document.querySelectorAll('#notificationArea .alert-box').forEach(b => b.classList.remove('show','flash')); }
+      };
+
+      // Minimal glue: splash auto-dismiss and a11y pressed toggles
+      const splash = document.getElementById('splashScreen');
+      const loadingText = document.getElementById('loadingText');
+      const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
+      const safeHide = () => { if (!splash) return; splash.setAttribute('aria-busy','false'); splash.style.opacity='0'; setTimeout(()=>splash.remove(),220); };
+      let waited = 0;
+      const tick = setInterval(()=>{ waited+=150; if (readyCheck()){clearInterval(tick); safeHide();} else if (waited>5000){clearInterval(tick); loadingText&&(loadingText.textContent='Still loading…'); safeHide();}},150);
+
+      const pressToggle = (btn) => btn && btn.setAttribute('aria-pressed', String(!(btn.getAttribute('aria-pressed')==='true')));
+      document.getElementById('toggleStreamBtn')?.addEventListener('click', function(){ pressToggle(this); });
+      document.getElementById('startNotifications')?.addEventListener('click', function(){
+        const on = this.getAttribute('data-on')==='true';
+        if (!on){
+          this.textContent = 'Real-time Alerts ON';
+          this.setAttribute('data-on','true'); this.setAttribute('aria-pressed','true');
+          // emit a visible test so you actually see something
+          UDTNotify.notify('traffic','Diagnostics: notifications online.');
+        } else {
+          this.textContent = 'Real-time Alerts OFF';
+          this.setAttribute('data-on','false'); this.setAttribute('aria-pressed','false');
+          UDTNotify.hideAll();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

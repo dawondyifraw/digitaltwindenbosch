@@ -1,0 +1,6 @@
+{
+    "CESIUM_TOKEN": "your-cesium-token",
+    "WEATHERAPI": "your-weather-api-key",
+    "TOMTOMAPI": "your-tomtom-api-key",
+    "AIRQUALITYAPI": "your-air-quality-api-key"
+}
