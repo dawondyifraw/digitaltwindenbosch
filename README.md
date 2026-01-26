@@ -1,297 +1,114 @@
-# Urban Digital Twin Den Bosch
+# Urban Digital Twin (Den Bosch)
 
-*A Non-Game Engine Core-Based Urban Digital Twin* Developed by **Daniel Adenew Wonyifraw**
+## Purpose
 
-[![Urban Digital Twin Core](about:sanitized)](https://via.placeholder.com/600x400?text=Urban+Digital+Twin+Core+Image)
+This is a static Web (HTML+JS+CSS) 3D/2D visualization app built on CesiumJS for the Urban Digital Twin of Den Bosch. It provides real-time data visualization for sensors, traffic, weather, and air quality in a 3D map interface.
 
-## Overview
+## Quick Start
 
-This project, part of an **Engineering Doctorate (EngD) program**, serves as the core framework for an urban digital twin. Built from the ground up, it offers greater flexibility, performance, and control over urban simulation and visualization compared to traditional game engine-based digital twins.
+- Serve the repo root with a static server: `python -m http.server` and open `http://localhost:8000`.
+- Real-time data is served separately via a WebSocket backend (default `http://localhost:5000`).
 
-## Features
+## Architecture
 
-  - **Non-Game Engine Core:** Custom-built for efficiency and scalability.
-  - **Urban Simulation & Analysis:** Data-driven insights for smart cities.
-  - **3D & 2D Visualization:** Interactive urban modeling.
-  - **Modular Architecture:** Easily extendable with GIS, IoT, and real-time data.
-  - **Scalability:** Handles large-scale urban datasets.
-  - **Data Integration:** Connects to configurable data sources for real-time or static information.
-  - **Real-time Traffic and Forecast:** Provides up-to-date information on traffic conditions.
-  - **Real-time Weather and Forecast:** Provides current and predicted weather conditions.
-  - **Real-time Air Quality and Forecast:** Monitors and predicts air quality levels.
-  - **Environmental Analysis:** Offers tools for analyzing environmental data, including chatbot and sensor streaming.
-  - **Citizen Engagement Tools:** Includes features for citizen interaction and participation, such as a chatbot.
-  - **IKDB Integration:** Integrates with the IKDB data source/system.
-  - **Dashboarding:** Provides visualization and reporting capabilities.
-  - **Context Menu:** Offers interactive options and tools.
-  - **Interactive Alerts and Notifications:** Delivers timely alerts and notifications.
-  - **3D Visualization:** Displays 3D building tiles and OSM buildings with custom styling.
-  - **Interactive Map:** Allows users to click for detailed location information.
+Client-only code lives in the repo and expects a small real-time backend for streaming sensor/Kafka data.
+
+Real-time flow: Kafka -> backend WS (socket.io) -> client `realtimestream/kafka.js` -> Cesium viewer (`js/main.js`).
+
+## Key Files / Folders
+
+- `index.html`, `indexnew.html`, `index copy.html` — primary pages.
+- `js/main.js` — core Cesium initialization and UI handlers.
+- `js/config.js` + `config.json` — global config loading pattern (dispatches `configLoaded`).
+- `realtimestream/kafka.js` — `streamkafka()` and WebSocket (`io('http://localhost:5000')`) integration.
+- `3DModels/`, `minimap/OSM.js`, `dashboard/charts.js`, `chatbotservice/`, `notificationservice/` — example modules.
+- `dashboard.html` — control console page.
+- `archive/` — archived unused files.
+
+## Project-specific Patterns and Conventions
+
+- No bundler/build system: files are loaded directly in the browser. Changes are visible after reloading the served page.
+- Global variables and events: `window.config.conf`, `document.dispatchEvent(new Event('configLoaded'))`, and globals like `viewer` are used instead of modular imports.
+- Cesium-centric: many features add `viewer.entities`, `scene.primitives`, and rely on `viewer` being globally available.
+- Streaming toggles: UI buttons bind to functions in `realtimestream/kafka.js` (`toggleStreamBtn`) and `js/main.js` (traffic, tileset toggles).
+
+## Integration & External Dependencies
+
+- Cesium Ion token is currently embedded in `js/main.js` — treat as a secret and prefer using `config.json` to override.
+- External APIs: TomTom, OpenWeatherMap (keys appear in `js/main.js` and `config.json`).
+- Socket.IO backend expected at `http://localhost:5000` (see `realtimestream/kafka.js`).
+- Kafka is referenced as the upstream stream, but the repo contains only client-side code for consumption.
+
+## Common Gotchas / Maintenance Notes
+
+- Several filenames/directories contain typos or duplicate copies (e.g., `notificaionservice` was archived due to typo; `notificationservice` kept).
+- No automated tests or CI are present — changes should be manually smoke-tested in the browser.
+- Config is loaded asynchronously; wait for the `configLoaded` event before using `window.config.conf`.
+
+## Examples of Useful Tasks
+
+- Add a small UI toggle that calls an existing function (follow existing global event patterns).
+- Move hard-coded API keys into `config.json` and update `js/config.js` usage.
+- Improve marker updates: prefer updating `viewer.entities` (existing `markers` pattern in `realtimestream/kafka.js`) instead of re-creating.
+
+## When to Open an Issue / Ask the Maintainer
+
+- If required runtime backend (socket server) or Kafka topics are unavailable and changes require server-side work.
+- If unclear which `index*.html` is intended as canonical entrypoint.
 
 ## Project Structure
 
-```text
-├── 3DModels
-│   └── car.glb
-├── LICENSE
-├── OSM.html
-├── README.md
-├── chatbotservice
-│   ├── chatbot.css
-│   └── chatbot.js
-├── config.json
-├── css
-│   └── main.css
-├── dashboard
-│   └── charts.js
-├── dashboard.html
-├── index.html
-├── js
-│   ├── config.js
-│   └── main.js
-├── minimap
-│   └── OSM.js
-├── notificationservice
-│   ├── notification_alert.css
-│   ├── notification.js
-│   ├── notifications.js
-│   ├── notifications_alert.js
-│   ├── notifications_weather_traffic_air.js
-│   └── random_notification.js
-├── notification-sound.mp3
-├── popup_html.html
-└── realtimestream
-    └── kafka.js
-
-
+```
+config.json
+dashboard.html
+index copy.html
+index.html
+indexnew.html
+influxdbclient.py
+LICENSE
+README.md
+sync.ffs_lock
+3DModels/
+architectureimages/
+archive/
+chatbotservice/
+	chatbot.css
+	chatbot.js
+	newchatbot.css
+	newchatbot.js
+css/
+	main.css
+dashboard/
+	charts.js
+js/
+	config.js
+	main.js
+minimap/
+	OSM.js
+New folder/
+notificationservice/
+	notificaion_alert.css
+	notification.js
+	notifications.js
+	notifications_alert.js
+	notifications_weather_traffic_air.js
+	radom_notfication.js
+realtimestream/
+	kafka.js
 ```
 
 ## Installation
 
-To install and run the Urban Digital Twin Core, follow these steps:
-
-1.  **Clone the Repository:**
-
-    ```
-    git clone [https://github.com/dadenewyyt/digitaltwindenbosch.git](https://github.com/dadenewyyt/digitaltwindenbosch.git)
-
-    ```
-
-2.  **Navigate to the Project Directory:**
-
-    ```
-    cd digitaltwindenbosch
-
-    ```
-
-3.  **Start a Local Web Server:**
-
-    This project is designed to run in a web browser. You'll need a local web server to serve the files. Python's built-in `http.server` is a convenient option:
-
-    ```
-    python -m http.server
-
-    ```
-
-    This command starts a simple HTTP server, typically on port 8000.
-
-4.  **Open the Application in Your Browser:**
-
-    Open your web browser and navigate to `http://localhost:8000`.
-
-## Core Functionality
-
-The Urban Digital Twin Core provides a foundation for representing a city digitally.  It's designed for extension and customization.
-
-### Core Capabilities
-
-  * **3D Scene Management:** Loads and renders 3D models and data for visualizing the urban environment.
-
-  * **Data Integration:** Connects to configurable data sources for real-time or static information, including:
-
-      * Real-time Traffic and Forecast
-
-      * Real-time Weather and Forecast
-
-      * Real-time Air Quality and Forecast
-
-  * **Modular Design:** The architecture supports adding modules.  The core system includes modules for:
-
-      * Environmental analysis with chatbot and sensor streaming
-
-      * Citizen engagement tools with chatbot
-
-      * IKDB (data source/system)
-
-      * Dashboarding
-
-      * Context Menu
-
-      * Interactive alerts and notifications
-
-### Extensibility
-
-Developers can add modules for specific needs.
-
-### Features for Developers
-
-  * Traffic Simulation
-
-  * Citizen Engagement Tools
-
-  * More dashboarding and data integrations
-
-  * Traffic overlay for construction sites
-
-  * CO2 Estimation for IKDB
-
-  * IKDB Specific Traffic
-
-## Getting Started with Development
-
-To develop with the Urban Digital Twin Core:
-
-1.  **Familiarize yourself with the codebase:** Explore the file structure, focusing on `index.html`, `js/main.js`, and the `notificationservice` and `chatbotservice` directories.
-
-2.  **Set up a development environment:** Install Python (for the local server) and use a code editor.  Consider a virtual environment for dependency management.
-
-3.  **Start with a simple extension:** Add a small feature, like a custom message on the map.
-
-4.  **Consult module documentation:** Detailed module documentation should be in the relevant directories.
-
-## Understanding `js/main.js`
-
-The `js/main.js` file is a core component of the Urban Digital Twin Core. It's the main JavaScript file that drives the application's functionality within the web browser. Here's a simplified explanation of what it typically handles:
-
-  * **Initialization:** This file initializes the 3D scene, usually using a library like CesiumJS. This involves setting up the map view, loading base layers, and configuring how the 3D environment will be displayed.
-
-  * **Data Loading and Integration:** `main.js` is responsible for loading various data sources, which could include 3D building models, terrain data, and real-time data feeds (like traffic or weather).  It then integrates this data into the 3D scene.
-
-  * **User Interaction:** It handles user interactions such as mouse clicks, zooms, and other events, allowing users to explore the digital twin.
-
-  * **Module Management:** In a modular architecture, `main.js` might load and manage different modules of the application, such as the chatbot service or the notification service.
-
-  * **Real-time Updates:** If the digital twin displays real-time data, this file manages the connection to data streams (e.g., via WebSockets) and updates the 3D scene with the latest information.  The `streamkafka` function, described in the "Real-time Data Streaming" section, is a key part of this.
-
-For someone starting with the code, focusing on how `main.js` initializes the Cesium scene and loads data would be a good starting point.
-
-## Real-time Data Streaming
-
-The Urban Digital Twin Core is capable of displaying real-time data on the map.  This is achieved using a combination of technologies:
-
-  * **Kafka:** Data is streamed using Apache Kafka, a distributed event streaming platform.
-
-  * **WebSocket:** A WebSocket connection is established to transmit the data from the server to the client.
-
-  * **CesiumJS:** The 3D map is updated dynamically with the received data.
-
-The `streamkafka` function in `js/main.js` handles the real-time data streaming.  Here's how it works:
-
-1.  **Initialization:**
-
-      * A WebSocket connection is established with the server (running on `http://localhost:5000` in this example).
-
-      * An empty object `markers` is used to store the map markers, allowing for updates instead of creating new markers for every data point.
-
-      * A custom icon is used for the markers.
-
-2.  **Data Reception and Map Update:**
-
-      * The `socket.on('kafka_data', ...)` listener receives data from the server.
-
-      * The received data contains information like latitude, longitude, CO2 level, NO2 level, PM25 level, sound level, and weather.
-
-      * The `updateMapWithData(data)` function is called to process and display the data on the map.
-
-3.  **`updateMapWithData`** Function:
-
-      * This function extracts the latitude and longitude from the received data.
-
-      * It generates a unique key based on the coordinates.
-
-      * If a marker does not exist at the given coordinates:
-
-          * A new marker is added to the Cesium scene with the following properties:
-
-              * Position:  Set using `Cesium.Cartesian3.fromDegrees`.
-
-              * Billboard:  Displays the custom icon.
-
-              * Label:  Displays the CO2 and NO2 levels.
-
-              * Description:  Provides a detailed HTML description with all the data.
-
-          * The camera flies to the location of the new marker.
-
-      * If a marker already exists at the coordinates:
-
-          * The existing marker's label and description are updated with the new data.  This ensures smooth updates on the map.
-
-4.  **Start/Stop Streaming:**
-
-      * The `startStreaming()` function initiates the WebSocket connection.
-
-      * The `stopStreaming()` function closes the WebSocket connection.
-
-      * The `toggleStream()` function is bound to a button (`toggleStreamBtn`) in the HTML.  When the button is clicked, this function starts or stops the streaming and updates the button text.
-
-This system allows for real-time visualization of sensor data (or other data streamed via Kafka) on a 3D map, providing a dynamic and interactive way to monitor urban data.
-
-## Getting Started with Development
-
-To develop with the Urban Digital Twin Core:
-
-1.  **Familiarize yourself with the codebase:** Explore the file structure, focusing on `index.html`, `js/main.js`, and the `notificationservice` and `chatbotservice` directories.
-
-2.  **Set up a development environment:** Install Python (for the local server) and use a code editor.  Consider a virtual environment for dependency management.
-
-3.  **Start with a simple extension:** Add a small feature, like a custom message on the map.
-
-4.  **Consult module documentation:** Detailed module documentation should be in the relevant directories.
-
-## Contributing
-
-**Important: Please create a personal branch for your work and submit a pull request when you're ready to contribute.  Do not push directly to the main repository.**
-
-Contributions are welcome\!
-
-1.  **Fork the repository:** Create your GitHub copy.
-
-2.  **Create** a **branch:** Make a branch for your feature or bug fix.
-
-3.  **Make changes:** Implement your contribution.
-
-4.  **Test changes:** Ensure no broken functionality and add tests.
-
-5.  **Submit a pull request:** Propose your changes.
-
-Follow these guidelines:
-
-  * Write clear commit messages.
-
-  * Follow the project's code style.
-
-  * Provide tests for new features.
-
-  * Update documentation.
+1. Clone the repository.
+2. Navigate to the project directory.
+3. Start a local web server: `python -m http.server`
+4. Open `http://localhost:8000` in your browser.
 
 ## License
 
-[MIT License](https://github.com/dadenewyyt/digitaltwindenbosch/blob/main/LICENSE)
+[MIT License](LICENSE)
 
 ## Contact
 
-For inquiries, contact **Daniel Adenew Wonyifraw** at [danielwondyifrawatoutlook.com](mailto:danielwondyifrawatoutlook.com).
-
-## 3D Web Application for Den Bosch
-
-This project is a 3D web application built with CesiumJS, visualizing geographical data for Den Bosch, Netherlands. It integrates 3D building tiles, OpenStreetMap (OSM) buildings, weather, air quality, and traffic information.
-
-## Features
-
-  * **3D Visualization:** Displays 3D building tiles and OSM buildings with custom styling.
-
-  * \*\*Interactive
-
-<!-- end list -->
+For inquiries, contact Daniel Wonyifraw at danielwondyifrawatoutlook.com.
 
