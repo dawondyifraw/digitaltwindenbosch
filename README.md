@@ -43,7 +43,7 @@ A production‑grade, static web console for the Den Bosch Urban Digital Twin. T
 
 ### Requirements
 
-- Python 3.8+
+- Any static file server (example: `python -m http.server`)
 - Modern browser (Chrome/Edge)
 
 ### Run Locally
@@ -67,7 +67,17 @@ http://localhost:8000
 
 - `config.json` is loaded by `js/config.js`.
 - External API keys are referenced in `js/main.js`.
-- Prefer storing keys in `config.json` and reading them after `configLoaded`.
+- Store keys in `config.json` and read them after `configLoaded`. Keep `config.json` free of real secrets in this repo.
+
+### Config Fields
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `CESIUM_TOKEN` | Yes | Cesium Ion access token. |
+| `TOMTOMAPI` | Yes | TomTom traffic API key. |
+| `AIRQUALITYAPI` | Yes | Air quality API key (also used as fallback for weather). |
+| `WEATHERAPI` | No | Weather API key. If omitted, `AIRQUALITYAPI` is used. |
+| `othersconf` | No | Optional placeholder for future settings. |
 
 ## Biodiversity Data Source (Trees)
 
@@ -127,8 +137,6 @@ python scripts/ui_smoke_test.py
 ```
 [FILE] config.json
 [FILE] index.html
-[FILE] indexnew.html
-[FILE] index copy.html
 [FILE] README.md
 [DIR ] 3DModels/
 [DIR ] architecture/
