@@ -163,4 +163,4 @@ python scripts/ui_smoke_test.py
 
 ## License
 
-[MIT License](LICENSE)
+[Apache 2.0 License](LICENSE)
