@@ -1,100 +1,83 @@
 # Urban Digital Twin — Den Bosch (demoUIv3.o)
 
-A professional 3D/2D web console for the Den Bosch Urban Digital Twin. This is a static HTML/CSS/JS application that renders CesiumJS 3D content, overlays live sensor data, and provides operational panels for traffic, air quality, weather, and alerts.
+A production‑grade, static web console for the Den Bosch Urban Digital Twin. The application renders CesiumJS 3D content, overlays live data streams, and provides operational controls for traffic, air quality, weather, alerts, and analytics. This release is Runner 3.0 with a major upgrade to UI quality and overall stability.
 
-## What This Project Does
+## Demo UI v3.0 Runner
 
-- 3D city visualization with CesiumJS
-- Live telemetry overlays (traffic, air quality, noise)
-- Analytics side panel with charts
-- Notifications and alert system
-- Built‑in assistant chat panel
-- Minimap overview
-- Museum area fly‑to (Museumkwartier)
-- Biodiversity stream with tree points overlay
+![demo v3 UI](architecture/demo_v3_UI.png)
 
-## Architecture (End‑to‑End)
+## Architecture Overview
 
 ```
 [Data Sources]
   - Kafka topics (traffic, sensors, environment)
   - External APIs (TomTom, OpenWeatherMap)
-           |
-           v
-[Backend Streaming Service]
-  - Socket.IO gateway (default: http://localhost:5000)
-           |
-           v
+        |
+        v
+[Streaming Gateway]
+  - Socket.IO backend (default: http://localhost:5000)
+        |
+        v
 [Client Web App]
   - CesiumJS viewer
   - Real‑time stream handlers
   - UI controls (menus, panels, alerts)
 ```
 
-### Runtime Components
+## Architecture Visual
 
-- **Cesium Viewer**: main 3D scene and entity layer. See `js/main.js`.
-- **Real‑time Stream**: Socket.IO client to Kafka bridge. See `realtimestream/kafka.js`.
-- **Charts**: Forecast and analytics charts. See `dashboard/charts.js`.
-- **Notifications**: Visual alerts and sound cues. See `notificationservice/`.
-- **Chat Assistant**: Lightweight UI layer. See `chatbotservice/`.
-- **Minimap**: OSM overlay map. See `minimap/OSM.js`.
-- **Biodiversity Stream**: Tree points from the Den Bosch Geoportal ArcGIS service.
+![Architecture diagram](architecture/architecture-diagram.jpg)
 
-## Entry Points
+## Key Capabilities
 
-- `index.html` — primary UI entry (UI v3.0 Runner)
-- `indexnew.html` and `index copy.html` — legacy or experimental pages
-
-## Key Files
-
-- `js/main.js` — Cesium initialization, UI bindings, and interaction logic
-- `js/config.js` + `config.json` — global config loader (dispatches `configLoaded`)
-- `realtimestream/kafka.js` — real‑time socket client
-- `css/main.css` — primary UI theme
-- `notificationservice/notifications_alert.js` — alerts and audio
+- CesiumJS 3D city visualization
+- Real‑time telemetry overlays (traffic, air quality, noise)
+- Analytics side panel with charts
+- Alerts and notification system (sound + UI)
+- Chat assistant UI
+- Minimap overview
+- Museumkwartier fly‑to preset (UI v3.0 Runner)
+- Biodiversity stream overlay (tree points)
 
 ## Setup
 
 ### Requirements
 
-- Python 3.8+ (for local static server and test script)
-- A modern browser (Chrome/Edge recommended)
+- Python 3.8+
+- Modern browser (Chrome/Edge)
 
 ### Run Locally
-
-1. Start a local web server in the repo root:
 
 ```
 python -m http.server
 ```
 
-2. Open in the browser:
+Open:
 
 ```
 http://localhost:8000
 ```
 
-### Optional Backends
+### Backend Integration (Optional)
 
-- Socket.IO real‑time backend (default `http://localhost:5000`) is expected for live streams.
-- Kafka is upstream of the backend. This repo only contains client‑side code.
+- Socket.IO backend default: `http://localhost:5000` (see `realtimestream/kafka.js`).
+- Kafka is upstream of the backend. This repo contains client‑side code only.
 
 ## Configuration
 
 - `config.json` is loaded by `js/config.js`.
-- Keys like Cesium Ion, TomTom, and OpenWeatherMap are referenced in `js/main.js`.
-- Prefer moving keys to `config.json` and accessing them after `configLoaded`.
+- External API keys are referenced in `js/main.js`.
+- Prefer storing keys in `config.json` and reading them after `configLoaded`.
 
 ## Biodiversity Data Source (Trees)
 
-The biodiversity overlay pulls tree point data from the Den Bosch geoportal ArcGIS REST service.
+ArcGIS REST service (Den Bosch geoportal):
 
 ```
 https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11
 ```
 
-Example query (envelope around Den Bosch, WGS84):
+Example query (Den Bosch envelope, WGS84):
 
 ```
 https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11/query?where=1%3D1&outFields=*&f=json&geometryType=esriGeometryEnvelope&geometry=5.20,51.62,5.45,51.78&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&resultRecordCount=800
@@ -102,52 +85,77 @@ https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/1
 
 ## Museum Fly‑To Target
 
-The “Fly to Museum Areas” button centers on Museumkwartier (Noordbrabants Museum + Design Museum) in ’s‑Hertogenbosch.
+Museumkwartier center (Noordbrabants Museum + Design Museum):
 
 ```
-Center: 51.6863, 5.3043
+51.6863, 5.3043
 ```
 
 ## Tests
 
-A lightweight Python smoke test verifies that key UI elements and files exist.
-
-Run:
+Run the UI smoke test:
 
 ```
 python scripts/ui_smoke_test.py
 ```
 
+## Deployment Guidelines
+
+![Deployment guidance](architecture/deployment-guidance.png)
+
+### Static Hosting (Recommended)
+
+1. Upload the repository to a static host (Nginx/IIS/object storage).
+2. Serve the repo root and preserve relative paths.
+3. Ensure correct MIME types for `.json`, `.js`, and `.css`.
+4. Use HTTPS if external APIs require it.
+
+### On‑Premises / Air‑Gapped
+
+1. Host CesiumJS and CDN assets locally.
+2. Replace external CDN links in `index.html` with local copies.
+3. Update `config.json` to internal API endpoints and tokens.
+
+### Backend Integration
+
+1. Start the Socket.IO backend at `http://localhost:5000` or update the URL in `realtimestream/kafka.js`.
+2. Confirm Kafka topics are available and mapped to the backend stream.
+3. Validate the biodiversity endpoint and CORS access (or proxy it).
+
 ## Project Structure
 
 ```
-config.json
-index.html
-indexnew.html
-index copy.html
-README.md
-3DModels/
-archive/
-chatbotservice/
-css/
-dashboard/
-js/
-minimap/
-notificationservice/
-realtimestream/
-scripts/
+[FILE] config.json
+[FILE] index.html
+[FILE] indexnew.html
+[FILE] index copy.html
+[FILE] README.md
+[DIR ] 3DModels/
+[DIR ] architecture/
+[DIR ] archive/
+[DIR ] chatbotservice/
+[DIR ] css/
+[DIR ] dashboard/
+[DIR ] js/
+[DIR ] minimap/
+[DIR ] notificationservice/
+[DIR ] realtimestream/
+[DIR ] scripts/
 ```
 
-## Operational Notes
+## File Map (Linked)
 
-- No bundler: this is a static site. Reload the browser to see changes.
-- Global variables are used (e.g., `viewer`). Avoid modular imports unless refactoring.
-- The UI expects certain element IDs; keep them stable when editing markup.
+- [FILE] [index.html](index.html) — primary UI entry (UI v3.0 Runner)
+- [FILE] [config.json](config.json) — runtime configuration
+- [FILE] [js/main.js](js/main.js) — Cesium initialization + UI wiring
+- [FILE] [js/config.js](js/config.js) — config loader (dispatches `configLoaded`)
+- [FILE] [realtimestream/kafka.js](realtimestream/kafka.js) — Socket.IO stream client
+- [FILE] [css/main.css](css/main.css) — main UI theme
+- [DIR ] [notificationservice/](notificationservice) — alerts + notifications
+- [DIR ] [chatbotservice/](chatbotservice) — assistant UI
+- [DIR ] [architecture/](architecture) — UI/architecture images
+- [FILE] [scripts/ui_smoke_test.py](scripts/ui_smoke_test.py) — smoke test
 
 ## License
 
 [MIT License](LICENSE)
-
-## Contact
-
-For inquiries, contact Daniel Wonyifraw at danielwondyifrawatoutlook.com.
