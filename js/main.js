@@ -11,6 +11,13 @@ let airQualityApiKey = "";
 let weatherApiKey = "";
 
 let osmBuildingsTileset = null;
+let biodiversityState = {
+    active: false,
+    dataSource: null,
+    refreshTimer: null
+};
+
+const BIODIVERSITY_SERVICE_URL = "https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11";
 
 // Helper to get elements
 function $(id) {
@@ -37,11 +44,33 @@ function waitForConfig() {
 }
 
 // Entry point
+
 document.addEventListener("DOMContentLoaded", () => {
     startApp().catch((err) => {
+        showCesiumErrorPopup("Error during app start: " + err);
         console.error("Error during app start:", err);
     });
 });
+
+function showCesiumErrorPopup(message) {
+    let popup = document.createElement('div');
+    popup.style.position = 'fixed';
+    popup.style.top = '0';
+    popup.style.left = '0';
+    popup.style.width = '100vw';
+    popup.style.height = '100vh';
+    popup.style.background = 'rgba(0,0,0,0.6)';
+    popup.style.display = 'flex';
+    popup.style.alignItems = 'center';
+    popup.style.justifyContent = 'center';
+    popup.style.zIndex = '9999';
+    popup.innerHTML = `<div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px #0003;text-align:center;max-width:90vw;max-height:80vh;overflow:auto;">
+        <h2 style='color:#c00;margin-bottom:1em;'>3D Viewer Error</h2>
+        <p style='margin-bottom:1.5em;'>${message}</p>
+        <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#0d6efd;color:#fff;cursor:pointer;' onclick='this.closest("div").parentNode.remove()'>Close</button>
+    </div>`;
+    document.body.appendChild(popup);
+}
 
 async function startApp() {
     await waitForConfig();
@@ -56,8 +85,16 @@ async function startApp() {
 
     console.log("Weather API Key:", weatherApiKey);
 
-    await initCesium();
-    wireUi();
+    try {
+        await initCesium();
+        wireUi();
+        // Hide splash only after Cesium and tiles are loaded
+        const splash = document.getElementById('splashScreen');
+        if (splash) splash.style.display = 'none';
+    } catch (err) {
+        showCesiumErrorPopup("Failed to load 3D viewer or tiles: " + err);
+        throw err;
+    }
 }
 
 // Wire UI buttons
@@ -75,6 +112,11 @@ function wireUi() {
     const bagBtn = $("BAGButton");
     if (bagBtn) {
         bagBtn.addEventListener("click", toggleBuildings);
+    }
+
+    const biodiversityBtn = $("toggleBiodiversityBtn");
+    if (biodiversityBtn) {
+        biodiversityBtn.addEventListener("click", toggleBiodiversityStream);
     }
 }
 
@@ -107,45 +149,50 @@ async function loadBuildings3DTiles() {
 
 // Init Cesium viewer
 async function initCesium() {
-    viewer = new Cesium.Viewer("cesiumContainer", {
-        terrainProvider: Cesium.createWorldTerrain(),
-        imageryProvider: Cesium.createWorldImagery(),
-        requestRenderMode: true,
-        animation: true,
-        timeline: true,
-        sceneMode: Cesium.SceneMode.SCENE3D,
-        baseLayerPicker: false
-    });
+    try {
+        viewer = new Cesium.Viewer("cesiumContainer", {
+            terrainProvider: Cesium.createWorldTerrain(),
+            imageryProvider: Cesium.createWorldImagery(),
+            requestRenderMode: true,
+            animation: true,
+            timeline: true,
+            sceneMode: Cesium.SceneMode.SCENE3D,
+            baseLayerPicker: false
+        });
 
-    // Replace Cesium logo with Den Bosch logo
-    viewer.scene.postRender.addEventListener(() => {
-        const creditContainer = document.querySelector(".cesium-credit-logoContainer");
-        if (creditContainer) {
-            creditContainer.innerHTML = `
-                <a href="https://www.denbosch.nl" target="_blank">
-                    <img title="Den Bosch"
-                         src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg"
-                         style="width: 150px;">
-                </a>`;
+        // Replace Cesium logo with Den Bosch logo
+        viewer.scene.postRender.addEventListener(() => {
+            const creditContainer = document.querySelector(".cesium-credit-logoContainer");
+            if (creditContainer) {
+                creditContainer.innerHTML = `
+                    <a href="https://www.denbosch.nl" target="_blank">
+                        <img title="Den Bosch"
+                             src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg"
+                             style="width: 150px;">
+                    </a>`;
+            }
+        });
+
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        viewer.scene.skyBox.show = false;
+        viewer.scene.backgroundColor = Cesium.Color.BLACK;
+        viewer.scene.globe.enableLighting = true;
+        viewer.shadows = true;
+        viewer.camera.frustum.far = 10000000.0;
+
+        if (viewer.dataSources.length > 0) {
+            viewer.dataSources.get(0).clustering.enabled = false;
         }
-    });
 
-    viewer.scene.globe.depthTestAgainstTerrain = true;
-    viewer.scene.skyBox.show = false;
-    viewer.scene.backgroundColor = Cesium.Color.BLACK;
-    viewer.scene.globe.enableLighting = true;
-    viewer.shadows = true;
-    viewer.camera.frustum.far = 10000000.0;
+        viewer.entities.removeAll();
 
-    if (viewer.dataSources.length > 0) {
-        viewer.dataSources.get(0).clustering.enabled = false;
+        await loadTileset();
+        setupMapClickHandler();
+        addCombinedContextMenu(viewer);
+    } catch (err) {
+        showCesiumErrorPopup("Cesium initialization failed: " + err);
+        throw err;
     }
-
-    viewer.entities.removeAll();
-
-    await loadTileset();
-    setupMapClickHandler();
-    addCombinedContextMenu(viewer);
 }
 
 // Load base 3D tiles + OSM buildings and style them
@@ -630,7 +677,152 @@ function flytoIKDB() {
             pitch: Cesium.Math.toRadians(-30),
             roll: 0.0
         },
-        duration: 3.0
+      duration: 3.0
+  });
+}
+
+async function toggleBiodiversityStream() {
+    const button = $("toggleBiodiversityBtn");
+    if (!viewer) return;
+
+    if (biodiversityState.active) {
+        biodiversityState.active = false;
+        if (biodiversityState.refreshTimer) {
+            clearInterval(biodiversityState.refreshTimer);
+            biodiversityState.refreshTimer = null;
+        }
+        if (biodiversityState.dataSource) {
+            viewer.dataSources.remove(biodiversityState.dataSource, true);
+            biodiversityState.dataSource = null;
+        }
+        if (button) {
+            button.textContent = "Biodiversity Stream OFF";
+            button.setAttribute("aria-pressed", "false");
+        }
+        return;
+    }
+
+    biodiversityState.active = true;
+    if (button) {
+        button.textContent = "Biodiversity Stream ON";
+        button.setAttribute("aria-pressed", "true");
+    }
+
+    await loadBiodiversityTrees();
+    biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
+}
+
+async function loadBiodiversityTrees() {
+    if (!viewer) return;
+
+    const bbox = {
+        xmin: 5.20,
+        ymin: 51.62,
+        xmax: 5.45,
+        ymax: 51.78
+    };
+
+    const params = new URLSearchParams({
+        where: "1=1",
+        outFields: "*",
+        f: "json",
+        geometryType: "esriGeometryEnvelope",
+        geometry: `${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}`,
+        inSR: "4326",
+        outSR: "4326",
+        spatialRel: "esriSpatialRelIntersects",
+        resultRecordCount: "800"
+    });
+
+    const requestUrl = `${BIODIVERSITY_SERVICE_URL}/query?${params.toString()}`;
+
+    try {
+        const response = await fetch(requestUrl);
+        if (!response.ok) {
+            throw new Error(`Biodiversity fetch failed: ${response.status}`);
+        }
+        const data = await response.json();
+        const features = Array.isArray(data.features) ? data.features : [];
+        if (!features.length) {
+            showNotification("event", "No biodiversity tree points found in the current area.");
+            return;
+        }
+
+        if (!biodiversityState.dataSource) {
+            biodiversityState.dataSource = new Cesium.CustomDataSource("biodiversityTrees");
+            viewer.dataSources.add(biodiversityState.dataSource);
+        } else {
+            biodiversityState.dataSource.entities.removeAll();
+        }
+
+        const pointColor = Cesium.Color.fromCssColorString("#3dd6c6").withAlpha(0.85);
+        const outlineColor = Cesium.Color.fromCssColorString("#0b1220");
+
+        features.forEach((feature) => {
+            if (!feature || !feature.geometry) return;
+            const { x, y } = feature.geometry;
+            if (typeof x !== "number" || typeof y !== "number") return;
+
+            const attributes = feature.attributes || {};
+            const title =
+                attributes.Boomsoort ||
+                attributes.Soort ||
+                attributes.naam ||
+                attributes.Naam ||
+                "Tree";
+
+            const description = buildAttributesTable(attributes);
+
+            biodiversityState.dataSource.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(x, y, 0),
+                point: {
+                    pixelSize: 5,
+                    color: pointColor,
+                    outlineColor: outlineColor,
+                    outlineWidth: 1
+                },
+                name: title,
+                description
+            });
+        });
+    } catch (error) {
+        console.error("Biodiversity stream error:", error);
+        showNotification("event", "Biodiversity stream unavailable (API blocked or offline).");
+    }
+}
+
+function buildAttributesTable(attributes) {
+    const entries = Object.entries(attributes || {}).slice(0, 8);
+    if (!entries.length) return "No attributes available.";
+
+    const rows = entries
+        .map(([key, value]) => `<tr><td style="padding:4px 8px;color:#9fb2c8;">${key}</td><td style="padding:4px 8px;color:#e6edf6;">${value}</td></tr>`)
+        .join("");
+
+    return `<table style="border-collapse:collapse;font-size:12px;">${rows}</table>`;
+}
+
+function flyToMuseumArea() {
+    if (!viewer) return;
+    stopOrbit();
+    const museumCenter = {
+        longitude: 5.3043,
+        latitude: 51.6863,
+        height: 750
+    };
+
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+            museumCenter.longitude,
+            museumCenter.latitude,
+            museumCenter.height
+        ),
+        orientation: {
+            heading: Cesium.Math.toRadians(15),
+            pitch: Cesium.Math.toRadians(-35),
+            roll: 0.0
+        },
+        duration: 2.4
     });
 }
 
@@ -780,11 +972,9 @@ function addCombinedContextMenu(viewer) {
 
     const contextMenu = document.createElement("div");
     contextMenu.id = "contextMenu";
+    contextMenu.className = "context-menu";
     contextMenu.style.display = "none";
     contextMenu.style.position = "absolute";
-    contextMenu.style.background = "#ffffff";
-    contextMenu.style.border = "1px solid #ccc";
-    contextMenu.style.padding = "10px";
     contextMenu.style.zIndex = "1000";
     document.body.appendChild(contextMenu);
 
@@ -794,10 +984,19 @@ function addCombinedContextMenu(viewer) {
         <div id="centerHere">Center Here</div>
         <hr>
         <div id="analyzeHere">Analyze Here</div>
+        <div id="dashboardBtn" style="margin: 6px 0; color: #0d6efd; cursor: pointer; font-weight: 600;">Dashboard</div>
         <div id="showInfo">Show Info</div>
         <div id="showSettings">Settings</div>
         <div id="showHelp">Help</div>
     `;
+    // Dashboard button event
+    const dashboardBtn = $("dashboardBtn");
+    if (dashboardBtn) {
+        dashboardBtn.addEventListener("click", () => {
+            window.open("dashboard/dashboard_sensors.html", "_blank");
+            hideContextMenu();
+        });
+    }
 
     function showContextMenu(x, y) {
         contextMenu.style.left = x + "px";
@@ -1097,7 +1296,7 @@ function addCombinedContextMenu(viewer) {
 
     if (stopOrbitBtn) {
         stopOrbitBtn.addEventListener("click", function () {
-            stopOrbit();
+            flyToMuseumArea();
         });
     }
 }

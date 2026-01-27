@@ -16,83 +16,65 @@
   <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
   <link href="css/main.css" rel="stylesheet" />
-  <link href="notificaionservice/notificaion_alert.css" rel="stylesheet" />
-  <link href="chatbotservice/newchatbot.css" rel="stylesheet" />
+  <link href="notificationservice/notification_alert.css" rel="stylesheet" />
+  <link href="chatbotservice/chatbot.css" rel="stylesheet" />
 
   <style>
-    /* Sidebar pro styles layered on top of main.css */
-    .sidebar { position: fixed; top: 12px; left: 12px; bottom: 12px; width: 320px; z-index: var(--z-menu); background: rgba(12,16,28,.88); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; backdrop-filter: blur(8px); padding: 10px 10px 16px; overflow: auto; box-shadow: var(--dt-shadow); }
-    .sidebar-header { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 6px 10px; border-bottom: 1px solid rgba(255,255,255,.06); margin-bottom: 6px; }
-    .sidebar .brand { font-weight: 700; letter-spacing: .3px; }
-    .sidebar .version { color: var(--dt-muted); font-size: .85rem; }
-    .menu-group { margin-top: 8px; }
-    .menu-toggle { width: 100%; display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, #0f1727, #0d1423); color: #e9eef7; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); cursor: pointer; }
-    .menu-toggle .icon { display: inline-block; transition: transform .18s ease; }
-    .menu-toggle[aria-expanded="true"] .icon { transform: rotate(90deg); }
-    .submenu { list-style: none; margin: 6px 0 0; padding: 0; border-left: 2px solid rgba(255,255,255,.06); max-height: 0; overflow: hidden; transition: max-height .22s ease; }
-    .submenu.open { max-height: 480px; }
-    .menu-item, .menu-link { width: 100%; text-align: left; padding: 9px 12px; margin: 6px 0 0; border-radius: 10px; background: rgba(17,17,17,.55); color: var(--dt-text); border: 1px solid rgba(255,255,255,.06); cursor: pointer; display: inline-flex; align-items: center; justify-content: space-between; }
-    .menu-item:hover, .menu-link:hover { background: rgba(255,255,255,.08); text-decoration: none; }
-    /* Right panel open/close states */
-#rightPanel {
-  transform: translateX(0);
-  transition: transform 0.22s ease, opacity 0.22s ease;
-}
-#rightPanel.is-closed {
-  transform: translateX(110%);
-  opacity: 0;
-  pointer-events: none;
-}
+    /* Open/close states */
+    #rightPanel {
+      transform: translateX(0);
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+    #rightPanel.is-closed {
+      transform: translateX(110%);
+      opacity: 0;
+      pointer-events: none;
+    }
 
-/* Chat open/close states */
-.chat-container {
-  transition: transform 0.22s ease, opacity 0.22s ease;
-}
-.chat-container.is-closed {
-  transform: translate(-50%, 140%);
-  opacity: 0;
-  pointer-events: none;
-}
-#contextMenu {
-  position: absolute;
-  display: none;
-  background: rgba(7, 11, 24, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 6px 0;
-  z-index: 12000;
-  min-width: 180px;
-  box-shadow: 0 10px 25px rgba(17, 15, 15, 0.75);
-  backdrop-filter: blur(12px);
-  color: var(--dt-text);
-  font-size: 0.88rem;
-}
+    .chat-container {
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+    .chat-container.is-closed {
+      transform: translate(-50%, 140%);
+      opacity: 0;
+      pointer-events: none;
+    }
 
-/* Menu items */
-#contextMenu {
-  background: rgba(84, 155, 177, 0.96) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: var(--dt-text) !important;
-}
+    /* Context menu */
+    #contextMenu {
+      position: absolute;
+      display: none;
+      background: rgba(8, 14, 26, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 6px 0;
+      z-index: 12000;
+      min-width: 180px;
+      box-shadow: 0 14px 30px rgba(6, 10, 20, 0.7);
+      backdrop-filter: blur(12px);
+      color: #e6edf6;
+      font-size: 0.9rem;
+      font-weight: 500;
+      line-height: 1.2;
+    }
 
-#contextMenu > div {
-  background: transparent !important;
-  color: var(--dt-text) !important;
-}
+    #contextMenu > div {
+      background: transparent;
+      color: #e6edf6;
+      padding: 9px 14px;
+      white-space: nowrap;
+    }
 
-/* Hover effect */
-#contextMenu > div:hover {
-  background: rgba(59, 130, 246, 0.18);
-  color: #0d868a;
-}
+    #contextMenu > div:hover {
+      background: rgba(61, 214, 198, 0.16);
+      color: #e6edf6;
+    }
 
-/* Divider */
-#contextMenu hr {
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin: 4px 0;
-}
-
+    #contextMenu hr {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 4px 0;
+    }
   </style>
 </head>
 <body>
@@ -125,7 +107,7 @@
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
       <div class="brand">UDT Console</div>
-      <div class="version">MVP v2.0</div>
+      <div class="version">UI v3.0 Runner</div>
     </div>
 
     <section class="menu-group">
@@ -199,15 +181,15 @@
 
   <!-- Notifications -->
   <section id="notificationArea" aria-label="Live notifications">
-    <div id="trafficAlert" class="alert-box traffic" role="status" aria-live="polite">
+    <div id="trafficAlert" class="alert-box traffic is-hidden" role="status" aria-live="polite">
       <h4>Traffic Alert</h4>
       <p class="alert-content">No traffic updates at the moment.</p>
     </div>
-    <div id="weatherAlert" class="alert-box weather" role="status" aria-live="polite">
+    <div id="weatherAlert" class="alert-box weather is-hidden" role="status" aria-live="polite">
       <h4>Weather Alert</h4>
       <p class="alert-content">No weather updates at the moment.</p>
     </div>
-    <div id="eventAlert" class="alert-box event" role="status" aria-live="polite">
+    <div id="eventAlert" class="alert-box event is-hidden" role="status" aria-live="polite">
       <h4>Event Alert</h4>
       <p class="alert-content">No event updates at the moment.</p>
     </div>

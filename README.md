@@ -1,108 +1,148 @@
-# Urban Digital Twin (Den Bosch)
+# Urban Digital Twin — Den Bosch (demoUIv3.o)
 
-## Purpose
+A professional 3D/2D web console for the Den Bosch Urban Digital Twin. This is a static HTML/CSS/JS application that renders CesiumJS 3D content, overlays live sensor data, and provides operational panels for traffic, air quality, weather, and alerts.
 
-This is a static Web (HTML+JS+CSS) 3D/2D visualization app built on CesiumJS for the Urban Digital Twin of Den Bosch. It provides real-time data visualization for sensors, traffic, weather, and air quality in a 3D map interface.
+## What This Project Does
 
-## Quick Start
+- 3D city visualization with CesiumJS
+- Live telemetry overlays (traffic, air quality, noise)
+- Analytics side panel with charts
+- Notifications and alert system
+- Built‑in assistant chat panel
+- Minimap overview
+- Museum area fly‑to (Museumkwartier)
+- Biodiversity stream with tree points overlay
 
-- Serve the repo root with a static server: `python -m http.server` and open `http://localhost:8000`.
-- Real-time data is served separately via a WebSocket backend (default `http://localhost:5000`).
+## Architecture (End‑to‑End)
 
-## Architecture
+```
+[Data Sources]
+  - Kafka topics (traffic, sensors, environment)
+  - External APIs (TomTom, OpenWeatherMap)
+           |
+           v
+[Backend Streaming Service]
+  - Socket.IO gateway (default: http://localhost:5000)
+           |
+           v
+[Client Web App]
+  - CesiumJS viewer
+  - Real‑time stream handlers
+  - UI controls (menus, panels, alerts)
+```
 
-Client-only code lives in the repo and expects a small real-time backend for streaming sensor/Kafka data.
+### Runtime Components
 
-Real-time flow: Kafka -> backend WS (socket.io) -> client `realtimestream/kafka.js` -> Cesium viewer (`js/main.js`).
+- **Cesium Viewer**: main 3D scene and entity layer. See `js/main.js`.
+- **Real‑time Stream**: Socket.IO client to Kafka bridge. See `realtimestream/kafka.js`.
+- **Charts**: Forecast and analytics charts. See `dashboard/charts.js`.
+- **Notifications**: Visual alerts and sound cues. See `notificationservice/`.
+- **Chat Assistant**: Lightweight UI layer. See `chatbotservice/`.
+- **Minimap**: OSM overlay map. See `minimap/OSM.js`.
+- **Biodiversity Stream**: Tree points from the Den Bosch Geoportal ArcGIS service.
 
-## Key Files / Folders
+## Entry Points
 
-- `index.html`, `indexnew.html`, `index copy.html` — primary pages.
-- `js/main.js` — core Cesium initialization and UI handlers.
-- `js/config.js` + `config.json` — global config loading pattern (dispatches `configLoaded`).
-- `realtimestream/kafka.js` — `streamkafka()` and WebSocket (`io('http://localhost:5000')`) integration.
-- `3DModels/`, `minimap/OSM.js`, `dashboard/charts.js`, `chatbotservice/`, `notificationservice/` — example modules.
-- `dashboard.html` — control console page.
-- `archive/` — archived unused files.
+- `index.html` — primary UI entry (UI v3.0 Runner)
+- `indexnew.html` and `index copy.html` — legacy or experimental pages
 
-## Project-specific Patterns and Conventions
+## Key Files
 
-- No bundler/build system: files are loaded directly in the browser. Changes are visible after reloading the served page.
-- Global variables and events: `window.config.conf`, `document.dispatchEvent(new Event('configLoaded'))`, and globals like `viewer` are used instead of modular imports.
-- Cesium-centric: many features add `viewer.entities`, `scene.primitives`, and rely on `viewer` being globally available.
-- Streaming toggles: UI buttons bind to functions in `realtimestream/kafka.js` (`toggleStreamBtn`) and `js/main.js` (traffic, tileset toggles).
+- `js/main.js` — Cesium initialization, UI bindings, and interaction logic
+- `js/config.js` + `config.json` — global config loader (dispatches `configLoaded`)
+- `realtimestream/kafka.js` — real‑time socket client
+- `css/main.css` — primary UI theme
+- `notificationservice/notifications_alert.js` — alerts and audio
 
-## Integration & External Dependencies
+## Setup
 
-- Cesium Ion token is currently embedded in `js/main.js` — treat as a secret and prefer using `config.json` to override.
-- External APIs: TomTom, OpenWeatherMap (keys appear in `js/main.js` and `config.json`).
-- Socket.IO backend expected at `http://localhost:5000` (see `realtimestream/kafka.js`).
-- Kafka is referenced as the upstream stream, but the repo contains only client-side code for consumption.
+### Requirements
 
-## Common Gotchas / Maintenance Notes
+- Python 3.8+ (for local static server and test script)
+- A modern browser (Chrome/Edge recommended)
 
-- Several filenames/directories contain typos or duplicate copies (e.g., `notificaionservice` was archived due to typo; `notificationservice` kept).
-- No automated tests or CI are present — changes should be manually smoke-tested in the browser.
-- Config is loaded asynchronously; wait for the `configLoaded` event before using `window.config.conf`.
+### Run Locally
 
-## Examples of Useful Tasks
+1. Start a local web server in the repo root:
 
-- Add a small UI toggle that calls an existing function (follow existing global event patterns).
-- Move hard-coded API keys into `config.json` and update `js/config.js` usage.
-- Improve marker updates: prefer updating `viewer.entities` (existing `markers` pattern in `realtimestream/kafka.js`) instead of re-creating.
+```
+python -m http.server
+```
 
-## When to Open an Issue / Ask the Maintainer
+2. Open in the browser:
 
-- If required runtime backend (socket server) or Kafka topics are unavailable and changes require server-side work.
-- If unclear which `index*.html` is intended as canonical entrypoint.
+```
+http://localhost:8000
+```
+
+### Optional Backends
+
+- Socket.IO real‑time backend (default `http://localhost:5000`) is expected for live streams.
+- Kafka is upstream of the backend. This repo only contains client‑side code.
+
+## Configuration
+
+- `config.json` is loaded by `js/config.js`.
+- Keys like Cesium Ion, TomTom, and OpenWeatherMap are referenced in `js/main.js`.
+- Prefer moving keys to `config.json` and accessing them after `configLoaded`.
+
+## Biodiversity Data Source (Trees)
+
+The biodiversity overlay pulls tree point data from the Den Bosch geoportal ArcGIS REST service.
+
+```
+https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11
+```
+
+Example query (envelope around Den Bosch, WGS84):
+
+```
+https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11/query?where=1%3D1&outFields=*&f=json&geometryType=esriGeometryEnvelope&geometry=5.20,51.62,5.45,51.78&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&resultRecordCount=800
+```
+
+## Museum Fly‑To Target
+
+The “Fly to Museum Areas” button centers on Museumkwartier (Noordbrabants Museum + Design Museum) in ’s‑Hertogenbosch.
+
+```
+Center: 51.6863, 5.3043
+```
+
+## Tests
+
+A lightweight Python smoke test verifies that key UI elements and files exist.
+
+Run:
+
+```
+python scripts/ui_smoke_test.py
+```
 
 ## Project Structure
 
 ```
 config.json
-dashboard.html
-index copy.html
 index.html
 indexnew.html
-influxdbclient.py
-LICENSE
+index copy.html
 README.md
-sync.ffs_lock
 3DModels/
-architectureimages/
 archive/
 chatbotservice/
-	chatbot.css
-	chatbot.js
-	newchatbot.css
-	newchatbot.js
 css/
-	main.css
 dashboard/
-	charts.js
 js/
-	config.js
-	main.js
 minimap/
-	OSM.js
-New folder/
 notificationservice/
-	notificaion_alert.css
-	notification.js
-	notifications.js
-	notifications_alert.js
-	notifications_weather_traffic_air.js
-	radom_notfication.js
 realtimestream/
-	kafka.js
+scripts/
 ```
 
-## Installation
+## Operational Notes
 
-1. Clone the repository.
-2. Navigate to the project directory.
-3. Start a local web server: `python -m http.server`
-4. Open `http://localhost:8000` in your browser.
+- No bundler: this is a static site. Reload the browser to see changes.
+- Global variables are used (e.g., `viewer`). Avoid modular imports unless refactoring.
+- The UI expects certain element IDs; keep them stable when editing markup.
 
 ## License
 
@@ -111,4 +151,3 @@ realtimestream/
 ## Contact
 
 For inquiries, contact Daniel Wonyifraw at danielwondyifrawatoutlook.com.
-

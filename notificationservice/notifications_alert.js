@@ -62,7 +62,7 @@ function updateAlertBox(type, message) {
     alertContent.textContent = message;
 
     // Show the alert box
-    alertBox.style.display = 'block';
+    alertBox.classList.remove('is-hidden');
 
     // Add a flash effect to highlight the update
     alertBox.classList.add('flash');
@@ -128,6 +128,6 @@ document.getElementById('startNotifications').addEventListener('click', (event) 
 function hideAllAlertBoxes() {
     const alertBoxes = document.querySelectorAll('.alert-box');
     alertBoxes.forEach(alertBox => {
-        alertBox.style.display = 'none';
+        alertBox.classList.add('is-hidden');
     });
 }
