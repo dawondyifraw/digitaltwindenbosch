@@ -74,12 +74,34 @@
         }
     }
 
+
+    function showDashboardErrorPopup(message) {
+        let popup = document.createElement('div');
+        popup.style.position = 'fixed';
+        popup.style.top = '0';
+        popup.style.left = '0';
+        popup.style.width = '100vw';
+        popup.style.height = '100vh';
+        popup.style.background = 'rgba(0,0,0,0.6)';
+        popup.style.display = 'flex';
+        popup.style.alignItems = 'center';
+        popup.style.justifyContent = 'center';
+        popup.style.zIndex = '9999';
+        popup.innerHTML = `<div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px #0003;text-align:center;max-width:90vw;max-height:80vh;overflow:auto;">
+            <h2 style='color:#c00;margin-bottom:1em;'>Dashboard Error</h2>
+            <p style='margin-bottom:1.5em;'>${message}</p>
+            <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#0d6efd;color:#fff;cursor:pointer;' onclick='this.closest("div").parentNode.remove()'>Close</button>
+        </div>`;
+        document.body.appendChild(popup);
+    }
+
     async function initDashboard() {
         console.log('Initializing dashboard...');
         const data = await fetchInfluxDashboardData();
 
         if (!data) {
             console.error('No data returned from API');
+            showDashboardErrorPopup('Unable to load dashboard data. This may be due to a network error or CORS issue. Please check that the backend API is running and accessible.');
             return;
         }
 

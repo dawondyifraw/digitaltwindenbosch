@@ -1,166 +1,312 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DenBosch Digital Twins JADS v.2.0 - JOS and Daniel</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Den Bosch Urban Digital Twin: real‑time 3D city, traffic, air quality, and alerts." />
+  <meta name="theme-color" content="#0d6efd" />
+  <title>DenBosch Digital Twins — UDT Console (DataTwinLabs)</title>
 
-    <!-- External CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet">
-    <link href="css/main.css" rel="stylesheet">
-    <link href="notificaionservice/notificaion_alert.css" rel="stylesheet">
-    <link href="chatbotservice/chatbot.css" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cesium.com" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="dns-prefetch" href="https://cesium.com" />
 
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <link href="css/main.css" rel="stylesheet" />
+  <link href="notificationservice/notification_alert.css" rel="stylesheet" />
+  <link href="chatbotservice/chatbot.css" rel="stylesheet" />
 
-    <!-- External JavaScript -->
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
-    <script src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js" defer></script>
-<style>
-   
+  <style>
+    /* Open/close states */
+    #rightPanel {
+      transform: translateX(0);
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+    #rightPanel.is-closed {
+      transform: translateX(110%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .chat-container {
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+    .chat-container.is-closed {
+      transform: translate(-50%, 140%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Context menu */
+    #contextMenu {
+      position: absolute;
+      display: none;
+      background: rgba(8, 14, 26, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 6px 0;
+      z-index: 12000;
+      min-width: 180px;
+      box-shadow: 0 14px 30px rgba(6, 10, 20, 0.7);
+      backdrop-filter: blur(12px);
+      color: #e6edf6;
+      font-size: 0.9rem;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    #contextMenu > div {
+      background: transparent;
+      color: #e6edf6;
+      padding: 9px 14px;
+      white-space: nowrap;
+    }
+
+    #contextMenu > div:hover {
+      background: rgba(61, 214, 198, 0.16);
+      color: #e6edf6;
+    }
+
+    #contextMenu hr {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 4px 0;
+    }
   </style>
 </head>
 <body>
-
-    <!-- Splash Screen -->
-    <div id="splashScreen">
-        <h1>Digital Twins Den Bosch</h1>
-        <div class="logo-container">
-            <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="JADS Logo" class="logo">
-            <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Den Bosch Logo" class="logo">
-        </div>
-        <div class="loading-bar"><div></div></div>
-        <p id="loadingText">Loading...</p>
-    </div>
-
-    <!-- Cesium Map Container -->
-    <div id="cesiumContainer"></div>
-
-    <!-- Hover area for the auto-hide menu -->
-    <div id="menu-hover-area"></div>
-
-    <!-- Auto-Hide Menu for toggling layers -->
-    <div id="menu">
-        <button id="flytoIKDBButton" class="menu-btn">Monitor IKDB</button>
-        <button id="toggleTraffic" class="menu-btn">Montior Real-Time Traffic Patterns</button>
-        <button id="stopOrbit" class="menu-btn">Fly to Museum areas</button>
-        <button id="startOrbit" class="menu-btn">Fly to Construction Sites</button>
-        <button id="BAGButton" class="menu-btn">Load Kadaster Building Meta Data</button>
-        <button class="menu-btn" onclick="toggleMuseums()">High Pedestrian Areas</button>
-        <button class="menu-btn" onclick="">Real-time Biodiversity Data Stream</button>
-        <button class="menu-btn" onclick="togglePollution()">Weather, Traffic, and Noise Information</button>
-        <button id="startNotifications" class="menu-btn">Real-time Alert OFF</button>
-
-        <div class="controls">
-            <button class="menu-btn" id="toggleStreamBtn">Monitor Carbon and Noise Stream ON</button>
-        </div>
-
-        <!-- Legend for building types placed inside the menu -->
-        <div id="legend" class="legend">
-            <h4>Building Type Legend</h4>
-            <ul>
-                <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
-                <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> University</li>
-                <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Hospital</li>
-                <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parking</li>
-                <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Church</li>
-                <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
-                <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrial</li>
-                <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Greenhouse</li>
-                <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercial</li>
-                <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Construction</li>
-                <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
-                <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> House</li>
-                <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Apartments</li>
-                <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Office</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Hover area for the auto-hide right panel -->
-    <div id="rightPanel-hover-area"></div>
-
-    <!-- Weather & Air Pollution Trends  - UDT den bosch - replace with other visulisaion tool boxs -->
-    <div id="rightPanel">
-        <button id="closePanelBtn" onclick="toggleRightPanel()">&#x2715;</button>
-        <h2>Weather and Air Quality Forecast</h2>
-
-        <!-- Chart Containers  - UDT den bosch -->
-        <div class="chart-container">
-            <canvas id="temperatureChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <canvas id="humidityChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <canvas id="aqiChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <canvas id="no2Chart"></canvas>
-        </div>
-    </div>
-
-    <!-- Left-side Notification Area - UDT den bosch  -->
-    <div id="notificationArea">
-        <!-- Predefined Alert Boxes  - UDT den bosch  -->
-        <div id="trafficAlert" class="alert-box traffic">
-            <h4>Traffic Alert</h4>
-            <p class="alert-content">No traffic updates at the moment.</p>
-        </div>
-
-        <div id="weatherAlert" class="alert-box weather">
-            <h4>Weather Alert</h4>
-            <p class="alert-content">No weather updates at the moment.</p>
-        </div>
-
-        <div id="eventAlert" class="alert-box event">
-            <h4>Event Alert</h4>
-            <p class="alert-content">No event updates at the moment.</p>
-        </div>
-    </div>
-
-    <!-- Mini Map Container - UDT den bosch  -->
-    <div id="minimap-container">
-        <div id="minimap"></div>
-    </div>
-
-    <!-- chat holder - - UDT den bosch  -->
-  <div class="chat-container">
-    <div class="card">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <span>Chat with Odin</span>
-        <div>
-          <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
-          <button id="close-chat-btn" class="btn btn-sm btn-light">&#x2715;</button>
-        </div>
+  <noscript>
+    <div class="noscript-warning">
+      <div>
+        <h1>JavaScript required</h1>
+        <p>This Urban Digital Twin needs JavaScript to render the 3D city, charts and live data.</p>
       </div>
-      <div class="card-body chat-window" id="chat-window">
-        <!-- chat messages are her - UDT den bosch -->
+    </div>
+  </noscript>
+
+  <!-- Splash Screen -->
+  <div id="splashScreen" role="alert" aria-live="polite" aria-busy="true">
+    <div class="inner">
+      <h1>Digital Twin • ’s‑Hertogenbosch</h1>
+      <p id="loadingText">Loading modules and data…</p>
+      <div class="logo-container" aria-hidden="true">
+        <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="DataTwinLabs" class="logo" />
+        <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Gemeente ’s‑Hertogenbosch" class="logo" />
       </div>
-      <div class="card-footer">
-        <div class="input-group">
-          <input type="text" id="user-input" class="form-control" placeholder="Type your message...">
-          <div class="input-group-append">
-            <button class="btn btn-primary" id="send-btn">Send</button>
-          </div>
-        </div>
-      </div>
+      <div class="loading-bar" aria-hidden="true"><div></div></div>
     </div>
   </div>
 
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="dashboard/charts.js" defer></script>
-    <script src="js/main.js" defer></script>
-    <script src="notificaionservice/notifications_alert.js" defer></script>
-    <script src="realtimestream/kafka.js" defer></script>
-    <script src="minimap/OSM.js" defer></script>
-    <script src="chatbotservice/chatbot.js"defer>  </script>
+  <!-- 3D scene -->
+  <main id="cesiumContainer" aria-label="3D city scene"></main>
+
+  <!-- Sidebar: commercial layout with dropdowns -->
+  <nav id="menu" aria-label="Main navigation" class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">UDT Console</div>
+      <div class="version">UI v3.0 Runner</div>
+    </div>
+
+    <section class="menu-group">
+      <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>Operations</button>
+      <ul id="ops-submenu" class="submenu open" role="menu">
+        <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">Monitor IKDB</button></li>
+        <li role="none"><button id="toggleTraffic" class="menu-item" role="menuitem">Real-time Traffic</button></li>
+        <li role="none"><button id="stopOrbit" class="menu-item" role="menuitem">Fly to Museum Areas</button></li>
+        <li role="none"><button id="startOrbit" class="menu-item" role="menuitem">Fly to Construction Sites</button></li>
+      </ul>
+    </section>
+
+    <section class="menu-group">
+      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Data Layers</button>
+      <ul id="layers-submenu" class="submenu open" role="menu">
+        <li role="none"><button id="BAGButton" class="menu-item" role="menuitem">Kadaster Buildings</button></li>
+        <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">High Pedestrian Areas</button></li>
+        <li role="none"><button id="toggleBiodiversityBtn" class="menu-item" role="menuitem">Biodiversity Stream</button></li>
+        <li role="none"><button id="togglePollutionBtn" class="menu-item" role="menuitem">Weather, Traffic, Noise</button></li>
+      </ul>
+
+      <div id="legend" class="legend" aria-label="Building type legend">
+        <h4>Building Type Legend</h4>
+        <ul>
+          <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
+          <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> University</li>
+          <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Hospital</li>
+          <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parking</li>
+          <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Church</li>
+          <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
+          <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrial</li>
+          <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Greenhouse</li>
+          <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercial</li>
+          <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Construction</li>
+          <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
+          <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> House</li>
+          <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Apartments</li>
+          <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Office</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="menu-group">
+      <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Analytics</button>
+      <ul id="analytics-submenu" class="submenu" role="menu">
+        <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Open Forecast Panel</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="true">Carbon & Noise Stream ON</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Realtime Alerts OFF</button></li>
+      </ul>
+    </section>
+
+    <section class="menu-group">
+      <button class="menu-toggle" aria-expanded="false" aria-controls="admin-submenu"><span class="icon" aria-hidden="true">▸</span>Admin</button>
+      <ul id="admin-submenu" class="submenu" role="menu">
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/health">System Health</a></li>
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/logs">Event Logs</a></li>
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/settings">Settings</a></li>
+      </ul>
+    </section>
+  </nav>
+
+  <!-- Right analytics panel -->
+  <aside id="rightPanel" aria-label="Weather and air quality">
+    <button id="closePanelBtn" title="Close panel" aria-label="Close panel">&#x2715;</button>
+    <h2>Weather and Air Quality Forecast</h2>
+    <div class="chart-container"><canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas></div>
+    <div class="chart-container"><canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas></div>
+  </aside>
+
+  <!-- Notifications -->
+  <section id="notificationArea" aria-label="Live notifications">
+    <div id="trafficAlert" class="alert-box traffic is-hidden" role="status" aria-live="polite">
+      <h4>Traffic Alert</h4>
+      <p class="alert-content">No traffic updates at the moment.</p>
+    </div>
+    <div id="weatherAlert" class="alert-box weather is-hidden" role="status" aria-live="polite">
+      <h4>Weather Alert</h4>
+      <p class="alert-content">No weather updates at the moment.</p>
+    </div>
+    <div id="eventAlert" class="alert-box event is-hidden" role="status" aria-live="polite">
+      <h4>Event Alert</h4>
+      <p class="alert-content">No event updates at the moment.</p>
+    </div>
+  </section>
+
+  <!-- Minimap -->
+  <section id="minimap-container" aria-label="Overview map">
+    <div id="minimap" role="img" aria-label="Minimap"></div>
+  </section>
+
+  <!-- Chat -->
+  <section class="chat-container" aria-label="Assistant chat">
+    <div class="card">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>City Assistant</span>
+        <div>
+          <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
+          <button id="close-chat-btn" class="btn btn-sm btn-light" aria-label="Close chat">&#x2715;</button>
+        </div>
+      </div>
+      <div class="card-body chat-window" id="chat-window" aria-live="polite"></div>
+      <div class="card-footer">
+        <form class="input-group" id="chat-form" autocomplete="off">
+          <label for="user-input" class="sr-only">Type your message</label>
+          <input type="text" id="user-input" class="form-control" placeholder="Type your message..." />
+          <div class="input-group-append">
+            <button class="btn btn-primary" id="send-btn" type="submit">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script defer src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+  <script defer src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script defer src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="dashboard/charts.js"></script>
+  <script defer src="js/main.js"></script>
+  <script defer src="notificationservice/notifications_alert.js"></script>
+<script defer src="realtimestream/kafka.js?v=9999"></script>
+  <script defer src="minimap/OSM.js"></script>
+  <script defer src="chatbotservice/chatbot.js?v=999"></script>
+
+  <script>
+    (function(){
+      'use strict';
+
+      // Splash handling
+      const splash = document.getElementById('splashScreen');
+      const loadingText = document.getElementById('loadingText');
+      const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
+      const safeHideSplash = () => { if (!splash) return; splash.setAttribute('aria-busy', 'false'); splash.style.opacity = '0'; setTimeout(()=> splash.remove(), 220); };
+      let waited = 0; const tick = setInterval(()=>{ waited += 150; if (readyCheck()) { clearInterval(tick); safeHideSplash(); } else if (waited > 5000) { clearInterval(tick); loadingText && (loadingText.textContent = 'Still loading…'); safeHideSplash(); } },150);
+
+      // Sidebar dropdowns
+      const toggles = document.querySelectorAll('.menu-toggle');
+      const setOpen = (btn, open) => {
+        const id = btn.getAttribute('aria-controls');
+        const menu = document.getElementById(id);
+        if (!menu) return;
+        btn.setAttribute('aria-expanded', String(open));
+        menu.classList.toggle('open', open);
+      };
+      const loadState = () => JSON.parse(localStorage.getItem('udt_menu_state') || '{}');
+      const saveState = (state) => localStorage.setItem('udt_menu_state', JSON.stringify(state));
+      let state = loadState();
+      toggles.forEach(btn => {
+        const id = btn.getAttribute('aria-controls');
+        const open = state[id] ?? (btn.getAttribute('aria-expanded') === 'true');
+        setOpen(btn, open);
+        btn.addEventListener('click', () => { const next = !(btn.getAttribute('aria-expanded') === 'true'); setOpen(btn, next); state[id] = next; saveState(state); });
+        btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); } });
+      });
+
+      // Right panel open/close
+const rightPanel = document.getElementById('rightPanel');
+const closePanelBtn = document.getElementById('closePanelBtn');
+
+document.querySelector('[data-action="openRightPanel"]')
+  ?.addEventListener('click', () => {
+    rightPanel?.classList.remove('is-closed');
+  });
+
+closePanelBtn?.addEventListener('click', () => {
+  rightPanel?.classList.add('is-closed');
+});
+
+// Chat open/close
+const chatContainer = document.querySelector('.chat-container');
+const closeChatBtn = document.getElementById('close-chat-btn');
+const toggleChatBtn = document.getElementById('toggleChatBtn');
+
+closeChatBtn?.addEventListener('click', () => {
+  chatContainer?.classList.add('is-closed');
+});
+
+toggleChatBtn?.addEventListener('click', () => {
+  chatContainer?.classList.toggle('is-closed');
+});
+
+      // Chat submit
+      const chatForm = document.getElementById('chat-form');
+      chatForm && chatForm.addEventListener('submit', function (e) { e.preventDefault(); document.getElementById('send-btn')?.click(); });
+
+      // A11y pressed states wiring
+      const togglePressed = (btn) => btn && btn.setAttribute('aria-pressed', String(!(btn.getAttribute('aria-pressed') === 'true')));
+      document.getElementById('toggleStreamBtn')?.addEventListener('click', function(){ togglePressed(this); });
+      document.getElementById('startNotifications')?.addEventListener('click', function(){ togglePressed(this); });
+
+      document.documentElement.setAttribute('data-app','udt-console');
+    })();
+  </script>
+  
 </body>
 </html>

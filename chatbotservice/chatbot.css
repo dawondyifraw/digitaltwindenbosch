@@ -1,58 +1,70 @@
- /* Chat bot div and container styling */
- .chat-container {
-   position: fixed;
-   bottom: 20px;
-   right: 20px;
-   width: 350px;
-   z-index: 1000;
-   font-family: sans-serif;
-   color: #030f0f;
- }
- .chat-window {
-   height: 300px; /* Increased height */
-   overflow-y: auto;
-   background-color: #f8f9fa;
-   padding: 10px;
-   border-radius: 5px;
-   margin-bottom: 10px;
- }
- .message {
-   margin-bottom: 8px;
-   padding: 6px 10px;
-   border-radius: 8px;
-   word-wrap: break-word;
- }
- .user-message {
-   background-color: #d1ecf1;
-   color: #0c5460;
-   text-align: right;
- }
- .bot-message {
-   background-color: #fff3cd;
-   color: #856404;
-   text-align: left;
- }
- /* Spinner styling for waiting indicator */
- .spinner {
-   display: inline-block;
-   width: 50px;
-   text-align: left;
- }
- .spinner span {
-   animation: spinner 1.2s infinite;
-   display: inline-block;
-   font-weight: bold;
-   font-size: 1.2em;
- }
- .spinner span:nth-child(1) { animation-delay: 0s; }
- .spinner span:nth-child(2) { animation-delay: 0.2s; }
- .spinner span:nth-child(3) { animation-delay: 0.4s; }
- @keyframes spinner {
-   0%, 20% { opacity: 0; }
-   40% { opacity: 1; }
-   100% { opacity: 0; }
- }
- /* Clear Chat Button styling */
- .clear-chat-btn {
-   margin-right: 5px;
- }
+/* Chat bot styling aligned with main theme */
+.chat-container {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 360px;
+  z-index: 1000;
+  color: var(--dt-text, #e6edf6);
+  font-family: var(--dt-font, 'Space Grotesk', sans-serif);
+}
+
+.chat-window {
+  height: 300px;
+  overflow-y: auto;
+  background: rgba(9, 14, 26, 0.85);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.message {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  font-size: 0.9rem;
+}
+
+.user-message {
+  background: rgba(61, 214, 198, 0.16);
+  color: var(--dt-text, #e6edf6);
+  text-align: right;
+  border: 1px solid rgba(61, 214, 198, 0.25);
+}
+
+.bot-message {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dt-text, #e6edf6);
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Spinner styling for waiting indicator */
+.spinner {
+  display: inline-block;
+  width: 50px;
+  text-align: left;
+}
+
+.spinner span {
+  animation: spinner 1.2s infinite;
+  display: inline-block;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.spinner span:nth-child(1) { animation-delay: 0s; }
+.spinner span:nth-child(2) { animation-delay: 0.2s; }
+.spinner span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes spinner {
+  0%, 20% { opacity: 0; }
+  40% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Clear Chat Button styling */
+.clear-chat-btn {
+  margin-right: 5px;
+}
