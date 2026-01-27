@@ -2,6 +2,15 @@
 
 A production‑grade, static web console for the Den Bosch Urban Digital Twin. The application renders CesiumJS 3D content, overlays live data streams, and provides operational controls for traffic, air quality, weather, alerts, and analytics. This release is Runner 3.0 with a major upgrade to UI quality and overall stability.
 
+Actively maintained for demo and research follow‑up (best‑effort maintenance, no production SLA).
+
+## Start Here
+
+1. Fill `config.json` with your API keys (keep secrets out of this repo).
+2. Serve the repo as static files (example: `python -m http.server`).
+3. If using a backend, set the Socket.IO URL in `realtimestream/kafka.js` (default: `http://localhost:5000`).
+4. Open `http://localhost:8000` in your browser.
+
 ## Demo UI v3.0 Runner
 
 ![demo v3 UI](architecture/demo_v3_UI.png)
@@ -45,18 +54,6 @@ A production‑grade, static web console for the Den Bosch Urban Digital Twin. T
 
 - Any static file server (example: `python -m http.server`)
 - Modern browser (Chrome/Edge)
-
-### Run Locally
-
-```
-python -m http.server
-```
-
-Open:
-
-```
-http://localhost:8000
-```
 
 ### Backend Integration (Optional)
 
