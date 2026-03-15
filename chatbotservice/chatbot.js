@@ -26,7 +26,8 @@ function addMessage(sender, messageHtml) {
   const div = document.createElement('div');
   div.classList.add('message');
   div.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
-  div.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Odin'}:</strong> ${messageHtml}`;
+  const ui = window.udtI18n;
+  div.innerHTML = `<strong>${sender === 'user' ? ui.t('you', 'You') : ui.t('assistant_name', 'Odin')}:</strong> ${messageHtml}`;
   chatWindow.appendChild(div);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
@@ -39,7 +40,8 @@ function showSpinner() {
   const spinnerDiv = document.createElement('div');
   spinnerDiv.id = 'spinner';
   spinnerDiv.classList.add('message', 'bot-message');
-  spinnerDiv.innerHTML = `<strong>Odin:</strong> <span class="spinner"><span>.</span><span>.</span><span>.</span></span>`;
+  const ui = window.udtI18n;
+  spinnerDiv.innerHTML = `<strong>${ui.t('assistant_name', 'Odin')}:</strong> <span class="spinner"><span>.</span><span>.</span><span>.</span></span>`;
   chatWindow.appendChild(spinnerDiv);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
@@ -55,14 +57,14 @@ function getDemoResponse(query) {
   const normalized = query.toLowerCase();
 
   if (normalized.includes('traffic')) {
-    return 'This public site is running in demo mode. Live traffic streaming is available in the full multi-streaming platform. Contact Daniel at info@datatwinlabs.nl.';
+    return window.udtI18n.t('demo_chat_traffic');
   }
 
   if (normalized.includes('weather') || normalized.includes('air')) {
-    return 'Prototype mode is showing sample insight layers. For live weather, air quality, and integrated city streams, contact Daniel at info@datatwinlabs.nl.';
+    return window.udtI18n.t('demo_chat_air');
   }
 
-  return 'This is the demo version of the Digital Twin Den Bosch experience. For the full multi-streaming platform with live backend services, contact Daniel at info@datatwinlabs.nl.';
+  return window.udtI18n.t('demo_chat_default');
 }
 
 function showServerErrorPopup(retryCallback) {
@@ -78,10 +80,10 @@ function showServerErrorPopup(retryCallback) {
   popup.style.justifyContent = 'center';
   popup.style.zIndex = '9999';
   popup.innerHTML = `<div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px #0003;text-align:center;max-width:90vw;max-height:80vh;overflow:auto;">
-      <h2 style='color:#c00;margin-bottom:1em;'>Demo Version</h2>
-      <p style='margin-bottom:1.5em;'>Backend services are not connected on this public prototype. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.</p>
-      <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#0d6efd;color:#fff;cursor:pointer;margin-right:1em;' id='retryServerBtn'>Retry</button>
-      <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#888;color:#fff;cursor:pointer;' onclick='this.closest("div").parentNode.remove()'>Close</button>
+      <h2 style='color:#c00;margin-bottom:1em;'>${window.udtI18n.t('demo_version')}</h2>
+      <p style='margin-bottom:1.5em;'>${window.udtI18n.t('demo_chat_default')}</p>
+      <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#0d6efd;color:#fff;cursor:pointer;margin-right:1em;' id='retryServerBtn'>${window.udtI18n.t('retry')}</button>
+      <button style='padding:0.5em 1.5em;font-size:1.1em;border-radius:6px;border:none;background:#888;color:#fff;cursor:pointer;' onclick='this.closest("div").parentNode.remove()'>${window.udtI18n.t('close')}</button>
   </div>`;
   document.body.appendChild(popup);
   document.getElementById('retryServerBtn').onclick = function() {
@@ -155,12 +157,12 @@ async function sendMessage() {
     if (data && data.response) {
       addMessage('bot', data.response);
     } else {
-      addMessage('bot', 'No response from server.');
+      addMessage('bot', window.udtI18n.t('no_server_response'));
     }
   } catch (error) {
     console.error('Error:', error);
     removeSpinner();
-    addMessage('bot', 'This public site is running in demo mode. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.');
+    addMessage('bot', window.udtI18n.t('demo_chat_error'));
   } finally {
     sendBtn.disabled = false;
   }
@@ -192,6 +194,6 @@ if (closeChatBtn && chatContainer) {
 
 document.addEventListener('configLoaded', () => {
   if (isPrototypeMode()) {
-    addMessage('bot', 'Demo version active. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.');
+    addMessage('bot', window.udtI18n.t('demo_chat_active'));
   }
 });

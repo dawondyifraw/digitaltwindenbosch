@@ -15,9 +15,9 @@
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
-  <link href="css/main.css" rel="stylesheet" />
-  <link href="notificationservice/notification_alert.css" rel="stylesheet" />
-  <link href="chatbotservice/chatbot.css" rel="stylesheet" />
+  <link href="css/main.css?v=20260315b" rel="stylesheet" />
+  <link href="notificationservice/notification_alert.css?v=20260315b" rel="stylesheet" />
+  <link href="chatbotservice/chatbot.css?v=20260315b" rel="stylesheet" />
 
   <style>
     /* Open/close states */
@@ -108,6 +108,12 @@
     <div class="world-effects__fog" id="fogEffect"></div>
     <div class="world-effects__night-glow" id="nightGlow"></div>
   </div>
+  <div class="layer-loading is-hidden" id="layerLoading" aria-live="polite" aria-busy="true">
+    <div class="layer-loading__panel">
+      <span class="layer-loading__label" id="layerLoadingLabel">Loading Kadaster buildings…</span>
+      <div class="layer-loading__bar"><div id="layerLoadingBar"></div></div>
+    </div>
+  </div>
 
   <section class="status-ribbon" aria-label="City status overview">
     <div class="status-ribbon__intro">
@@ -133,13 +139,24 @@
   <section class="prototype-banner" aria-label="Prototype status">
     <div class="prototype-pill">Prototype</div>
     <p>Demo version. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.</p>
+    <button class="prototype-banner__toggle" id="toggleBriefingBtn" type="button" aria-expanded="false">Open briefing</button>
+    <button class="prototype-banner__toggle" id="toggleMapOnlyBtn" type="button" aria-pressed="false">Show only 3D map</button>
   </section>
 
-  <section class="hero-panel" aria-label="Prototype overview">
+  <section class="hero-panel is-collapsed" id="briefingPanel" aria-label="Prototype overview">
     <div class="hero-panel__copy">
-      <span class="hero-panel__eyebrow">Operational Storyboard</span>
+      <div class="hero-panel__topbar">
+        <span class="hero-panel__eyebrow">Operational Storyboard</span>
+        <button class="hero-panel__close" id="closeBriefingBtn" type="button" aria-label="Close briefing">×</button>
+      </div>
       <h2>Public digital twin prototype for live city operations, mobility, and environmental insight.</h2>
       <p>This showcase runs in demo mode today, but it is designed to present how a full multi-streaming urban twin can support command centers, planners, and city stakeholders.</p>
+      <div class="hero-panel__actions">
+        <button class="hero-action" type="button" data-scenario="mobility">Mobility</button>
+        <button class="hero-action" type="button" data-scenario="environment">Air Quality</button>
+        <button class="hero-action" type="button" data-scenario="water">Water</button>
+        <button class="hero-action" type="button" data-scenario="night">Night View</button>
+      </div>
     </div>
     <div class="hero-panel__meta">
       <div class="hero-panel__card">
@@ -150,10 +167,14 @@
         <span>Upgrade Path</span>
         <strong>Live streaming, backend integration, orchestration</strong>
       </div>
+      <div class="hero-panel__card">
+        <span>Use It Now</span>
+        <strong>Run a scenario, inspect the map, then open the forecast panel for a deeper demo.</strong>
+      </div>
     </div>
   </section>
 
-  <section class="kpi-grid" aria-label="Key prototype indicators">
+  <section class="kpi-grid is-compact" aria-label="Key prototype indicators">
     <article class="kpi-card">
       <span class="kpi-card__label">Mobility Pressure</span>
       <strong class="kpi-card__value" id="kpiMobility">68%</strong>
@@ -176,7 +197,7 @@
     </article>
   </section>
 
-  <section class="scenario-panel" aria-label="Scenario quick actions">
+  <section class="scenario-panel is-collapsed" id="scenarioPanel" aria-label="Scenario quick actions">
     <div class="scenario-panel__header">
       <div>
         <span class="scenario-panel__eyebrow">Scenario Cards</span>
@@ -222,7 +243,7 @@
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
       <div class="brand">UDT Console</div>
-      <div class="version">UI v3.0 Runner</div>
+      <div class="version">Runner Blade V.4.0</div>
     </div>
 
     <section class="menu-group">
@@ -270,6 +291,7 @@
       <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Citizen & Policy Use Cases</button>
       <ul id="analytics-submenu" class="submenu" role="menu">
         <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Forecast & Climate Charts</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-action="openDataDashboard">Open Data Dashboard</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Sensor Storytelling</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Public Alert Feed</button></li>
         <li role="none"><button class="menu-item" role="menuitem" data-scenario="night">Night-time Safety View</button></li>
@@ -348,13 +370,14 @@
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
-  <script defer src="js/config.js"></script>
-  <script defer src="dashboard/charts.js"></script>
-  <script defer src="js/main.js"></script>
-  <script defer src="notificationservice/notifications_alert.js"></script>
-<script defer src="realtimestream/kafka.js?v=9999"></script>
-  <script defer src="minimap/OSM.js"></script>
-  <script defer src="chatbotservice/chatbot.js?v=999"></script>
+  <script defer src="js/config.js?v=20260315b"></script>
+  <script defer src="js/i18n.js?v=20260315b"></script>
+  <script defer src="dashboard/charts.js?v=20260315b"></script>
+  <script defer src="js/main.js?v=20260315b"></script>
+  <script defer src="notificationservice/notifications_alert.js?v=20260315b"></script>
+<script defer src="realtimestream/kafka.js?v=20260315b"></script>
+  <script defer src="minimap/OSM.js?v=20260315b"></script>
+  <script defer src="chatbotservice/chatbot.js?v=20260315b"></script>
 
   <script>
     (function(){
@@ -396,6 +419,11 @@ document.querySelector('[data-action="openRightPanel"]')
     rightPanel?.classList.remove('is-closed');
   });
 
+document.querySelector('[data-action="openDataDashboard"]')
+  ?.addEventListener('click', () => {
+    window.open('dashboard/dashboard_sensors.html', '_blank', 'noopener,noreferrer');
+  });
+
 closePanelBtn?.addEventListener('click', () => {
   rightPanel?.classList.add('is-closed');
 });
@@ -404,6 +432,11 @@ closePanelBtn?.addEventListener('click', () => {
 const chatContainer = document.querySelector('.chat-container');
 const closeChatBtn = document.getElementById('close-chat-btn');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
+const toggleBriefingBtn = document.getElementById('toggleBriefingBtn');
+const toggleMapOnlyBtn = document.getElementById('toggleMapOnlyBtn');
+const briefingPanel = document.getElementById('briefingPanel');
+const scenarioPanel = document.getElementById('scenarioPanel');
+const closeBriefingBtn = document.getElementById('closeBriefingBtn');
 
 closeChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.add('is-closed');
@@ -411,6 +444,36 @@ closeChatBtn?.addEventListener('click', () => {
 
 toggleChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.toggle('is-closed');
+});
+
+toggleBriefingBtn?.addEventListener('click', () => {
+  const willOpen = briefingPanel?.classList.contains('is-collapsed');
+  briefingPanel?.classList.toggle('is-collapsed');
+  scenarioPanel?.classList.toggle('is-collapsed');
+  toggleBriefingBtn.textContent = willOpen ? 'Hide briefing' : 'Open briefing';
+  toggleBriefingBtn.setAttribute('aria-expanded', String(willOpen));
+});
+
+closeBriefingBtn?.addEventListener('click', () => {
+  briefingPanel?.classList.add('is-collapsed');
+  scenarioPanel?.classList.add('is-collapsed');
+  toggleBriefingBtn.textContent = 'Open briefing';
+  toggleBriefingBtn.setAttribute('aria-expanded', 'false');
+});
+
+toggleMapOnlyBtn?.addEventListener('click', () => {
+  const next = !(document.body.classList.contains('map-only'));
+  document.body.classList.toggle('map-only', next);
+  toggleMapOnlyBtn.textContent = next ? 'Exit 3D-only mode' : 'Show only 3D map';
+  toggleMapOnlyBtn.setAttribute('aria-pressed', String(next));
+  if (next) {
+    briefingPanel?.classList.add('is-collapsed');
+    scenarioPanel?.classList.add('is-collapsed');
+    rightPanel?.classList.add('is-closed');
+    chatContainer?.classList.add('is-closed');
+    toggleBriefingBtn.textContent = 'Open briefing';
+    toggleBriefingBtn.setAttribute('aria-expanded', 'false');
+  }
 });
 
       // Chat submit

@@ -16,32 +16,33 @@
     // Function to initialize empty charts
     function initCharts() {
         console.log('Initializing Charts');  // Debugging log
+        const ui = window.udtI18n;
 
         // Temperature Chart
         temperatureChart = new Chart(document.getElementById('temperatureChart').getContext('2d'), {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Temperature (�C)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
+            data: { labels: [], datasets: [{ label: ui ? ui.t('temp_label') : 'Temperatuur (°C)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
             options: { responsive: true, scales: { y: { beginAtZero: false } } }
         });
 
         // Humidity Chart
         humidityChart = new Chart(document.getElementById('humidityChart').getContext('2d'), {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
+            data: { labels: [], datasets: [{ label: ui ? ui.t('humidity_label') : 'Luchtvochtigheid (%)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
 
         // AQI Chart
         aqiChart = new Chart(document.getElementById('aqiChart').getContext('2d'), {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'AQI', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
+            data: { labels: [], datasets: [{ label: ui ? ui.t('aqi_label') : 'Luchtkwaliteitsindex', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
 
         // NO2 Chart
         no2Chart = new Chart(document.getElementById('no2Chart').getContext('2d'), {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'NO2 (�g/m�)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
+            data: { labels: [], datasets: [{ label: ui ? ui.t('no2_label') : 'NO2 (µg/m³)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
     }

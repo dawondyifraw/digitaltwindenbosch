@@ -42,6 +42,22 @@ function $(id) {
     return document.getElementById(id);
 }
 
+function setLayerLoadingState(active, label) {
+    const overlay = $("layerLoading");
+    const loadingLabel = $("layerLoadingLabel");
+    const bagButton = $("BAGButton");
+    if (loadingLabel && label) {
+        loadingLabel.textContent = label;
+    }
+    if (overlay) {
+        overlay.classList.toggle("is-hidden", !active);
+    }
+    if (bagButton) {
+        bagButton.disabled = active;
+        bagButton.textContent = active ? "Loading Kadaster…" : "Kadaster Buildings";
+    }
+}
+
 // Wait until window.config.conf is ready
 function waitForConfig() {
     return new Promise((resolve) => {
@@ -161,6 +177,7 @@ function toggleBuildings() {
 
 // Load Kadaster 3D tiles (BAG)
 async function loadBuildings3DTiles() {
+    setLayerLoadingState(true, "Loading Kadaster buildings…");
     try {
         const tileset = new Cesium.Cesium3DTileset({
             url: "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles"
@@ -171,8 +188,12 @@ async function loadBuildings3DTiles() {
         viewer.zoomTo(tileset);
 
         console.log("3D Tiles for buildings loaded successfully.");
+        showNotification("event", "Kadaster 3D buildings loaded successfully.");
     } catch (error) {
         console.error("Error loading 3D Tiles for buildings:", error);
+        showNotification("event", "Kadaster 3D buildings could not be loaded.");
+    } finally {
+        setLayerLoadingState(false, "Loading Kadaster buildings…");
     }
 }
 

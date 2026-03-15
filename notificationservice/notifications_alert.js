@@ -1,7 +1,7 @@
 console.log(`Notification loaded`); // Debugging
 let isClicked = false;
 let notificationInterval; // Store the interval ID for toggling
-const demoContactMessage = "Demo version only. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.";
+const demoContactMessage = "Demoversie. Voor het volledige multi-streaming platform neem contact op met Daniel via info@datatwinlabs.nl.";
 
 // Notification Data for Simulated Alerts
 const notificationData = [
@@ -97,7 +97,7 @@ function playNotificationSound() {
 document.getElementById('startNotifications').addEventListener('click', (event) => {
     // Toggle real-time alerts
     if (!isClicked) {
-        event.target.innerHTML = 'Demo Alerts ON';
+        event.target.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_on') : 'Demo-waarschuwingen aan';
         event.target.style.backgroundColor = 'lightblue';
         isClicked = true;
 
@@ -114,7 +114,7 @@ document.getElementById('startNotifications').addEventListener('click', (event) 
         updateAlertBox('event', demoContactMessage);
         generateRandomNotification(); // Call it immediately
     } else {
-        event.target.innerHTML = 'Alert Feed Demo';
+        event.target.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_off') : 'Publieke waarschuwingen';
         event.target.style.backgroundColor = ''; // Reset to default background
         isClicked = false;
 

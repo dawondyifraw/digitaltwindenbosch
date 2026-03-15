@@ -4,6 +4,7 @@
     "TOMTOMAPI": "m0lqjskY9lNfIAjWZ99BUOZ31wHQynGA",
     "AIRQUALITYAPI": "bd5e378503939ddaee76f12ad7a97608",
     "APP_MODE": "prototype",
+    "LOCALE": "nl",
     "SERVICES": {
         "streamUrl": "",
         "chatApi": "",
