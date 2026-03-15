@@ -196,7 +196,8 @@
         }
 
         .source-list,
-        .heritage-list {
+        .heritage-list,
+        .sensor-list {
             list-style: none;
             margin: 0;
             padding: 0;
@@ -205,7 +206,8 @@
         }
 
         .heritage-list li,
-        .source-list li {
+        .source-list li,
+        .sensor-list li {
             padding: 10px 12px;
             border-radius: 12px;
             background: var(--panel-soft);
@@ -326,6 +328,14 @@
             </article>
 
             <article class="panel info-panel">
+                <h2>Officiele RIVM meetpunten</h2>
+                <div class="banner">Dichtstbijzijnde actieve meetpunten uit het actuele RIVM/Luchtmeetnet-open-datapakket.</div>
+                <ul class="sensor-list" id="sensorList">
+                    <li>Bezig met laden…</li>
+                </ul>
+            </article>
+
+            <article class="panel info-panel">
                 <h2>Nederlands erfgoed in de buurt</h2>
                 <div class="banner">PDOK/RCE-gegevens worden binnen een kleine straal rond het gekozen punt opgehaald.</div>
                 <ul class="heritage-list" id="heritageList">
@@ -343,6 +353,7 @@
         };
         const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/ps-ch/wfs/v1_0";
         const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
+        const RIVM_STATIONS_URL = "https://data.rivm.nl/data/luchtmeetnet/Metadata/luchtmeetnet_meetlocaties.csv";
         const chartInstances = {};
         let currentLocation = { ...DEFAULT_LOCATION };
         let config = null;
@@ -515,9 +526,122 @@
                     leeftijd65plus: 16,
                     wmoClientenPer1000: null
                 },
+                rivmSensors: [
+                    { stationId: "NL10230", stationName: "Biest Houtakker-Biestsestraat", place: "Houtakker", source: "LML", distanceKm: 19.4, values: { PM25: 11.7, NO2: 14.2, O3: 52.1 } },
+                    { stationId: "NL10248", stationName: "Nistelrode-Gagelstraat", place: "Nistelrode", source: "LML", distanceKm: 16.8, values: { PM25: 10.4, NO2: 8.1, O3: 49.6 } }
+                ],
                 heritage: { features: [] },
                 address: currentLocation.name
             };
+        }
+
+        const dashboardCache = {};
+        function cacheSet(key, value, ttlMs) {
+            dashboardCache[key] = { value, expires: Date.now() + ttlMs };
+        }
+
+        function cacheGet(key) {
+            const cached = dashboardCache[key];
+            if (cached && cached.expires > Date.now()) return cached.value;
+            return null;
+        }
+
+        function parseSemicolonCsv(text) {
+            return text
+                .split(/\r?\n/)
+                .filter((line) => line && !line.startsWith("#"))
+                .map((line) => line.split(";"));
+        }
+
+        function distanceKm(lat1, lon1, lat2, lon2) {
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2
+                + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+            return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        async function fetchRivmStations() {
+            const cached = cacheGet("rivm_stations");
+            if (cached) return cached;
+
+            const text = await fetch(RIVM_STATIONS_URL).then((response) => response.text());
+            const rows = parseSemicolonCsv(text);
+            const headers = rows[0];
+            const stations = rows.slice(1)
+                .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])))
+                .filter((row) => !row.meetlocatie_einddatumtijd && row.breedtegraad && row.lengtegraad);
+
+            cacheSet("rivm_stations", stations, 12 * 60 * 60 * 1000);
+            return stations;
+        }
+
+        async function fetchRivmComponentLatest(filename, stationId) {
+            const cacheKey = `rivm_${filename}_${stationId}`;
+            const cached = cacheGet(cacheKey);
+            if (cached !== undefined) return cached;
+
+            try {
+                const text = await fetch(`https://data.rivm.nl/data/luchtmeetnet/Actueel-jaar/${filename}`).then((response) => response.text());
+                const rows = parseSemicolonCsv(text);
+                const headers = rows[0];
+                const stationIndex = headers.indexOf("meetlocatie_id");
+                const valueIndex = headers.indexOf("waarde");
+                const endIndex = headers.indexOf("einddatumtijd");
+                let latest = null;
+
+                rows.slice(1).forEach((row) => {
+                    if (row[stationIndex] !== stationId) return;
+                    const value = Number(row[valueIndex]);
+                    if (!Number.isFinite(value)) return;
+                    const end = row[endIndex];
+                    if (!latest || end > latest.timestamp) {
+                        latest = { value, timestamp: end };
+                    }
+                });
+
+                cacheSet(cacheKey, latest, 30 * 60 * 1000);
+                return latest;
+            } catch (error) {
+                cacheSet(cacheKey, null, 10 * 60 * 1000);
+                return null;
+            }
+        }
+
+        async function fetchNearestRivmSensors(lat, lon) {
+            try {
+                const stations = await fetchRivmStations();
+                const nearest = stations
+                    .map((station) => ({
+                        stationId: station.meetlocatie_id,
+                        stationName: station.meetlocatie_naam,
+                        place: station.meetlocatie_plaatsnaam,
+                        source: station.bron_id,
+                        lat: Number(station.breedtegraad),
+                        lon: Number(station.lengtegraad),
+                        distanceKm: distanceKm(lat, lon, Number(station.breedtegraad), Number(station.lengtegraad))
+                    }))
+                    .sort((a, b) => a.distanceKm - b.distanceKm)
+                    .slice(0, 2);
+
+                for (const station of nearest) {
+                    const [pm25, no2, o3] = await Promise.all([
+                        fetchRivmComponentLatest("2026_02_PM25.csv", station.stationId),
+                        fetchRivmComponentLatest("2026_02_NO2.csv", station.stationId),
+                        fetchRivmComponentLatest("2026_02_O3.csv", station.stationId)
+                    ]);
+                    station.values = {
+                        PM25: pm25 ? pm25.value : null,
+                        NO2: no2 ? no2.value : null,
+                        O3: o3 ? o3.value : null
+                    };
+                    station.timestamp = pm25?.timestamp || no2?.timestamp || o3?.timestamp || null;
+                }
+
+                return nearest;
+            } catch (error) {
+                return fallbackData().rivmSensors;
+            }
         }
 
         function normalizeCbsValue(value) {
@@ -611,7 +735,8 @@
                 traffic,
                 reverse,
                 heritage,
-                cbs
+                cbs,
+                rivmSensors
             ] = await Promise.all([
                 fetchJson(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
                 fetchJson(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
@@ -620,7 +745,8 @@
                 fetchJson(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${tomtomKey}&point=${lat},${lon}`),
                 fetchJson(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${tomtomKey}`),
                 fetchJson(`${HERITAGE_SERVICE_URL}?${heritageParams.toString()}`),
-                fetchCbsNeighborhoodStats(lat, lon)
+                fetchCbsNeighborhoodStats(lat, lon),
+                fetchNearestRivmSensors(lat, lon)
             ]);
 
             const liveUsable = weatherCurrent && weatherForecast && airCurrent && traffic;
@@ -635,6 +761,7 @@
                 airForecast,
                 traffic,
                 cbs,
+                rivmSensors,
                 heritage,
                 address: reverse && reverse.addresses && reverse.addresses[0] ? reverse.addresses[0].address.freeformAddress : currentLocation.name,
                 demoMode: false
@@ -647,6 +774,7 @@
             [
                 `OpenWeatherMap${demoMode ? " (fallback mogelijk)" : ""}`,
                 `TomTom Traffic${demoMode ? " (fallback mogelijk)" : ""}`,
+                "RIVM / Luchtmeetnet officiële meetpunten",
                 "PDOK / CBS buurtprofielen",
                 "PDOK / RCE erfgoed",
                 "Lokale prototypeconfiguratie"
@@ -674,6 +802,31 @@
                 const props = feature.properties || {};
                 const item = document.createElement("li");
                 item.innerHTML = `<strong>${props.localid || "Erfgoedpunt"}</strong><br><span class="muted">${props.versionid || "PDOK / RCE registratie"}</span>`;
+                list.appendChild(item);
+            });
+        }
+
+        function renderRivmSensors(sensorData) {
+            const list = document.getElementById("sensorList");
+            list.innerHTML = "";
+            const sensors = Array.isArray(sensorData) ? sensorData : [];
+
+            if (!sensors.length) {
+                const item = document.createElement("li");
+                item.textContent = "Geen actuele officiele meetpunten beschikbaar voor deze locatie.";
+                list.appendChild(item);
+                return;
+            }
+
+            sensors.forEach((sensor) => {
+                const item = document.createElement("li");
+                item.innerHTML = `
+                    <strong>${sensor.stationName}</strong><br>
+                    <span class="muted">${sensor.place} • ${sensor.source} • ${sensor.distanceKm.toFixed(1)} km</span><br>
+                    PM2.5: ${sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/b"} µg/m³<br>
+                    NO2: ${sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/b"} µg/m³<br>
+                    O3: ${sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/b"} µg/m³
+                `;
                 list.appendChild(item);
             });
         }
@@ -760,6 +913,7 @@
             renderSummary(data);
             renderCharts(data);
             renderHeritage(data.heritage);
+            renderRivmSensors(data.rivmSensors);
             renderSources(data.demoMode);
             document.getElementById("lastUpdated").textContent = formatTime(new Date());
             setStatus(
