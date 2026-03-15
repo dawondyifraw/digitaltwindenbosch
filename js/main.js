@@ -2138,7 +2138,7 @@ function addCombinedContextMenu(viewer) {
         <div id="zoomOut">Zoom Out</div>
         <div id="centerHere">Center Here</div>
         <hr>
-        <div id="analyzeHere">Analyze Here</div>
+        <div id="analyzeHere">Analyse hier</div>
         <div id="dashboardBtn" style="margin: 6px 0; color: #0d6efd; cursor: pointer; font-weight: 600;">Dashboard</div>
         <div id="showInfo">Show Info</div>
         <div id="showSettings">Settings</div>
@@ -2175,7 +2175,7 @@ function addCombinedContextMenu(viewer) {
         contextMenu.style.display = "none";
     }
 
-    // remember the last right-click coordinates (lon/lat) for Analyze action
+    // remember the last right-click coordinates (lon/lat) for Analyse action
     let lastContextLon = null;
     let lastContextLat = null;
     viewer.container.addEventListener("contextmenu", function (event) {
@@ -2290,7 +2290,7 @@ function addCombinedContextMenu(viewer) {
         });
     }
 
-    // Small Analyze popup that shows population and pollution trend for the clicked location
+    // Small Analyse popup that shows population and pollution trend for the clicked location
 
     const analyzeHere = $("analyzeHere");
     if (analyzeHere) {
@@ -2314,10 +2314,10 @@ function addCombinedContextMenu(viewer) {
                 popup.style.boxShadow = '0 6px 18px rgba(0,0,0,0.3)';
                     popup.innerHTML = `
                         <div id="analyzeHeader" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;cursor:move">
-                            <div style="display:flex;gap:8px;align-items:center"><strong>Analyze Here</strong><span id="analyzeSpinner" style="display:none;width:16px;height:16px"><svg viewBox="0 0 50 50" width="16" height="16"><circle cx="25" cy="25" r="20" fill="none" stroke="#007bff" stroke-width="4" stroke-dasharray="31.4 31.4"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/></circle></svg></span></div>
-                            <div style="display:flex;gap:6px;align-items:center"><button id="pinAnalyzePopup" title="Pin popup" type="button" style="background:transparent;border:none;cursor:pointer;font-size:16px">📌</button><button id="closeAnalyzePopup" type="button" aria-label="Close analyze popup" style="background:transparent;border:none;font-size:16px;cursor:pointer">×</button></div>
+                            <div style="display:flex;gap:8px;align-items:center"><strong>Analyse hier</strong><span id="analyzeSpinner" style="display:none;width:16px;height:16px"><svg viewBox="0 0 50 50" width="16" height="16"><circle cx="25" cy="25" r="20" fill="none" stroke="#007bff" stroke-width="4" stroke-dasharray="31.4 31.4"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/></circle></svg></span></div>
+                            <div style="display:flex;gap:6px;align-items:center"><button id="pinAnalyzePopup" title="Analysevenster vastzetten" type="button" style="background:transparent;border:none;cursor:pointer;font-size:16px">📌</button><button id="closeAnalyzePopup" type="button" aria-label="Sluit analysevenster" style="background:transparent;border:none;font-size:16px;cursor:pointer">×</button></div>
                         </div>
-                        <div id="analyzeContent">Analyzing…</div>`;
+                        <div id="analyzeContent">Analyse wordt geladen…</div>`;
                 document.body.appendChild(popup);
                 // ensure popup receives pointer events and sits above other UI
                 popup.style.pointerEvents = 'auto';
@@ -2383,7 +2383,7 @@ function addCombinedContextMenu(viewer) {
                     }
                 } catch (e) { }
             } else {
-                popup.querySelector('#analyzeContent').innerHTML = 'Analyzing…';
+                popup.querySelector('#analyzeContent').innerHTML = 'Analyse wordt geladen…';
                 popup.style.display = 'block';
             }
 
@@ -2406,7 +2406,7 @@ function addCombinedContextMenu(viewer) {
             const lat = lastContextLat;
             const lon = lastContextLon;
             if (lat == null || lon == null) {
-                contentEl.innerHTML = '<em>Unable to determine location at this pixel. Please click on the globe to select a point.</em>';
+                contentEl.innerHTML = '<em>Locatie op deze pixel kon niet worden bepaald. Klik op de globe om een punt te selecteren.</em>';
                 return;
             }
 
@@ -2428,36 +2428,36 @@ function addCombinedContextMenu(viewer) {
                 if (spinner) spinner.style.display = 'none';
 
                 let html = '';
-                html += `<div style="margin-bottom:6px"><strong>Location:</strong> ${name || (place && place.address) || `${lat.toFixed(4)}, ${lon.toFixed(4)}`}</div>`;
+                html += `<div style="margin-bottom:6px"><strong>Locatie:</strong> ${name || (place && place.address) || `${lat.toFixed(4)}, ${lon.toFixed(4)}`}</div>`;
 
                 if (pop && (pop.population || pop.label)) {
-                    html += `<div style="margin-bottom:6px"><strong>Entity:</strong> ${pop.label || 'N/A'}<br><strong>Population:</strong> ${pop.population ? pop.population.toLocaleString() : 'Unknown'}</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Gebied:</strong> ${pop.label || 'n/b'}<br><strong>Bevolking:</strong> ${pop.population ? pop.population.toLocaleString() : 'Onbekend'}</div>`;
                 } else {
-                    html += `<div style="margin-bottom:6px"><strong>Population:</strong> Unknown</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Bevolking:</strong> Onbekend</div>`;
                 }
 
                 if (air && (air.co || air.pm25 || air.no2 || air.o3)) {
-                    html += `<div style="margin-bottom:6px"><strong>Air pollution (24h forecast)</strong><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">`;
+                    html += `<div style="margin-bottom:6px"><strong>Luchtvervuiling (24u prognose)</strong><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">`;
                     if (air.co && air.co.length) html += `<div style="flex:1;min-width:120px"><small>CO</small>${makeSparkline(air.co, '#ff7f0e')}</div>`;
                     if (air.pm25 && air.pm25.length) html += `<div style="flex:1;min-width:120px"><small>PM2.5</small>${makeSparkline(air.pm25, '#2ca02c')}</div>`;
                     if (air.no2 && air.no2.length) html += `<div style="flex:1;min-width:120px"><small>NO2</small>${makeSparkline(air.no2, '#9467bd')}</div>`;
                     if (air.o3 && air.o3.length) html += `<div style="flex:1;min-width:120px"><small>O3</small>${makeSparkline(air.o3, '#1f77b4')}</div>`;
                     html += `</div></div>`;
                 } else {
-                    html += `<div style="margin-bottom:6px"><strong>Air pollution:</strong> Not available (API key missing, rate-limited, or no data)</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Luchtvervuiling:</strong> Niet beschikbaar (API-sleutel ontbreekt, limiet bereikt of geen data)</div>`;
                 }
 
                 if (weather && weather.main) {
-                    html += `<div style="margin-bottom:6px"><strong>Current weather:</strong> ${Math.round(weather.main.temp)} °C, ${weather.weather && weather.weather[0] ? weather.weather[0].description : "unknown"}<br><strong>Humidity:</strong> ${weather.main.humidity}%</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Huidig weer:</strong> ${Math.round(weather.main.temp)} °C, ${weather.weather && weather.weather[0] ? weather.weather[0].description : "onbekend"}<br><strong>Luchtvochtigheid:</strong> ${weather.main.humidity}%</div>`;
                 } else {
-                    html += `<div style="margin-bottom:6px"><strong>Current weather:</strong> Not available</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Huidig weer:</strong> Niet beschikbaar</div>`;
                 }
 
                 if (traffic) {
                     const ratio = traffic.freeFlowSpeed > 0 ? Math.round((traffic.currentSpeed / traffic.freeFlowSpeed) * 100) : 100;
-                    html += `<div style="margin-bottom:6px"><strong>Traffic state:</strong> ${traffic.currentSpeed} / ${traffic.freeFlowSpeed} km/h<br><strong>Road:</strong> ${traffic.roadName || "N/A"}<br><strong>Flow ratio:</strong> ${ratio}% of free flow</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Verkeersstatus:</strong> ${traffic.currentSpeed} / ${traffic.freeFlowSpeed} km/h<br><strong>Weg:</strong> ${traffic.roadName || "n/b"}<br><strong>Doorstroming:</strong> ${ratio}% van vrije doorstroming</div>`;
                 } else {
-                    html += `<div style="margin-bottom:6px"><strong>Traffic state:</strong> Not available</div>`;
+                    html += `<div style="margin-bottom:6px"><strong>Verkeersstatus:</strong> Niet beschikbaar</div>`;
                 }
 
                 if (cbs) {
@@ -2466,9 +2466,9 @@ function addCombinedContextMenu(viewer) {
                     html += `<div style="margin-bottom:6px"><strong>CBS buurtprofiel:</strong> Tijdelijk niet beschikbaar</div>`;
                 }
 
-                html += `<div style="margin-bottom:6px"><strong>Nearby heritage points:</strong> ${Array.isArray(heritage) ? heritage.length : 0}</div>`;
-                html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button id="openAnalyzeDashboard" type="button" style="padding:6px 10px;border:none;border-radius:8px;background:#22c55e;color:#08131f;cursor:pointer;font-weight:600">Open data dashboard</button></div>`;
-                html += `<div style="margin-top:6px;font-size:11px;color:#666">Data sources: Wikidata, OpenWeatherMap, TomTom Traffic, PDOK/RCE, PDOK/CBS. Results may be approximate and subject to API limits.</div>`;
+                html += `<div style="margin-bottom:6px"><strong>Nabijgelegen erfgoedpunten:</strong> ${Array.isArray(heritage) ? heritage.length : 0}</div>`;
+                html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button id="openAnalyzeDashboard" type="button" style="padding:6px 10px;border:none;border-radius:8px;background:#22c55e;color:#08131f;cursor:pointer;font-weight:600">Open data-dashboard</button></div>`;
+                html += `<div style="margin-top:6px;font-size:11px;color:#666">Databronnen: Wikidata, OpenWeatherMap, TomTom Traffic, PDOK/RCE, PDOK/CBS. Resultaten kunnen benaderingen zijn en worden beperkt door API-limieten.</div>`;
                 contentEl.innerHTML = html;
                 const openAnalyzeDashboardBtn = document.getElementById('openAnalyzeDashboard');
                 if (openAnalyzeDashboardBtn) {
@@ -2481,10 +2481,10 @@ function addCombinedContextMenu(viewer) {
                         window.open(`dashboard/open_data_dashboard.html?${params.toString()}`, "_blank");
                     };
                 }
-                markOperationalUpdate("Analyze Here refreshed", "Location analysis");
+                markOperationalUpdate("Analyse vernieuwd", "Locatieanalyse");
             } catch (e) {
-                console.error('Analyze failed', e);
-                contentEl.innerHTML = '<em>Error while fetching analysis data.</em>';
+                console.error('Analyse failed', e);
+                contentEl.innerHTML = '<em>Fout bij het ophalen van analysegegevens.</em>';
             }
         });
     }
