@@ -44,8 +44,8 @@ const operationalState = {
     activeLayers: new Set()
 };
 
-const BIODIVERSITY_SERVICE_URL = "https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11";
-const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
+const BIODIVERSITY_SERVICE_URL = "https://geoproxy.s-hertogenbosch.nl/ags_extern/rest/services/Externvrij/CO2/MapServer/11";
+const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/ps-ch/wfs/v1_0";
 const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
@@ -1605,7 +1605,7 @@ function toggleCbsNeighborhoodOverlay() {
     cbsNeighborhoodLayer = viewer.imageryLayers.addImageryProvider(
         new Cesium.WebMapServiceImageryProvider({
             url: CBS_WIJKBUURT_WMS_URL,
-            layers: "buurten",
+            layers: "wijkenbuurten_thema_buurten_buurt_aantal_inwoners",
             parameters: {
                 service: "WMS",
                 version: "1.3.0",
@@ -1615,9 +1615,9 @@ function toggleCbsNeighborhoodOverlay() {
             }
         })
     );
-    cbsNeighborhoodLayer.alpha = 0.42;
-    cbsNeighborhoodLayer.brightness = 1.05;
-    cbsNeighborhoodLayer.contrast = 1.15;
+    cbsNeighborhoodLayer.alpha = 0.68;
+    cbsNeighborhoodLayer.brightness = 1.14;
+    cbsNeighborhoodLayer.contrast = 1.22;
 
     if (button) {
         button.textContent = "CBS buurtstatistiek AAN";
@@ -1626,6 +1626,7 @@ function toggleCbsNeighborhoodOverlay() {
 
     showNotification("event", "CBS buurtstatistiek geladen vanuit PDOK / CBS. Dit geeft gebiedsprofielen zoals inwoners, dichtheid en huishoudens.");
     setLayerActive("cbs", true, "CBS neighborhood profiles", "CBS neighborhood layer loaded");
+    flytoIKDB();
     viewer.scene.requestRender();
 }
 
@@ -1638,7 +1639,7 @@ async function loadDutchHeritageSites() {
         count: "120",
         outputFormat: "application/json",
         srsName: "EPSG:4326",
-        bbox: "5.20,51.62,5.45,51.78,EPSG:4326"
+        bbox: "51.62,5.20,51.78,5.45,EPSG:4326"
     });
 
     const requestUrl = `${HERITAGE_SERVICE_URL}?${params.toString()}`;
@@ -1701,14 +1702,7 @@ async function loadDutchHeritageSites() {
         });
     });
 
-    viewer.flyTo(heritageState.dataSource, {
-        duration: 2.2,
-        offset: new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(18),
-            Cesium.Math.toRadians(-40),
-            5000
-        )
-    });
+    flytoIKDB();
 }
 
 async function toggleBiodiversityStream() {
@@ -1744,6 +1738,7 @@ async function toggleBiodiversityStream() {
     showNotification("event", "Gemeentelijke bomenlaag geladen. Dit toont biodiversiteits- en boompunten uit de Den Bosch geo service.");
     biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
     setLayerActive("biodiversity", true, "Biodiversity stream", "Biodiversity stream activated");
+    flytoIKDB();
 }
 
 async function loadBiodiversityTrees() {
