@@ -1313,14 +1313,18 @@ async function fetchCbsNeighborhoodStats(latitude, longitude) {
 }
 
 function showNotification(type, content) {
+    if (type === "event") {
+        showStatusToast(content);
+        return;
+    }
+
     const card = $("locationInfoCard");
     if (!card) return;
 
     const targetMap = {
         weather: "locationWeatherContent",
         "air-quality": "locationAirContent",
-        traffic: "locationTrafficContent",
-        event: "locationTrafficContent"
+        traffic: "locationTrafficContent"
     };
 
     const targetId = targetMap[type];
@@ -1336,6 +1340,21 @@ function showNotification(type, content) {
         target.dataset.hasData = "true";
     }
     card.classList.remove("is-hidden");
+}
+
+function showStatusToast(content) {
+    const area = $("notificationArea");
+    if (!area) return;
+
+    const toast = document.createElement("div");
+    toast.className = "status-toast";
+    toast.innerHTML = content;
+    area.prepend(toast);
+
+    window.setTimeout(() => {
+        toast.classList.add("is-hiding");
+        window.setTimeout(() => toast.remove(), 220);
+    }, 3200);
 }
 
 function addPrototypeTrafficExperience() {
