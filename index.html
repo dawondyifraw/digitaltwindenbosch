@@ -90,13 +90,22 @@
   <!-- Splash Screen -->
   <div id="splashScreen" role="alert" aria-live="polite" aria-busy="true">
     <div class="inner">
+      <p class="welcome-kicker">DataTwinLabs presents</p>
       <h1>Digital Twin • ’s‑Hertogenbosch</h1>
+      <p class="welcome-lead">A civic intelligence prototype for live urban insight, planning, mobility, environment, and municipal storytelling.</p>
       <p id="loadingText">Loading modules and data…</p>
       <div class="logo-container" aria-hidden="true">
         <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="DataTwinLabs" class="logo" />
         <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Gemeente ’s‑Hertogenbosch" class="logo" />
       </div>
       <div class="loading-bar" aria-hidden="true"><div></div></div>
+      <div class="welcome-actions">
+        <button id="enterTwinBtn" class="enter-twin-btn" type="button" disabled>Enter Digital Twin</button>
+      </div>
+      <div class="welcome-footer">
+        <strong>Developed by DataTwinLabs, 2026</strong>
+        <span>Created by Daniel Adenew Wonyifraw with Prof. Jos for the Digital Twin Den Bosch initiative.</span>
+      </div>
     </div>
   </div>
 
@@ -303,9 +312,31 @@
       // Splash handling
       const splash = document.getElementById('splashScreen');
       const loadingText = document.getElementById('loadingText');
+      const enterTwinBtn = document.getElementById('enterTwinBtn');
       const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
-      const safeHideSplash = () => { if (!splash) return; splash.setAttribute('aria-busy', 'false'); splash.style.opacity = '0'; setTimeout(()=> splash.remove(), 220); };
-      let waited = 0; const tick = setInterval(()=>{ waited += 150; if (readyCheck()) { clearInterval(tick); safeHideSplash(); } else if (waited > 5000) { clearInterval(tick); loadingText && (loadingText.textContent = 'Still loading…'); safeHideSplash(); } },150);
+      const safeHideSplash = () => {
+        if (!splash) return;
+        splash.setAttribute('aria-busy', 'false');
+        splash.style.opacity = '0';
+        setTimeout(()=> splash.remove(), 260);
+      };
+      const setWelcomeReady = (message) => {
+        if (loadingText && message) loadingText.textContent = message;
+        splash?.classList.add('is-ready');
+        enterTwinBtn && (enterTwinBtn.disabled = false);
+      };
+      let waited = 0;
+      const tick = setInterval(()=>{
+        waited += 150;
+        if (readyCheck()) {
+          clearInterval(tick);
+          setWelcomeReady('System ready. Launch the Digital Twin when you are ready.');
+        } else if (waited > 8000) {
+          clearInterval(tick);
+          setWelcomeReady('Core modules loaded. You can enter the prototype now.');
+        }
+      },150);
+      enterTwinBtn?.addEventListener('click', safeHideSplash);
 
       // Sidebar dropdowns
       const toggles = document.querySelectorAll('.menu-toggle');

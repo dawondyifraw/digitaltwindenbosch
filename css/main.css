@@ -289,6 +289,86 @@ body.weather-water::before {
   margin-bottom: 8px;
 }
 
+.sidebar-tools {
+  margin: 8px 0 12px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(10, 16, 28, 0.84);
+  border: 1px solid var(--dt-border);
+}
+
+.sidebar-tools__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-action-btn,
+.locale-switch__btn {
+  min-height: 38px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(19, 28, 44, 0.92);
+  color: var(--dt-text);
+  font-family: var(--dt-font);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-action-btn {
+  flex: 1;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.sidebar-action-btn:hover,
+.locale-switch__btn:hover {
+  border-color: rgba(61, 214, 198, 0.32);
+  background: rgba(27, 38, 58, 0.96);
+  transform: translateY(-1px);
+}
+
+.locale-switch {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.locale-switch__btn {
+  width: 44px;
+  padding: 0;
+}
+
+.locale-switch__btn.is-active {
+  border-color: rgba(61, 214, 198, 0.38);
+  background: rgba(61, 214, 198, 0.15);
+  color: #dffffa;
+}
+
+.sidebar-briefing {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(13, 20, 34, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-briefing h3 {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dt-accent);
+}
+
+.sidebar-briefing p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--dt-text);
+}
+
 .sidebar .brand {
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -480,9 +560,9 @@ body.weather-water::before {
 /* Notifications */
 #notificationArea {
   position: fixed;
-  top: 126px;
+  top: 108px;
   left: 350px;
-  width: min(360px, calc(100vw - 720px));
+  width: clamp(300px, calc(100vw - 760px), 420px);
   z-index: 1100;
   display: block;
   animation: fade-in 0.6s ease;
@@ -490,13 +570,14 @@ body.weather-water::before {
 
 .location-info-card {
   position: relative;
-  padding: 14px;
-  border-radius: 16px;
+  padding: 16px 16px 14px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  border-radius: 18px;
   color: var(--dt-text);
-  background: rgba(12, 18, 32, 0.92);
-  border: 1px solid var(--dt-border-strong);
-  box-shadow: var(--dt-shadow);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(9, 14, 24, 0.98), rgba(14, 20, 34, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 18px 34px rgba(4, 8, 16, 0.5);
 }
 
 .location-info-card.is-hidden {
@@ -504,14 +585,15 @@ body.weather-water::before {
 }
 
 .location-info-card h4 {
-  margin: 0 24px 12px 0;
-  font-size: 0.95rem;
+  margin: 0 40px 12px 0;
+  font-size: 0.98rem;
   color: var(--dt-text);
+  line-height: 1.35;
 }
 
 .location-info-card__section {
-  padding-top: 10px;
-  margin-top: 10px;
+  padding-top: 12px;
+  margin-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -529,19 +611,51 @@ body.weather-water::before {
   color: var(--dt-text);
 }
 
+.location-info-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.location-info-card__action-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(61, 214, 198, 0.22);
+  background: rgba(61, 214, 198, 0.12);
+  color: #defef9;
+  font-family: var(--dt-font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.location-info-card__action-btn:hover {
+  background: rgba(61, 214, 198, 0.18);
+  border-color: rgba(61, 214, 198, 0.35);
+}
+
 .location-info-card__close {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: transparent;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--dt-muted);
-  border: none;
-  font-size: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
 .location-info-card__close:hover {
   color: var(--dt-text);
+  background: rgba(61, 214, 198, 0.12);
+  border-color: rgba(61, 214, 198, 0.25);
 }
 
 /* Minimap */
@@ -577,6 +691,7 @@ body.weather-water::before {
               linear-gradient(140deg, #060b15, #0b1220 55%, #101a2d);
   flex-direction: column;
   text-align: center;
+  transition: opacity 0.26s ease;
 }
 
 #splashScreen h1 {
@@ -587,10 +702,76 @@ body.weather-water::before {
   font-weight: 600;
 }
 
+.welcome-kicker {
+  margin: 0 0 8px;
+  color: var(--dt-accent);
+  font-family: var(--dt-font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.welcome-lead {
+  max-width: 760px;
+  margin: 0 auto 12px;
+  color: var(--dt-text);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
 #loadingText {
   color: var(--dt-muted);
   font-size: 0.95rem;
   letter-spacing: 0.04em;
+}
+
+.welcome-actions {
+  margin-top: 18px;
+}
+
+.enter-twin-btn {
+  min-width: 220px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 214, 198, 0.36);
+  background: linear-gradient(135deg, rgba(61, 214, 198, 0.18), rgba(35, 188, 168, 0.12));
+  color: var(--dt-text);
+  font-family: var(--dt-font);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.2s ease, transform 0.2s ease, border 0.2s ease;
+}
+
+.enter-twin-btn:disabled {
+  cursor: wait;
+}
+
+#splashScreen.is-ready .enter-twin-btn {
+  opacity: 1;
+}
+
+#splashScreen.is-ready .enter-twin-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(61, 214, 198, 0.5);
+}
+
+.welcome-footer {
+  max-width: 760px;
+  margin: 22px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--dt-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.welcome-footer strong,
+.welcome-footer span {
+  display: block;
 }
 
 .logo-container {

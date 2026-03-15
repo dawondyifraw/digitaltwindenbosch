@@ -170,9 +170,12 @@ async function startApp() {
     try {
         await initCesium();
         wireUi();
-        // Hide splash only after Cesium and tiles are loaded
+        // Mark splash ready; the user dismisses the welcome screen manually.
         const splash = document.getElementById('splashScreen');
-        if (splash) splash.style.display = 'none';
+        if (splash) {
+            splash.classList.add("is-ready");
+            splash.setAttribute("aria-busy", "false");
+        }
     } catch (err) {
         showCesiumErrorPopup("Failed to load 3D viewer or tiles: " + err);
         throw err;
@@ -271,10 +274,11 @@ async function initCesium() {
             terrainProvider,
             baseLayer: imageryProvider ? new Cesium.ImageryLayer(imageryProvider) : false,
             requestRenderMode: true,
-            animation: true,
-            timeline: true,
+            animation: false,
+            timeline: false,
             sceneMode: Cesium.SceneMode.SCENE3D,
-            baseLayerPicker: false
+            baseLayerPicker: false,
+            shouldAnimate: false
         });
 
         if (viewer.imageryLayers.length === 0) {
