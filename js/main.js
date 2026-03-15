@@ -14,6 +14,7 @@ let TomTomAPI = "";
 let airQualityApiKey = "";
 let weatherApiKey = "";
 
+let cityContextTileset = null;
 let osmBuildingsTileset = null;
 let kadasterBuildingsTileset = null;
 let bagFootprintState = {
@@ -411,6 +412,17 @@ async function loadTileset() {
     console.log("Loading main tileset and OSM buildings");
 
     try {
+        try {
+            const cityResource = await Cesium.IonResource.fromAssetId(2275207);
+            cityContextTileset = typeof Cesium.Cesium3DTileset.fromUrl === "function"
+                ? await Cesium.Cesium3DTileset.fromUrl(cityResource)
+                : new Cesium.Cesium3DTileset({ url: cityResource });
+            viewer.scene.primitives.add(cityContextTileset);
+        } catch (cityError) {
+            console.warn("Primary city context tileset unavailable, continuing with OSM buildings.", cityError);
+            cityContextTileset = null;
+        }
+
         if (typeof Cesium.createOsmBuildingsAsync === "function") {
             osmBuildingsTileset = viewer.scene.primitives.add(await Cesium.createOsmBuildingsAsync());
         } else if (typeof Cesium.createOsmBuildings === "function") {
@@ -525,7 +537,9 @@ async function loadTileset() {
             }
         });
 
-        if (osmBuildingsTileset) {
+        if (cityContextTileset) {
+            await viewer.zoomTo(cityContextTileset);
+        } else if (osmBuildingsTileset) {
             await viewer.zoomTo(osmBuildingsTileset);
         }
         viewer.camera.flyTo({
