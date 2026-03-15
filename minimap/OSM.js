@@ -15,7 +15,7 @@ var minimap = new OSMBuildings({
     tilt: 40,
     rotation: 300,
     effects: ['shadows'],
-    attribution: 'Proffesor Jos van Hillserbrege and Daniel Wondyifraw</a>'
+    attribution: 'Prof. Jos van Hillegersberg and Daniel Wondyifraw</a>'
 });
 
 minimap.addMapTiles('https://tile-a.openstreetmap.fr/hot/{z}/{x}/{y}.png');
