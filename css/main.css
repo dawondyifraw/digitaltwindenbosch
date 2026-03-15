@@ -69,6 +69,40 @@ body::after {
   z-index: 1;
 }
 
+.prototype-banner {
+  position: fixed;
+  top: 18px;
+  left: 350px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(540px, calc(100vw - 390px));
+  padding: 10px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 999px;
+  background: rgba(13, 20, 34, 0.86);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--dt-shadow);
+  z-index: 1000;
+}
+
+.prototype-banner p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--dt-muted);
+}
+
+.prototype-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #ffd48a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Sidebar */
 #menu,
 .sidebar {
@@ -549,6 +583,11 @@ body::after {
 
 /* Responsive tweaks */
 @media (max-width: 1100px) {
+  .prototype-banner {
+    left: 310px;
+    max-width: min(500px, calc(100vw - 330px));
+  }
+
   #menu,
   .sidebar {
     width: 280px;
@@ -560,6 +599,11 @@ body::after {
 }
 
 @media (max-width: 900px) {
+  .prototype-banner {
+    left: 280px;
+    max-width: min(420px, calc(100vw - 300px));
+  }
+
   #menu,
   .sidebar {
     width: 250px;
@@ -575,6 +619,14 @@ body::after {
 }
 
 @media (max-width: 768px) {
+  .prototype-banner {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    border-radius: var(--dt-radius);
+  }
+
   #menu,
   .sidebar {
     top: auto;

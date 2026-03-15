@@ -103,6 +103,11 @@
   <!-- 3D scene -->
   <main id="cesiumContainer" aria-label="3D city scene"></main>
 
+  <section class="prototype-banner" aria-label="Prototype status">
+    <div class="prototype-pill">Prototype</div>
+    <p>Demo version. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.</p>
+  </section>
+
   <!-- Sidebar: commercial layout with dropdowns -->
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
@@ -154,8 +159,8 @@
       <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Analytics</button>
       <ul id="analytics-submenu" class="submenu" role="menu">
         <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Open Forecast Panel</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="true">Carbon & Noise Stream ON</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Realtime Alerts OFF</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Stream Demo</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Alert Feed Demo</button></li>
       </ul>
     </section>
 
@@ -303,6 +308,16 @@ toggleChatBtn?.addEventListener('click', () => {
       const togglePressed = (btn) => btn && btn.setAttribute('aria-pressed', String(!(btn.getAttribute('aria-pressed') === 'true')));
       document.getElementById('toggleStreamBtn')?.addEventListener('click', function(){ togglePressed(this); });
       document.getElementById('startNotifications')?.addEventListener('click', function(){ togglePressed(this); });
+
+      document.addEventListener('configLoaded', function () {
+        const conf = window.config && window.config.conf ? window.config.conf : {};
+        const isPrototype = conf.APP_MODE !== 'production';
+        document.documentElement.setAttribute('data-app-mode', conf.APP_MODE || 'prototype');
+        const banner = document.querySelector('.prototype-banner');
+        if (banner) {
+          banner.hidden = !isPrototype;
+        }
+      });
 
       document.documentElement.setAttribute('data-app','udt-console');
     })();

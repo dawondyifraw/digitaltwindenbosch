@@ -1,6 +1,7 @@
 console.log(`Notification loaded`); // Debugging
 let isClicked = false;
 let notificationInterval; // Store the interval ID for toggling
+const demoContactMessage = "Demo version only. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.";
 
 // Notification Data for Simulated Alerts
 const notificationData = [
@@ -96,7 +97,7 @@ function playNotificationSound() {
 document.getElementById('startNotifications').addEventListener('click', (event) => {
     // Toggle real-time alerts
     if (!isClicked) {
-        event.target.innerHTML = 'Real Time Alert is ON!';
+        event.target.innerHTML = 'Demo Alerts ON';
         event.target.style.backgroundColor = 'lightblue';
         isClicked = true;
 
@@ -110,9 +111,10 @@ document.getElementById('startNotifications').addEventListener('click', (event) 
 
         // Start the notification interval
         notificationInterval = setInterval(generateRandomNotification, 10000); // Every 10 seconds
+        updateAlertBox('event', demoContactMessage);
         generateRandomNotification(); // Call it immediately
     } else {
-        event.target.innerHTML = 'Real Time Alert is OFF!';
+        event.target.innerHTML = 'Alert Feed Demo';
         event.target.style.backgroundColor = ''; // Reset to default background
         isClicked = false;
 

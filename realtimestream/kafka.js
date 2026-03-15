@@ -1,22 +1,38 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded');  // Debugging log to confirm DOM is loaded
+    console.log('DOM fully loaded');
+
+    function getAppConfig() {
+        return (window.config && window.config.conf) || {};
+    }
+
+    function getStreamUrl() {
+        const conf = getAppConfig();
+        return conf.SERVICES && conf.SERVICES.streamUrl ? conf.SERVICES.streamUrl : '';
+    }
+
+    function isPrototypeMode() {
+        return getAppConfig().APP_MODE !== 'production';
+    }
 
     function streamkafka() {
-        console.log('streamkafka function loaded');  // Debugging log to ensure function is loaded
-        var isStreaming = false;  // Stream is initially off
-        var socket;
-        var markers = {};  // Dictionary to store real-time markers based on coordinates
-        var iconUrl = 'https://cdn-icons-png.flaticon.com/512/1484/1484819.png';  // High-quality custom icon
+        console.log('streamkafka function loaded');
+        var isStreaming = false;
+        var socket = null;
+        var demoTimer = null;
+        var markers = {};
+        var iconUrl = 'https://cdn-icons-png.flaticon.com/512/1484/1484819.png';
 
-        // Function to update Cesium map with real-time data from Kafka
         function updateMapWithData(data) {
+            if (!window.viewer || !window.Cesium) {
+                return;
+            }
+
             console.log('Received data from server:', data);
 
             var lat = data.latitude;
             var lon = data.longitude;
-            var key = lat + ',' + lon;  // Unique key based on coordinates
+            var key = lat + ',' + lon;
 
-            // Check if a marker already exists at this location
             if (!markers[key]) {
                 markers[key] = viewer.entities.add({
                     position: Cesium.Cartesian3.fromDegrees(lon, lat),
@@ -63,47 +79,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Function to start the Kafka streaming and WebSocket connection
-        function startStreaming() {
-            console.log('Starting stream...');  // Debugging log
-            socket = io('http://localhost:5000');  // Adjust the URL if necessary
+        function startDemoStreaming() {
+            demoTimer = setInterval(function() {
+                updateMapWithData({
+                    latitude: 51.687,
+                    longitude: 5.303 + ((Math.random() - 0.5) * 0.02),
+                    co2: 420 + Math.round(Math.random() * 40),
+                    no2: 18 + Math.round(Math.random() * 10),
+                    pm25: 8 + Math.round(Math.random() * 6),
+                    sound_level: 52 + Math.round(Math.random() * 8),
+                    weather: 'Prototype stream'
+                });
+            }, 6000);
+        }
 
+        function startStreaming() {
+            var streamUrl = getStreamUrl();
+            console.log('Starting stream...');
+
+            if (isPrototypeMode() || !streamUrl) {
+                startDemoStreaming();
+                return;
+            }
+
+            socket = io(streamUrl);
             socket.on('kafka_data', function(data) {
-                console.log('Data received:', data);  // Log the data received to ensure it's correct
+                console.log('Data received:', data);
                 updateMapWithData(data);
             });
         }
 
-        // Function to stop the Kafka streaming and close WebSocket connection
         function stopStreaming() {
+            if (demoTimer) {
+                clearInterval(demoTimer);
+                demoTimer = null;
+            }
+
             if (socket) {
-                console.log('Stopping stream...');  // Debugging log
+                console.log('Stopping stream...');
                 socket.disconnect();
+                socket = null;
             }
         }
 
-        // Toggle function to start and stop the stream
         function toggleStream() {
-            console.log('Toggle stream called');  // Debugging log
             var button = document.getElementById('toggleStreamBtn');
+            if (!button) {
+                return;
+            }
+
             if (isStreaming) {
                 stopStreaming();
-                button.textContent = 'Start Stream';
+                button.textContent = isPrototypeMode() ? 'Live Stream Demo' : 'Start Stream';
             } else {
                 startStreaming();
-                button.textContent = 'Stop Stream';
+                button.textContent = isPrototypeMode() ? 'Stop Demo Stream' : 'Stop Stream';
             }
-            isStreaming = !isStreaming;  // Toggle the state
+            isStreaming = !isStreaming;
         }
 
-        // Bind the button click event to toggleStream function
-        document.getElementById('toggleStreamBtn').addEventListener('click', function() {
-            console.log('Button clicked');  // Debugging log
+        document.getElementById('toggleStreamBtn')?.addEventListener('click', function() {
             toggleStream();
         });
     }
 
-    // Call the `streamkafka` function once the DOM is fully loaded
     streamkafka();
 });
-
