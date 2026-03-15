@@ -15,6 +15,7 @@ let airQualityApiKey = "";
 let weatherApiKey = "";
 
 let osmBuildingsTileset = null;
+let kadasterBuildingsTileset = null;
 let biodiversityState = {
     active: false,
     dataSource: null,
@@ -224,30 +225,49 @@ function wireUi() {
 // Toggle Kadaster buildings
 function toggleBuildings() {
     if (isBuildingsLoaded) {
-        console.log("Buildings already loaded, no off toggle implemented yet.");
+        if (viewer && kadasterBuildingsTileset) {
+            viewer.scene.primitives.remove(kadasterBuildingsTileset);
+            kadasterBuildingsTileset = null;
+        }
+        isBuildingsLoaded = false;
+        setLayerActive("kadaster", false, "City core monitoring", "Kadaster 3D buildings hidden");
+        showNotification("event", "Kadaster 3D buildings hidden.");
     } else {
         loadBuildings3DTiles();
     }
-    isBuildingsLoaded = !isBuildingsLoaded;
 }
 
 // Load Kadaster 3D tiles (BAG)
 async function loadBuildings3DTiles() {
     setLayerLoadingState(true, "Loading Kadaster buildings…");
     try {
-        const tileset = new Cesium.Cesium3DTileset({
-            url: "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles"
-        });
+        if (kadasterBuildingsTileset) {
+            viewer.scene.primitives.remove(kadasterBuildingsTileset);
+            kadasterBuildingsTileset = null;
+        }
 
-        viewer.scene.primitives.add(tileset);
-        await tileset.readyPromise;
-        viewer.zoomTo(tileset);
+        const kadasterUrl = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
+        const tileset = typeof Cesium.Cesium3DTileset.fromUrl === "function"
+            ? await Cesium.Cesium3DTileset.fromUrl(kadasterUrl)
+            : new Cesium.Cesium3DTileset({ url: kadasterUrl });
+
+        kadasterBuildingsTileset = viewer.scene.primitives.add(tileset);
+        if (kadasterBuildingsTileset.readyPromise) {
+            await kadasterBuildingsTileset.readyPromise;
+        }
+        viewer.zoomTo(kadasterBuildingsTileset);
+        isBuildingsLoaded = true;
 
         console.log("3D Tiles for buildings loaded successfully.");
         showNotification("event", "Kadaster 3D buildings loaded successfully.");
         setLayerActive("kadaster", true, "Kadaster buildings", "Kadaster 3D buildings loaded");
     } catch (error) {
         console.error("Error loading 3D Tiles for buildings:", error);
+        if (viewer && kadasterBuildingsTileset) {
+            viewer.scene.primitives.remove(kadasterBuildingsTileset);
+            kadasterBuildingsTileset = null;
+        }
+        isBuildingsLoaded = false;
         showNotification("event", "Kadaster 3D buildings could not be loaded.");
     } finally {
         setLayerLoadingState(false, "Loading Kadaster buildings…");
