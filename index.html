@@ -136,109 +136,6 @@
     </div>
   </section>
 
-  <section class="prototype-banner" aria-label="Prototype status">
-    <div class="prototype-pill">Prototype</div>
-    <p>Demo version. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.</p>
-    <button class="prototype-banner__toggle" id="toggleBriefingBtn" type="button" aria-expanded="false">Open briefing</button>
-    <button class="prototype-banner__toggle" id="toggleMapOnlyBtn" type="button" aria-pressed="false">Show only 3D map</button>
-  </section>
-
-  <section class="hero-panel is-collapsed" id="briefingPanel" aria-label="Prototype overview">
-    <div class="hero-panel__copy">
-      <div class="hero-panel__topbar">
-        <span class="hero-panel__eyebrow">Operational Storyboard</span>
-        <button class="hero-panel__close" id="closeBriefingBtn" type="button" aria-label="Close briefing">×</button>
-      </div>
-      <h2>Public digital twin prototype for live city operations, mobility, and environmental insight.</h2>
-      <p>This showcase runs in demo mode today, but it is designed to present how a full multi-streaming urban twin can support command centers, planners, and city stakeholders.</p>
-      <div class="hero-panel__actions">
-        <button class="hero-action" type="button" data-scenario="mobility">Mobility</button>
-        <button class="hero-action" type="button" data-scenario="environment">Air Quality</button>
-        <button class="hero-action" type="button" data-scenario="water">Water</button>
-        <button class="hero-action" type="button" data-scenario="night">Night View</button>
-      </div>
-    </div>
-    <div class="hero-panel__meta">
-      <div class="hero-panel__card">
-        <span>Prototype Scope</span>
-        <strong>3D city, alerts, scenarios, analytics</strong>
-      </div>
-      <div class="hero-panel__card">
-        <span>Upgrade Path</span>
-        <strong>Live streaming, backend integration, orchestration</strong>
-      </div>
-      <div class="hero-panel__card">
-        <span>Use It Now</span>
-        <strong>Run a scenario, inspect the map, then open the forecast panel for a deeper demo.</strong>
-      </div>
-    </div>
-  </section>
-
-  <section class="kpi-grid is-compact" aria-label="Key prototype indicators">
-    <article class="kpi-card">
-      <span class="kpi-card__label">Mobility Pressure</span>
-      <strong class="kpi-card__value" id="kpiMobility">68%</strong>
-      <p class="kpi-card__meta">Demo congestion pressure around museum and retail corridors.</p>
-    </article>
-    <article class="kpi-card">
-      <span class="kpi-card__label">Air Quality Index</span>
-      <strong class="kpi-card__value" id="kpiAir">Fair</strong>
-      <p class="kpi-card__meta">Sample environmental layer tuned for public prototype review.</p>
-    </article>
-    <article class="kpi-card">
-      <span class="kpi-card__label">Alerts In View</span>
-      <strong class="kpi-card__value" id="kpiAlerts">03</strong>
-      <p class="kpi-card__meta">Scenario-driven incident cards available for stakeholder walkthroughs.</p>
-    </article>
-    <article class="kpi-card">
-      <span class="kpi-card__label">Twin Readiness</span>
-      <strong class="kpi-card__value" id="kpiReadiness">Pilot Ready</strong>
-      <p class="kpi-card__meta">Frontend showcase prepared for GitHub Pages and guided demos.</p>
-    </article>
-  </section>
-
-  <section class="scenario-panel is-collapsed" id="scenarioPanel" aria-label="Scenario quick actions">
-    <div class="scenario-panel__header">
-      <div>
-        <span class="scenario-panel__eyebrow">Scenario Cards</span>
-        <h3>Prototype walkthroughs</h3>
-      </div>
-      <p>Use these quick actions during presentations to shift the story from static map viewing to operational outcomes.</p>
-    </div>
-    <div class="scenario-grid">
-      <button class="scenario-card" type="button" data-scenario="mobility">
-        <span class="scenario-card__tag">Mobility</span>
-        <strong>Event traffic surge</strong>
-        <p>Highlight congestion, alert load, and corridor monitoring around the inner city.</p>
-      </button>
-      <button class="scenario-card" type="button" data-scenario="environment">
-        <span class="scenario-card__tag">Environment</span>
-        <strong>Air quality watch</strong>
-        <p>Focus on environmental metrics, public health messaging, and sensor interpretation.</p>
-      </button>
-      <button class="scenario-card" type="button" data-scenario="culture">
-        <span class="scenario-card__tag">Experience</span>
-        <strong>Museum district focus</strong>
-        <p>Frame the twin as a city experience and place-based monitoring platform.</p>
-      </button>
-      <button class="scenario-card" type="button" data-scenario="water">
-        <span class="scenario-card__tag">Water</span>
-        <strong>Rain and resilience</strong>
-        <p>Shift the world toward wet-weather operations with water-risk and resilience framing.</p>
-      </button>
-      <button class="scenario-card" type="button" data-scenario="night">
-        <span class="scenario-card__tag">Night Ops</span>
-        <strong>After-dark monitoring</strong>
-        <p>Switch to a cooler night-time visual state with more atmospheric city lighting.</p>
-      </button>
-      <button class="scenario-card" type="button" data-scenario="aviation">
-        <span class="scenario-card__tag">Aviation</span>
-        <strong>Air corridor view</strong>
-        <p>Show prototype aircraft movement and the city as part of a wider connected region.</p>
-      </button>
-    </div>
-  </section>
-
   <!-- Sidebar: commercial layout with dropdowns -->
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
@@ -251,8 +148,6 @@
       <ul id="ops-submenu" class="submenu open" role="menu">
         <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">City Command View</button></li>
         <li role="none"><button id="toggleTraffic" class="menu-item" role="menuitem">Traffic Flow & CO2</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="mobility">Event & Crowd Mobility</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="water">Flood & Rainfall Readiness</button></li>
       </ul>
     </section>
 
@@ -262,8 +157,6 @@
         <li role="none"><button id="BAGButton" class="menu-item" role="menuitem">Kadaster Buildings</button></li>
         <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">Dutch Heritage Sites</button></li>
         <li role="none"><button id="toggleBiodiversityBtn" class="menu-item" role="menuitem">Biodiversity Stream</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="environment">Air Quality & Health View</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="culture">Tourism & Cultural Districts</button></li>
       </ul>
 
       <div id="legend" class="legend" aria-label="Building type legend">
@@ -291,11 +184,8 @@
       <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Citizen & Policy Use Cases</button>
       <ul id="analytics-submenu" class="submenu" role="menu">
         <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Forecast & Climate Charts</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-action="openDataDashboard">Open Data Dashboard</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Sensor Storytelling</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Public Alert Feed</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="night">Night-time Safety View</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="aviation">Regional Mobility & Aviation</button></li>
       </ul>
     </section>
 
@@ -321,18 +211,22 @@
 
   <!-- Notifications -->
   <section id="notificationArea" aria-label="Live notifications">
-    <div id="trafficAlert" class="alert-box traffic is-hidden" role="status" aria-live="polite">
-      <h4>Traffic Alert</h4>
-      <p class="alert-content">No traffic updates at the moment.</p>
-    </div>
-    <div id="weatherAlert" class="alert-box weather is-hidden" role="status" aria-live="polite">
-      <h4>Weather Alert</h4>
-      <p class="alert-content">No weather updates at the moment.</p>
-    </div>
-    <div id="eventAlert" class="alert-box event is-hidden" role="status" aria-live="polite">
-      <h4>Event Alert</h4>
-      <p class="alert-content">No event updates at the moment.</p>
-    </div>
+    <article id="locationInfoCard" class="location-info-card is-hidden" role="status" aria-live="polite">
+      <button class="location-info-card__close" id="locationInfoCloseBtn" aria-label="Close details">×</button>
+      <h4 id="locationInfoTitle">Locatiegegevens</h4>
+      <div class="location-info-card__section">
+        <h5>Weer</h5>
+        <div id="locationWeatherContent">Nog geen locatie geselecteerd.</div>
+      </div>
+      <div class="location-info-card__section">
+        <h5>Luchtkwaliteit</h5>
+        <div id="locationAirContent">Nog geen locatie geselecteerd.</div>
+      </div>
+      <div class="location-info-card__section">
+        <h5>Verkeer</h5>
+        <div id="locationTrafficContent">Nog geen locatie geselecteerd.</div>
+      </div>
+    </article>
   </section>
 
   <!-- Minimap -->
@@ -419,11 +313,6 @@ document.querySelector('[data-action="openRightPanel"]')
     rightPanel?.classList.remove('is-closed');
   });
 
-document.querySelector('[data-action="openDataDashboard"]')
-  ?.addEventListener('click', () => {
-    window.open('dashboard/dashboard_sensors.html', '_blank', 'noopener,noreferrer');
-  });
-
 closePanelBtn?.addEventListener('click', () => {
   rightPanel?.classList.add('is-closed');
 });
@@ -432,11 +321,7 @@ closePanelBtn?.addEventListener('click', () => {
 const chatContainer = document.querySelector('.chat-container');
 const closeChatBtn = document.getElementById('close-chat-btn');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
-const toggleBriefingBtn = document.getElementById('toggleBriefingBtn');
-const toggleMapOnlyBtn = document.getElementById('toggleMapOnlyBtn');
-const briefingPanel = document.getElementById('briefingPanel');
-const scenarioPanel = document.getElementById('scenarioPanel');
-const closeBriefingBtn = document.getElementById('closeBriefingBtn');
+const locationInfoCloseBtn = document.getElementById('locationInfoCloseBtn');
 
 closeChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.add('is-closed');
@@ -446,34 +331,8 @@ toggleChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.toggle('is-closed');
 });
 
-toggleBriefingBtn?.addEventListener('click', () => {
-  const willOpen = briefingPanel?.classList.contains('is-collapsed');
-  briefingPanel?.classList.toggle('is-collapsed');
-  scenarioPanel?.classList.toggle('is-collapsed');
-  toggleBriefingBtn.textContent = willOpen ? 'Hide briefing' : 'Open briefing';
-  toggleBriefingBtn.setAttribute('aria-expanded', String(willOpen));
-});
-
-closeBriefingBtn?.addEventListener('click', () => {
-  briefingPanel?.classList.add('is-collapsed');
-  scenarioPanel?.classList.add('is-collapsed');
-  toggleBriefingBtn.textContent = 'Open briefing';
-  toggleBriefingBtn.setAttribute('aria-expanded', 'false');
-});
-
-toggleMapOnlyBtn?.addEventListener('click', () => {
-  const next = !(document.body.classList.contains('map-only'));
-  document.body.classList.toggle('map-only', next);
-  toggleMapOnlyBtn.textContent = next ? 'Exit 3D-only mode' : 'Show only 3D map';
-  toggleMapOnlyBtn.setAttribute('aria-pressed', String(next));
-  if (next) {
-    briefingPanel?.classList.add('is-collapsed');
-    scenarioPanel?.classList.add('is-collapsed');
-    rightPanel?.classList.add('is-closed');
-    chatContainer?.classList.add('is-closed');
-    toggleBriefingBtn.textContent = 'Open briefing';
-    toggleBriefingBtn.setAttribute('aria-expanded', 'false');
-  }
+locationInfoCloseBtn?.addEventListener('click', () => {
+  document.getElementById('locationInfoCard')?.classList.add('is-hidden');
 });
 
       // Chat submit

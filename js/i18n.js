@@ -73,7 +73,20 @@ window.udtI18n = (function () {
             no_sensor_data: "Geen sensordata beschikbaar.",
             traffic_node: "Verkeersknooppunt",
             air_quality_node: "Luchtkwaliteitsknooppunt",
-            ikdb_hub: "IKDB-knooppunt"
+            ikdb_hub: "IKDB-knooppunt",
+            loading_more: "Nog bezig met laden…",
+            hide_briefing_btn: "Briefing sluiten",
+            open_briefing_btn: "Briefing openen",
+            show_3d_btn: "Toon alleen 3D-kaart",
+            hide_3d_btn: "Sluit 3D-modus",
+            kadaster_loaded: "Kadaster 3D-gebouwen zijn geladen.",
+            kadaster_failed: "Kadaster 3D-gebouwen konden niet worden geladen.",
+            dutch_heritage_hidden: "De Nederlandse erfgoedlaag is verborgen.",
+            dutch_heritage_loaded: "Nederlandse erfgoeddata van PDOK is geladen.",
+            dutch_heritage_failed: "Nederlandse erfgoeddata kon nu niet worden geladen.",
+            biodiversity_none: "Geen biodiversiteitspunten gevonden in het huidige gebied.",
+            biodiversity_failed: "Biodiversiteitslaag niet beschikbaar.",
+            traffic_co2_on: "Verkeersstroom en CO2-hotspots zijn geactiveerd."
         }
     };
 

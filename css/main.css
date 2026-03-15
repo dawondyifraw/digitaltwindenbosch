@@ -170,9 +170,7 @@ body::after {
   animation: loading 1.4s ease-in-out infinite;
 }
 
-.status-ribbon,
-.kpi-grid,
-.prototype-banner {
+.status-ribbon {
   position: fixed;
   left: 350px;
   right: 360px;
@@ -243,258 +241,6 @@ body::after {
 .status-chip__value {
   font-size: 0.94rem;
   font-weight: 600;
-}
-
-.prototype-banner {
-  top: 86px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: min(520px, calc(100vw - 390px));
-  padding: 8px 12px;
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  border-radius: 999px;
-  background: rgba(13, 20, 34, 0.86);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--dt-shadow);
-  z-index: 1000;
-}
-
-.prototype-banner p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--dt-muted);
-}
-
-.prototype-pill {
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: rgba(245, 158, 11, 0.18);
-  color: #ffd48a;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.prototype-banner__toggle {
-  margin-left: auto;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(61, 214, 198, 0.22);
-  background: rgba(61, 214, 198, 0.08);
-  color: var(--dt-text);
-  cursor: pointer;
-  font-size: 0.78rem;
-}
-
-.hero-panel {
-  position: fixed;
-  top: 18px;
-  right: 360px;
-  width: min(360px, calc(100vw - 410px));
-  max-height: calc(100vh - 36px);
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 22px;
-  background: linear-gradient(150deg, rgba(8, 13, 24, 0.96), rgba(12, 19, 33, 0.92));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--dt-shadow);
-  backdrop-filter: blur(14px);
-  overflow-y: auto;
-  z-index: 1001;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.hero-panel__copy,
-.hero-panel__meta,
-.scenario-panel {
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.hero-panel__topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.hero-panel__close {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--dt-text);
-  cursor: pointer;
-}
-
-.hero-panel__copy h2 {
-  margin: 8px 0 10px;
-  font-size: 1.02rem;
-  line-height: 1.2;
-}
-
-.hero-panel__copy p,
-.scenario-panel__header p,
-.kpi-card__meta {
-  margin: 0;
-  color: var(--dt-muted);
-  line-height: 1.55;
-}
-
-.hero-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.hero-action {
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(61, 214, 198, 0.18);
-  background: rgba(61, 214, 198, 0.08);
-  color: var(--dt-text);
-  cursor: pointer;
-  font-size: 0.82rem;
-}
-
-.hero-panel__meta {
-  display: grid;
-  gap: 12px;
-}
-
-.hero-panel__card {
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.hero-panel__card strong {
-  display: block;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.kpi-grid {
-  top: 126px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.kpi-card {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(12, 18, 32, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--dt-shadow);
-  backdrop-filter: blur(12px);
-}
-
-.kpi-card__value {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.kpi-card__meta {
-  font-size: 0.8rem;
-}
-
-.scenario-panel {
-  position: static;
-  top: auto;
-  box-shadow: none;
-  backdrop-filter: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.scenario-panel__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: end;
-  margin-bottom: 16px;
-}
-
-.scenario-panel__header h3 {
-  margin: 6px 0 0;
-  font-size: 1.12rem;
-}
-
-.scenario-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.scenario-card {
-  padding: 16px;
-  text-align: left;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(155deg, rgba(255, 255, 255, 0.04), rgba(61, 214, 198, 0.06));
-  color: var(--dt-text);
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.scenario-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(61, 214, 198, 0.35);
-  box-shadow: var(--dt-glow);
-}
-
-.scenario-card__tag {
-  display: inline-flex;
-  margin-bottom: 10px;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: rgba(61, 214, 198, 0.14);
-  color: var(--dt-accent);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.scenario-card strong {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 1rem;
-}
-
-.scenario-card p {
-  margin: 0;
-  color: var(--dt-muted);
-  line-height: 1.5;
-}
-
-.hero-panel.is-collapsed,
-.scenario-panel.is-collapsed {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(18px);
-}
-
-body.map-only .status-ribbon,
-body.map-only .prototype-banner,
-body.map-only .hero-panel,
-body.map-only .kpi-grid,
-body.map-only .sidebar,
-body.map-only #rightPanel,
-body.map-only #notificationArea,
-body.map-only #minimap-container,
-body.map-only .chat-container {
-  opacity: 0;
-  pointer-events: none;
 }
 
 body.weather-rain #cesiumContainer,
@@ -734,61 +480,58 @@ body.weather-water::before {
 /* Notifications */
 #notificationArea {
   position: fixed;
-  bottom: 18px;
+  top: 126px;
   left: 350px;
-  max-width: 320px;
+  width: min(360px, calc(100vw - 720px));
   z-index: 1100;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: block;
   animation: fade-in 0.6s ease;
 }
 
-.notification {
+.location-info-card {
   position: relative;
-  padding: 12px 14px 12px 12px;
-  border-radius: 14px;
-  font-size: 0.88rem;
+  padding: 14px;
+  border-radius: 16px;
   color: var(--dt-text);
   background: rgba(12, 18, 32, 0.92);
   border: 1px solid var(--dt-border-strong);
-  border-left: 4px solid var(--dt-accent);
   box-shadow: var(--dt-shadow);
   backdrop-filter: blur(10px);
 }
 
-.notification.traffic {
-  border-left-color: #f97316;
+.location-info-card.is-hidden {
+  display: none;
 }
 
-.notification.weather {
-  border-left-color: #60a5fa;
+.location-info-card h4 {
+  margin: 0 24px 12px 0;
+  font-size: 0.95rem;
+  color: var(--dt-text);
 }
 
-.notification.air-quality {
-  border-left-color: #f59e0b;
+.location-info-card__section {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.notification.event {
-  border-left-color: #38bdf8;
+.location-info-card__section h5 {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dt-muted);
 }
 
-.notification p {
-  margin: 0;
+.location-info-card__section div {
+  font-size: 0.88rem;
   line-height: 1.45;
   color: var(--dt-text);
 }
 
-.notification strong {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
-}
-
-.notification .close-btn {
+.location-info-card__close {
   position: absolute;
-  top: 6px;
+  top: 8px;
   right: 8px;
   background: transparent;
   color: var(--dt-muted);
@@ -797,7 +540,7 @@ body.weather-water::before {
   cursor: pointer;
 }
 
-.notification .close-btn:hover {
+.location-info-card__close:hover {
   color: var(--dt-text);
 }
 
@@ -1005,26 +748,13 @@ body.weather-water::before {
 
 /* Responsive tweaks */
 @media (max-width: 1100px) {
-  .status-ribbon,
-  .kpi-grid,
-  .prototype-banner {
+  .status-ribbon {
     left: 310px;
     max-width: min(500px, calc(100vw - 330px));
   }
 
-  .status-ribbon,
-  .kpi-grid {
+  .status-ribbon {
     right: 330px;
-  }
-
-  .hero-panel {
-    right: 330px;
-    width: min(330px, calc(100vw - 360px));
-  }
-
-  .kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    top: 126px;
   }
 
   #menu,
@@ -1038,21 +768,13 @@ body.weather-water::before {
 }
 
 @media (max-width: 900px) {
-  .status-ribbon,
-  .kpi-grid,
-  .prototype-banner {
+  .status-ribbon {
     left: 280px;
     max-width: min(420px, calc(100vw - 300px));
   }
 
-  .status-ribbon,
-  .kpi-grid {
+  .status-ribbon {
     right: 300px;
-  }
-
-  .hero-panel {
-    right: 300px;
-    width: min(300px, calc(100vw - 320px));
   }
 
   .status-ribbon {
@@ -1060,14 +782,8 @@ body.weather-water::before {
     display: grid;
   }
 
-  .status-ribbon__metrics,
-  .scenario-grid {
+  .status-ribbon__metrics {
     grid-template-columns: 1fr;
-  }
-
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    top: 126px;
   }
 
   #menu,
@@ -1089,9 +805,7 @@ body.weather-water::before {
     overflow: auto;
   }
 
-  .status-ribbon,
-  .kpi-grid,
-  .prototype-banner {
+  .status-ribbon {
     top: 10px;
     left: 10px;
     right: 10px;
@@ -1103,28 +817,9 @@ body.weather-water::before {
     position: absolute;
   }
 
-  .prototype-banner {
-    top: 178px;
-  }
-
-  .hero-panel {
-    position: absolute;
-    top: 246px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-height: none;
-  }
-
-  .kpi-grid {
-    position: absolute;
-    top: 10px;
-    grid-template-columns: 1fr 1fr;
-  }
-
   #menu,
   .sidebar {
-    top: 520px;
+    top: 180px;
     left: 10px;
     right: 10px;
     width: auto;
@@ -1132,7 +827,7 @@ body.weather-water::before {
   }
 
   #rightPanel {
-    top: 1120px;
+    top: 860px;
     right: 10px;
     left: 10px;
     width: auto;
@@ -1141,7 +836,7 @@ body.weather-water::before {
 
   #notificationArea {
     position: absolute;
-    top: 1660px;
+    top: 1400px;
     bottom: auto;
     left: 14px;
     right: 14px;
@@ -1150,7 +845,7 @@ body.weather-water::before {
 
   #minimap-container {
     position: absolute;
-    top: 1900px;
+    top: 1640px;
     bottom: auto;
     width: 180px;
     height: 130px;
@@ -1158,7 +853,7 @@ body.weather-water::before {
 
   .chat-container {
     position: absolute;
-    top: 2060px;
+    top: 1800px;
     width: 100%;
     right: 0;
     left: 0;

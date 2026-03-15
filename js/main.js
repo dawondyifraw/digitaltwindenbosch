@@ -667,26 +667,28 @@ async function fetchAndDisplayTraffic(latitude, longitude) {
 }
 
 function showNotification(type, content) {
-    const notificationArea = $("notificationArea");
-    if (!notificationArea) return;
+    const card = $("locationInfoCard");
+    if (!card) return;
 
-    const notification = document.createElement("div");
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <button class="close-btn" onclick="this.parentElement.remove()">×</button>
-        <p>${content}</p>
-    `;
+    const targetMap = {
+        weather: "locationWeatherContent",
+        "air-quality": "locationAirContent",
+        traffic: "locationTrafficContent",
+        event: "locationTrafficContent"
+    };
 
-    notificationArea.appendChild(notification);
+    const targetId = targetMap[type];
+    if (!targetId) return;
 
-    setTimeout(() => {
-        notification.classList.add("fade-out");
-        setTimeout(() => {
-            if (notification && notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 1000);
-    }, 9000);
+    const target = $(targetId);
+    const title = $("locationInfoTitle");
+    if (title && name) {
+        title.textContent = name;
+    }
+    if (target) {
+        target.innerHTML = content;
+    }
+    card.classList.remove("is-hidden");
 }
 
 function addPrototypeTrafficExperience() {
