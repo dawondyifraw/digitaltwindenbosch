@@ -333,14 +333,7 @@ async function loadKadaster3DTiles() {
     if (kadasterBuildingsTileset.readyPromise) {
         await kadasterBuildingsTileset.readyPromise;
     }
-    await viewer.flyTo(kadasterBuildingsTileset, {
-        duration: 1.8,
-        offset: new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(12),
-            Cesium.Math.toRadians(-35),
-            1800
-        )
-    });
+    flytoIKDB();
 }
 
 async function loadBagFootprintFallback() {
@@ -403,14 +396,7 @@ async function loadBagFootprintFallback() {
     bagFootprintState.dataSource = dataSource;
     bagFootprintState.active = true;
     viewer.dataSources.add(dataSource);
-    await viewer.flyTo(dataSource, {
-        duration: 1.8,
-        offset: new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(10),
-            Cesium.Math.toRadians(-38),
-            2200
-        )
-    });
+    flytoIKDB();
 }
 
 // Init Cesium viewer
