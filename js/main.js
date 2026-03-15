@@ -17,6 +17,7 @@ let weatherApiKey = "";
 let cityContextTileset = null;
 let osmBuildingsTileset = null;
 let kadasterBuildingsTileset = null;
+let kadasterRootObjectUrl = null;
 let bagFootprintState = {
     active: false,
     dataSource: null
@@ -48,6 +49,7 @@ const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cu
 const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
+const KADASTER_3D_TILESET_URL = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
 
 // Helper to get elements
 function $(id) {
@@ -235,6 +237,10 @@ function toggleBuildings() {
             viewer.scene.primitives.remove(kadasterBuildingsTileset);
             kadasterBuildingsTileset = null;
         }
+        if (kadasterRootObjectUrl) {
+            URL.revokeObjectURL(kadasterRootObjectUrl);
+            kadasterRootObjectUrl = null;
+        }
         if (viewer && bagFootprintState.dataSource) {
             viewer.dataSources.remove(bagFootprintState.dataSource, true);
             bagFootprintState.dataSource = null;
@@ -252,17 +258,88 @@ function toggleBuildings() {
 async function loadBuildings3DTiles() {
     setLayerLoadingState(true, "Loading Kadaster buildings…");
     try {
-        await loadBagFootprintFallback();
+        await loadKadaster3DTiles();
         isBuildingsLoaded = true;
-        showNotification("event", "Officiële BAG-gebouwlaag geladen vanuit Kadaster / PDOK.");
-        setLayerActive("kadaster", true, "Kadaster BAG buildings", "Official BAG building layer loaded");
+        showNotification("event", "Kadaster 3D BAG-gebouwen geladen.");
+        setLayerActive("kadaster", true, "Kadaster 3D BAG buildings", "Kadaster 3D BAG buildings loaded");
     } catch (error) {
-        console.error("Error loading 3D Tiles for buildings:", error);
-        isBuildingsLoaded = false;
-        showNotification("event", "Kadaster 3D buildings could not be loaded.");
+        console.error("Error loading Kadaster 3D BAG, falling back to BAG footprints:", error);
+        try {
+            await loadBagFootprintFallback();
+            isBuildingsLoaded = true;
+            showNotification("event", "Officiële BAG-gebouwlaag geladen vanuit Kadaster / PDOK.");
+            setLayerActive("kadaster", true, "Kadaster BAG buildings", "Official BAG building layer loaded");
+        } catch (fallbackError) {
+            console.error("BAG fallback also failed:", fallbackError);
+            isBuildingsLoaded = false;
+            showNotification("event", "Kadaster 3D buildings could not be loaded.");
+        }
     } finally {
         setLayerLoadingState(false, "Loading Kadaster buildings…");
     }
+}
+
+function rewriteTilesetUris(node, prefixUrl) {
+    if (!node || typeof node !== "object") return;
+    if (node.content && typeof node.content.uri === "string" && !/^https?:\/\//i.test(node.content.uri)) {
+        node.content.uri = `${prefixUrl}/${node.content.uri}`;
+    }
+    if (Array.isArray(node.contents)) {
+        node.contents.forEach((content) => {
+            if (content && typeof content.uri === "string" && !/^https?:\/\//i.test(content.uri)) {
+                content.uri = `${prefixUrl}/${content.uri}`;
+            }
+        });
+    }
+    if (Array.isArray(node.children)) {
+        node.children.forEach((child) => rewriteTilesetUris(child, prefixUrl));
+    }
+}
+
+async function loadKadaster3DTiles() {
+    if (!viewer) return;
+
+    if (bagFootprintState.dataSource) {
+        viewer.dataSources.remove(bagFootprintState.dataSource, true);
+        bagFootprintState.dataSource = null;
+        bagFootprintState.active = false;
+    }
+    if (kadasterBuildingsTileset) {
+        viewer.scene.primitives.remove(kadasterBuildingsTileset);
+        kadasterBuildingsTileset = null;
+    }
+    if (kadasterRootObjectUrl) {
+        URL.revokeObjectURL(kadasterRootObjectUrl);
+        kadasterRootObjectUrl = null;
+    }
+
+    const response = await fetch(KADASTER_3D_TILESET_URL);
+    if (!response.ok) {
+        throw new Error(`Kadaster root tileset fetch failed: ${response.status}`);
+    }
+
+    const rootTileset = await response.json();
+    rewriteTilesetUris(rootTileset.root, KADASTER_3D_TILESET_URL);
+    kadasterRootObjectUrl = URL.createObjectURL(
+        new Blob([JSON.stringify(rootTileset)], { type: "application/json" })
+    );
+
+    const tileset = typeof Cesium.Cesium3DTileset.fromUrl === "function"
+        ? await Cesium.Cesium3DTileset.fromUrl(kadasterRootObjectUrl)
+        : new Cesium.Cesium3DTileset({ url: kadasterRootObjectUrl });
+
+    kadasterBuildingsTileset = viewer.scene.primitives.add(tileset);
+    if (kadasterBuildingsTileset.readyPromise) {
+        await kadasterBuildingsTileset.readyPromise;
+    }
+    await viewer.flyTo(kadasterBuildingsTileset, {
+        duration: 1.8,
+        offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(12),
+            Cesium.Math.toRadians(-35),
+            1800
+        )
+    });
 }
 
 async function loadBagFootprintFallback() {
@@ -1301,9 +1378,9 @@ async function toggleDutchHeritageLayer() {
             heritageState.dataSource = null;
         }
         if (button) {
-            button.textContent = "Dutch Heritage Sites";
+            button.textContent = "Erfgoedpunten (PDOK/RCE)";
         }
-        showNotification("event", "Dutch heritage layer hidden.");
+        showNotification("event", "Erfgoedpunten verborgen. Dit zijn officiele monument- en erfgoedlocaties uit PDOK / RCE.");
         setLayerActive("heritage", false, "City core monitoring", "Dutch heritage layer hidden");
         return;
     }
@@ -1312,7 +1389,7 @@ async function toggleDutchHeritageLayer() {
         await loadDutchHeritageSites();
         heritageState.active = true;
         if (button) {
-            button.textContent = "Dutch Heritage Sites ON";
+            button.textContent = "Erfgoedpunten AAN";
         }
         updatePrototypeHud({
             mobility: "59%",
@@ -1322,7 +1399,7 @@ async function toggleDutchHeritageLayer() {
             freshness: "PDOK feed loaded",
             focus: "Dutch Heritage Sites"
         });
-        showNotification("event", "Dutch government heritage data loaded from PDOK.");
+        showNotification("event", "Erfgoedpunten geladen uit PDOK / RCE. Dit toont officiele monument- en erfgoedlocaties.");
         setLayerActive("heritage", true, "Dutch heritage sites", "PDOK heritage feed loaded");
     } catch (error) {
         console.error("Error loading Dutch heritage sites:", error);
@@ -1338,10 +1415,10 @@ function toggleCbsNeighborhoodOverlay() {
         viewer.imageryLayers.remove(cbsNeighborhoodLayer, false);
         cbsNeighborhoodLayer = null;
         if (button) {
-            button.textContent = "CBS Buurtprofielen";
+            button.textContent = "CBS buurtstatistiek";
             button.setAttribute("aria-pressed", "false");
         }
-        showNotification("event", "CBS buurtprofielen verborgen.");
+        showNotification("event", "CBS buurtstatistiek verborgen. Dit is een gebiedslaag met inwoners, dichtheid en huishoudens per buurt.");
         setLayerActive("cbs", false, "City core monitoring", "CBS neighborhood layer hidden");
         return;
     }
@@ -1364,11 +1441,11 @@ function toggleCbsNeighborhoodOverlay() {
     cbsNeighborhoodLayer.contrast = 1.15;
 
     if (button) {
-        button.textContent = "CBS Buurtprofielen ON";
+        button.textContent = "CBS buurtstatistiek AAN";
         button.setAttribute("aria-pressed", "true");
     }
 
-    showNotification("event", "CBS buurtprofielen geladen vanuit PDOK / CBS.");
+    showNotification("event", "CBS buurtstatistiek geladen vanuit PDOK / CBS. Dit geeft gebiedsprofielen zoals inwoners, dichtheid en huishoudens.");
     setLayerActive("cbs", true, "CBS neighborhood profiles", "CBS neighborhood layer loaded");
     viewer.scene.requestRender();
 }
@@ -1470,20 +1547,22 @@ async function toggleBiodiversityStream() {
             biodiversityState.dataSource = null;
         }
         if (button) {
-            button.textContent = "Biodiversity Stream OFF";
+            button.textContent = "Gemeentelijke bomenlaag";
             button.setAttribute("aria-pressed", "false");
         }
+        showNotification("event", "Gemeentelijke bomenlaag verborgen. Dit zijn biodiversiteits- en boompunten uit de lokale geo service.");
         setLayerActive("biodiversity", false, "City core monitoring", "Biodiversity stream hidden");
         return;
     }
 
     biodiversityState.active = true;
     if (button) {
-        button.textContent = "Biodiversity Stream ON";
+        button.textContent = "Gemeentelijke bomenlaag AAN";
         button.setAttribute("aria-pressed", "true");
     }
 
     await loadBiodiversityTrees();
+    showNotification("event", "Gemeentelijke bomenlaag geladen. Dit toont biodiversiteits- en boompunten uit de Den Bosch geo service.");
     biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
     setLayerActive("biodiversity", true, "Biodiversity stream", "Biodiversity stream activated");
 }
