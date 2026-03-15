@@ -16,6 +16,10 @@ let weatherApiKey = "";
 
 let osmBuildingsTileset = null;
 let kadasterBuildingsTileset = null;
+let bagFootprintState = {
+    active: false,
+    dataSource: null
+};
 let biodiversityState = {
     active: false,
     dataSource: null,
@@ -42,6 +46,7 @@ const BIODIVERSITY_SERVICE_URL = "https://geo.s-hertogenbosch.nl/geoproxy/rest/s
 const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
 const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
+const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
 
 // Helper to get elements
 function $(id) {
@@ -229,6 +234,11 @@ function toggleBuildings() {
             viewer.scene.primitives.remove(kadasterBuildingsTileset);
             kadasterBuildingsTileset = null;
         }
+        if (viewer && bagFootprintState.dataSource) {
+            viewer.dataSources.remove(bagFootprintState.dataSource, true);
+            bagFootprintState.dataSource = null;
+            bagFootprintState.active = false;
+        }
         isBuildingsLoaded = false;
         setLayerActive("kadaster", false, "City core monitoring", "Kadaster 3D buildings hidden");
         showNotification("event", "Kadaster 3D buildings hidden.");
@@ -241,37 +251,87 @@ function toggleBuildings() {
 async function loadBuildings3DTiles() {
     setLayerLoadingState(true, "Loading Kadaster buildings…");
     try {
-        if (kadasterBuildingsTileset) {
-            viewer.scene.primitives.remove(kadasterBuildingsTileset);
-            kadasterBuildingsTileset = null;
-        }
-
-        const kadasterUrl = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
-        const tileset = typeof Cesium.Cesium3DTileset.fromUrl === "function"
-            ? await Cesium.Cesium3DTileset.fromUrl(kadasterUrl)
-            : new Cesium.Cesium3DTileset({ url: kadasterUrl });
-
-        kadasterBuildingsTileset = viewer.scene.primitives.add(tileset);
-        if (kadasterBuildingsTileset.readyPromise) {
-            await kadasterBuildingsTileset.readyPromise;
-        }
-        viewer.zoomTo(kadasterBuildingsTileset);
+        await loadBagFootprintFallback();
         isBuildingsLoaded = true;
-
-        console.log("3D Tiles for buildings loaded successfully.");
-        showNotification("event", "Kadaster 3D buildings loaded successfully.");
-        setLayerActive("kadaster", true, "Kadaster buildings", "Kadaster 3D buildings loaded");
+        showNotification("event", "Officiële BAG-gebouwlaag geladen vanuit Kadaster / PDOK.");
+        setLayerActive("kadaster", true, "Kadaster BAG buildings", "Official BAG building layer loaded");
     } catch (error) {
         console.error("Error loading 3D Tiles for buildings:", error);
-        if (viewer && kadasterBuildingsTileset) {
-            viewer.scene.primitives.remove(kadasterBuildingsTileset);
-            kadasterBuildingsTileset = null;
-        }
         isBuildingsLoaded = false;
         showNotification("event", "Kadaster 3D buildings could not be loaded.");
     } finally {
         setLayerLoadingState(false, "Loading Kadaster buildings…");
     }
+}
+
+async function loadBagFootprintFallback() {
+    if (!viewer) return;
+
+    if (bagFootprintState.dataSource) {
+        viewer.dataSources.remove(bagFootprintState.dataSource, true);
+        bagFootprintState.dataSource = null;
+    }
+
+    const params = new URLSearchParams({
+        service: "WFS",
+        version: "2.0.0",
+        request: "GetFeature",
+        typeNames: "bag:pand",
+        count: "700",
+        outputFormat: "application/json",
+        srsName: "EPSG:4326",
+        bbox: "51.67,5.29,51.70,5.32,EPSG:4326"
+    });
+
+    const response = await fetch(`${BAG_WFS_URL}?${params.toString()}`);
+    if (!response.ok) {
+        throw new Error(`BAG footprint fetch failed: ${response.status}`);
+    }
+
+    const geojson = await response.json();
+    const dataSource = await Cesium.GeoJsonDataSource.load(geojson, {
+        clampToGround: true,
+        stroke: Cesium.Color.fromCssColorString("#3dd6c6"),
+        fill: Cesium.Color.fromCssColorString("rgba(61, 214, 198, 0.16)"),
+        strokeWidth: 1.5
+    });
+
+    dataSource.entities.values.forEach((entity) => {
+        if (!entity.polygon) return;
+        entity.polygon.material = Cesium.Color.fromCssColorString("#3dd6c6").withAlpha(0.14);
+        entity.polygon.outline = true;
+        entity.polygon.outlineColor = Cesium.Color.fromCssColorString("#8ff4ea").withAlpha(0.72);
+        entity.polygon.height = 0;
+        entity.polygon.extrudedHeight = 8;
+
+        const properties = entity.properties;
+        const identificatie = properties?.identificatie?.getValue?.() || "Onbekend";
+        const bouwjaar = properties?.bouwjaar?.getValue?.() || "Onbekend";
+        const status = properties?.status?.getValue?.() || "Onbekend";
+        const gebruiksdoel = properties?.gebruiksdoel?.getValue?.() || "Onbekend";
+        const verblijfsobjecten = properties?.aantal_verblijfsobjecten?.getValue?.() || "Onbekend";
+        entity.description = `
+            <h2>BAG pand</h2>
+            <p><strong>Identificatie:</strong> ${identificatie}</p>
+            <p><strong>Bouwjaar:</strong> ${bouwjaar}</p>
+            <p><strong>Status:</strong> ${status}</p>
+            <p><strong>Gebruiksdoel:</strong> ${gebruiksdoel}</p>
+            <p><strong>Aantal verblijfsobjecten:</strong> ${verblijfsobjecten}</p>
+            <p><strong>Bron:</strong> Kadaster / PDOK BAG WFS</p>
+        `;
+    });
+
+    bagFootprintState.dataSource = dataSource;
+    bagFootprintState.active = true;
+    viewer.dataSources.add(dataSource);
+    await viewer.flyTo(dataSource, {
+        duration: 1.8,
+        offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(10),
+            Cesium.Math.toRadians(-38),
+            2200
+        )
+    });
 }
 
 // Init Cesium viewer
@@ -505,6 +565,7 @@ function setupMapClickHandler() {
             await fetchAndDisplayWeather(latitude, longitude);
             await fetchAndDisplayAirQuality(latitude, longitude);
             await fetchAndDisplayTraffic(latitude, longitude);
+            await fetchAndDisplayBagInfo(latitude, longitude);
             if (typeof updateCharts === "function") {
                 updateCharts(latitude, longitude);
             }
@@ -847,6 +908,58 @@ async function fetchNearbyHeritageSummary(latitude, longitude) {
     } catch (error) {
         return [];
     }
+}
+
+async function fetchNearestBagBuildingInfo(latitude, longitude) {
+    try {
+        const delta = 0.0012;
+        const params = new URLSearchParams({
+            service: "WFS",
+            version: "2.0.0",
+            request: "GetFeature",
+            typeNames: "bag:verblijfsobject",
+            count: "1",
+            outputFormat: "application/json",
+            srsName: "EPSG:4326",
+            bbox: `${latitude - delta},${longitude - delta},${latitude + delta},${longitude + delta},EPSG:4326`
+        });
+        const response = await fetch(`${BAG_WFS_URL}?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch BAG building info");
+        const data = await response.json();
+        const feature = Array.isArray(data.features) ? data.features[0] : null;
+        return feature ? feature.properties || null : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function fetchAndDisplayBagInfo(latitude, longitude) {
+    const bagTarget = $("locationBagContent");
+    if (!bagTarget) return;
+
+    const bagInfo = await fetchNearestBagBuildingInfo(latitude, longitude);
+    if (!bagInfo) {
+        bagTarget.innerHTML = "Geen BAG gebouwinformatie gevonden voor deze locatie.";
+        bagTarget.dataset.hasData = "false";
+        return;
+    }
+
+    const addressParts = [
+        bagInfo.openbare_ruimte,
+        bagInfo.huisnummer,
+        bagInfo.huisletter || "",
+        bagInfo.toevoeging || ""
+    ].filter(Boolean).join(" ");
+
+    bagTarget.innerHTML = `
+        <strong>${addressParts || "BAG verblijfsobject"}</strong><br>
+        Postcode: ${bagInfo.postcode || "Onbekend"} ${bagInfo.woonplaats || ""}<br>
+        Gebruiksdoel: ${bagInfo.gebruiksdoel || "Onbekend"}<br>
+        Oppervlakte: ${bagInfo.oppervlakte || "Onbekend"} m²<br>
+        Bouwjaar: ${bagInfo.bouwjaar || "Onbekend"}<br>
+        Status: ${bagInfo.status || "Onbekend"}
+    `;
+    bagTarget.dataset.hasData = "true";
 }
 
 function normalizeCbsValue(value) {

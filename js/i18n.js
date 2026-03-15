@@ -49,6 +49,7 @@ window.udtI18n = (function () {
             weather: "Weer",
             air_quality: "Luchtkwaliteit",
             traffic: "Verkeer",
+            bag_building_info: "BAG gebouwinfo",
             traffic_state: "Verkeersstatus",
             no_location_selected: "Nog geen locatie geselecteerd.",
             open_dashboard: "Open dashboard",
@@ -108,6 +109,7 @@ window.udtI18n = (function () {
             weather: "Weather",
             air_quality: "Air quality",
             traffic: "Traffic",
+            bag_building_info: "BAG building info",
             traffic_state: "Traffic state",
             no_location_selected: "No location selected yet.",
             open_dashboard: "Open dashboard",
@@ -189,16 +191,19 @@ window.udtI18n = (function () {
         applyText(".location-info-card__section:nth-of-type(1) h5", "weather");
         applyText(".location-info-card__section:nth-of-type(2) h5", "air_quality");
         applyText(".location-info-card__section:nth-of-type(3) h5", "traffic");
+        applyText("#bagInfoHeading", "bag_building_info");
         applyText("#trafficStateHeading", "traffic_state");
         applyText("#openLocationDashboardBtn", "open_dashboard");
 
         const weatherContent = document.getElementById("locationWeatherContent");
         const airContent = document.getElementById("locationAirContent");
         const trafficContent = document.getElementById("locationTrafficContent");
+        const bagContent = document.getElementById("locationBagContent");
         const trafficStateContent = document.getElementById("trafficStateContent");
         if (weatherContent && !weatherContent.dataset.hasData) weatherContent.textContent = t("no_location_selected");
         if (airContent && !airContent.dataset.hasData) airContent.textContent = t("no_location_selected");
         if (trafficContent && !trafficContent.dataset.hasData) trafficContent.textContent = t("no_location_selected");
+        if (bagContent && !bagContent.dataset.hasData) bagContent.textContent = t("no_location_selected");
         if (trafficStateContent && !trafficStateContent.dataset.hasData) trafficStateContent.textContent = t("no_location_selected");
 
         applyText("#sidebarBriefingTitle", "briefing_title");
