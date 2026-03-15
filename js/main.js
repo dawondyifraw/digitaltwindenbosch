@@ -4,6 +4,9 @@ let isBuildingsLoaded = false;
 let tomTomTrafficLayer = null;
 let viewer = null;
 let name = "";
+let trafficFlowEntities = [];
+let trafficPulseEntities = [];
+let trafficAnimationTimer = null;
 
 // API keys filled from config.json
 let TomTomAPI = "";
@@ -16,8 +19,23 @@ let biodiversityState = {
     dataSource: null,
     refreshTimer: null
 };
+let heritageState = {
+    active: false,
+    dataSource: null
+};
+let aviationState = {
+    active: false,
+    entities: []
+};
+
+const DEMO_KPI_ROTATION = [
+    { mobility: "68%", air: "Fair", alerts: "03", readiness: "Pilot Ready", freshness: "12 sec ago", focus: "City Core Monitoring" },
+    { mobility: "74%", air: "Moderate", alerts: "05", readiness: "Showcase Active", freshness: "19 sec ago", focus: "Museum District Focus" },
+    { mobility: "63%", air: "Good", alerts: "02", readiness: "Demo Stable", freshness: "8 sec ago", focus: "Environmental Watch" }
+];
 
 const BIODIVERSITY_SERVICE_URL = "https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11";
+const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
 
 // Helper to get elements
 function $(id) {
@@ -118,6 +136,17 @@ function wireUi() {
     if (biodiversityBtn) {
         biodiversityBtn.addEventListener("click", toggleBiodiversityStream);
     }
+
+    const heritageBtn = $("toggleMuseumsBtn");
+    if (heritageBtn) {
+        heritageBtn.addEventListener("click", toggleDutchHeritageLayer);
+    }
+
+    document.querySelectorAll("[data-scenario]").forEach((button) => {
+        button.addEventListener("click", () => {
+            activateScenario(button.getAttribute("data-scenario"));
+        });
+    });
 }
 
 // Toggle Kadaster buildings
@@ -179,12 +208,14 @@ async function initCesium() {
         viewer.scene.globe.enableLighting = true;
         viewer.shadows = true;
         viewer.camera.frustum.far = 10000000.0;
+        window.viewer = viewer;
 
         if (viewer.dataSources.length > 0) {
             viewer.dataSources.get(0).clustering.enabled = false;
         }
 
         viewer.entities.removeAll();
+        setupPrototypeHud();
 
         await loadTileset();
         setupMapClickHandler();
@@ -637,6 +668,95 @@ function showNotification(type, content) {
     }, 9000);
 }
 
+function addPrototypeTrafficExperience() {
+    if (!viewer || trafficFlowEntities.length > 0) return;
+
+    const corridors = [
+        { lon: 5.3035, lat: 51.6873, co2: 420, flow: "High" },
+        { lon: 5.3125, lat: 51.6835, co2: 455, flow: "Medium" },
+        { lon: 5.2925, lat: 51.6892, co2: 398, flow: "Elevated" },
+        { lon: 5.3215, lat: 51.6922, co2: 440, flow: "High" }
+    ];
+
+    trafficPulseEntities = corridors.map((corridor) => viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(corridor.lon, corridor.lat, 0),
+        ellipse: {
+            semiMinorAxis: 90,
+            semiMajorAxis: 90,
+            material: Cesium.Color.fromCssColorString("#f97316").withAlpha(0.18),
+            outline: true,
+            outlineColor: Cesium.Color.fromCssColorString("#fbbf24").withAlpha(0.5)
+        },
+        description: `
+            <h2>Mobility & CO2 Corridor</h2>
+            <p><strong>Traffic flow:</strong> ${corridor.flow}</p>
+            <p><strong>Estimated CO2 load:</strong> ${corridor.co2} ppm</p>
+            <p><strong>Mode:</strong> Prototype mobility storytelling layer</p>
+        `
+    }));
+
+    const vehiclePaths = [
+        [
+            [5.296, 51.6861],
+            [5.300, 51.6868],
+            [5.304, 51.6874],
+            [5.309, 51.6882]
+        ],
+        [
+            [5.318, 51.6915],
+            [5.314, 51.6898],
+            [5.309, 51.6887],
+            [5.304, 51.6876]
+        ]
+    ];
+
+    trafficFlowEntities = vehiclePaths.map((path, index) => {
+        const [startLon, startLat] = path[0];
+        return viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(startLon, startLat, 18),
+            billboard: {
+                image: "https://cdn-icons-png.flaticon.com/512/744/744465.png",
+                scale: 0.08,
+                color: Cesium.Color.fromCssColorString(index === 0 ? "#3dd6c6" : "#f59e0b")
+            },
+            label: {
+                text: index === 0 ? "Mobility flow A" : "Mobility flow B",
+                font: "12px sans-serif",
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 3,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                pixelOffset: new Cesium.Cartesian2(0, -20)
+            },
+            properties: {
+                pathIndex: index,
+                stepIndex: 0
+            }
+        });
+    });
+
+    trafficAnimationTimer = window.setInterval(() => {
+        trafficFlowEntities.forEach((entity, pathIndex) => {
+            const path = vehiclePaths[pathIndex];
+            const nextStep = ((entity.properties.stepIndex.getValue ? entity.properties.stepIndex.getValue() : entity.properties.stepIndex) + 1) % path.length;
+            const [lon, lat] = path[nextStep];
+            entity.position = Cesium.Cartesian3.fromDegrees(lon, lat, 18);
+            entity.properties.stepIndex = nextStep;
+        });
+    }, 2200);
+}
+
+function removePrototypeTrafficExperience() {
+    if (trafficAnimationTimer) {
+        clearInterval(trafficAnimationTimer);
+        trafficAnimationTimer = null;
+    }
+    trafficFlowEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
+    trafficPulseEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
+    trafficFlowEntities = [];
+    trafficPulseEntities = [];
+}
+
 function toggleTraffic() {
     console.log("Toggling Traffic Layer", tomTomTrafficLayer);
     if (!tomTomTrafficLayer) {
@@ -646,9 +766,20 @@ function toggleTraffic() {
                 maximumLevel: 18
             })
         );
+        addPrototypeTrafficExperience();
+        updatePrototypeHud({
+            mobility: "81%",
+            air: "Traffic Watch",
+            alerts: "07",
+            readiness: "Mobility Layer Active",
+            freshness: "Flow refreshed now",
+            focus: "Traffic & CO2 Corridors"
+        });
+        showNotification("traffic", "<strong>Traffic Flow & CO2</strong><br>Prototype corridor flow, moving vehicles, and emission hotspots activated.");
     } else {
         viewer.imageryLayers.remove(tomTomTrafficLayer, false);
         tomTomTrafficLayer = null;
+        removePrototypeTrafficExperience();
     }
 }
 
@@ -679,6 +810,126 @@ function flytoIKDB() {
         },
       duration: 3.0
   });
+}
+
+async function toggleDutchHeritageLayer() {
+    const button = $("toggleMuseumsBtn");
+    if (!viewer) return;
+
+    if (heritageState.active) {
+        heritageState.active = false;
+        if (heritageState.dataSource) {
+            viewer.dataSources.remove(heritageState.dataSource, true);
+            heritageState.dataSource = null;
+        }
+        if (button) {
+            button.textContent = "Dutch Heritage Sites";
+        }
+        showNotification("event", "Dutch heritage layer hidden.");
+        return;
+    }
+
+    try {
+        await loadDutchHeritageSites();
+        heritageState.active = true;
+        if (button) {
+            button.textContent = "Dutch Heritage Sites ON";
+        }
+        updatePrototypeHud({
+            mobility: "59%",
+            air: "Fair",
+            alerts: "04",
+            readiness: "Culture Layer Active",
+            freshness: "PDOK feed loaded",
+            focus: "Dutch Heritage Sites"
+        });
+        showNotification("event", "Dutch government heritage data loaded from PDOK.");
+    } catch (error) {
+        console.error("Error loading Dutch heritage sites:", error);
+        showNotification("event", "Unable to load Dutch heritage open data right now.");
+    }
+}
+
+async function loadDutchHeritageSites() {
+    const params = new URLSearchParams({
+        service: "WFS",
+        version: "2.0.0",
+        request: "GetFeature",
+        typeNames: "ps-ch:rce_inspire_points",
+        count: "120",
+        outputFormat: "application/json",
+        srsName: "EPSG:4326",
+        bbox: "5.20,51.62,5.45,51.78,EPSG:4326"
+    });
+
+    const requestUrl = `${HERITAGE_SERVICE_URL}?${params.toString()}`;
+    const response = await fetch(requestUrl);
+    if (!response.ok) {
+        throw new Error(`Heritage fetch failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const features = Array.isArray(data.features) ? data.features : [];
+    if (!features.length) {
+        throw new Error("No heritage features returned");
+    }
+
+    if (!heritageState.dataSource) {
+        heritageState.dataSource = new Cesium.CustomDataSource("dutchHeritage");
+        viewer.dataSources.add(heritageState.dataSource);
+    } else {
+        heritageState.dataSource.entities.removeAll();
+    }
+
+    const pinColor = Cesium.Color.fromCssColorString("#f59e0b");
+    features.forEach((feature) => {
+        const geometry = feature.geometry;
+        if (!geometry || geometry.type !== "Point" || !Array.isArray(geometry.coordinates)) {
+            return;
+        }
+
+        const [lon, lat] = geometry.coordinates;
+        const props = feature.properties || {};
+        const monumentId = props.localid || "Unknown";
+        const citation = props.ci_citation || "";
+
+        heritageState.dataSource.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(lon, lat),
+            point: {
+                pixelSize: 10,
+                color: pinColor,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 1.5
+            },
+            label: {
+                text: `Heritage ${monumentId}`,
+                font: "12px sans-serif",
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 3,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                verticalOrigin: Cesium.VerticalOrigin.TOP,
+                pixelOffset: new Cesium.Cartesian2(0, -18),
+                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 9000)
+            },
+            description: `
+                <h2>Dutch Heritage Site</h2>
+                <p><strong>ID:</strong> ${monumentId}</p>
+                <p><strong>Source:</strong> PDOK / RCE</p>
+                <p><strong>Version:</strong> ${props.versionid || "Unknown"}</p>
+                ${citation ? `<p><a href="${citation}" target="_blank" rel="noopener noreferrer">Open monument record</a></p>` : ""}
+            `
+        });
+    });
+
+    viewer.flyTo(heritageState.dataSource, {
+        duration: 2.2,
+        offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(18),
+            Cesium.Math.toRadians(-40),
+            5000
+        )
+    });
 }
 
 async function toggleBiodiversityStream() {
@@ -789,6 +1040,114 @@ async function loadBiodiversityTrees() {
         console.error("Biodiversity stream error:", error);
         showNotification("event", "Biodiversity stream unavailable (API blocked or offline).");
     }
+}
+
+function setupPrototypeHud() {
+    updatePrototypeHud(DEMO_KPI_ROTATION[0]);
+    let rotationIndex = 0;
+    window.setInterval(() => {
+        rotationIndex = (rotationIndex + 1) % DEMO_KPI_ROTATION.length;
+        updatePrototypeHud(DEMO_KPI_ROTATION[rotationIndex]);
+    }, 9000);
+}
+
+function updatePrototypeHud(state) {
+    const mapping = {
+        kpiMobility: state.mobility,
+        kpiAir: state.air,
+        kpiAlerts: state.alerts,
+        kpiReadiness: state.readiness,
+        statusDataFreshness: state.freshness,
+        statusFocusArea: state.focus
+    };
+
+    Object.entries(mapping).forEach(([id, value]) => {
+        const element = $(id);
+        if (element) {
+            element.textContent = value;
+        }
+    });
+}
+
+function setWorldEffectState(effectName) {
+    const body = document.body;
+    if (!body) return;
+
+    ["weather-clear", "weather-rain", "weather-snow", "weather-night", "weather-water"].forEach((className) => {
+        body.classList.remove(className);
+    });
+    body.classList.add(effectName);
+
+    const rootStyle = document.documentElement.style;
+    const presets = {
+        "weather-clear": { rain: "0", snow: "0", fog: "0.08", glow: "0.05" },
+        "weather-rain": { rain: "0.45", snow: "0", fog: "0.24", glow: "0.02" },
+        "weather-snow": { rain: "0", snow: "0.55", fog: "0.28", glow: "0.04" },
+        "weather-night": { rain: "0", snow: "0", fog: "0.12", glow: "0.6" },
+        "weather-water": { rain: "0.18", snow: "0", fog: "0.18", glow: "0.08" }
+    };
+    const preset = presets[effectName] || presets["weather-clear"];
+    rootStyle.setProperty("--weather-rain-opacity", preset.rain);
+    rootStyle.setProperty("--weather-snow-opacity", preset.snow);
+    rootStyle.setProperty("--weather-fog-opacity", preset.fog);
+    rootStyle.setProperty("--night-glow-opacity", preset.glow);
+
+    if (viewer) {
+        if (effectName === "weather-night") {
+            viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#040812");
+            viewer.scene.globe.enableLighting = true;
+        } else if (effectName === "weather-water") {
+            viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#091422");
+        } else {
+            viewer.scene.backgroundColor = Cesium.Color.BLACK;
+        }
+    }
+}
+
+function activateScenario(scenarioName) {
+    if (!viewer) return;
+
+    const scenarios = {
+        mobility: {
+            destination: Cesium.Cartesian3.fromDegrees(5.3043, 51.6863, 1200),
+            heading: 10,
+            pitch: -38,
+            hud: DEMO_KPI_ROTATION[1]
+        },
+        environment: {
+            destination: Cesium.Cartesian3.fromDegrees(5.291, 51.6905, 1800),
+            heading: -20,
+            pitch: -50,
+            hud: DEMO_KPI_ROTATION[2]
+        },
+        culture: {
+            destination: Cesium.Cartesian3.fromDegrees(5.3038, 51.6872, 900),
+            heading: 35,
+            pitch: -32,
+            hud: {
+                mobility: "61%",
+                air: "Fair",
+                alerts: "04",
+                readiness: "Experience Ready",
+                freshness: "15 sec ago",
+                focus: "Heritage & Visitor Flow"
+            }
+        }
+    };
+
+    const scenario = scenarios[scenarioName];
+    if (!scenario) return;
+
+    updatePrototypeHud(scenario.hud);
+    viewer.camera.flyTo({
+        destination: scenario.destination,
+        orientation: {
+            heading: Cesium.Math.toRadians(scenario.heading),
+            pitch: Cesium.Math.toRadians(scenario.pitch),
+            roll: 0.0
+        },
+        duration: 2.4
+    });
 }
 
 function buildAttributesTable(attributes) {

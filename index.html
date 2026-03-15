@@ -102,10 +102,120 @@
 
   <!-- 3D scene -->
   <main id="cesiumContainer" aria-label="3D city scene"></main>
+  <div class="world-effects" aria-hidden="true">
+    <div class="world-effects__rain" id="rainEffect"></div>
+    <div class="world-effects__snow" id="snowEffect"></div>
+    <div class="world-effects__fog" id="fogEffect"></div>
+    <div class="world-effects__night-glow" id="nightGlow"></div>
+  </div>
+
+  <section class="status-ribbon" aria-label="City status overview">
+    <div class="status-ribbon__intro">
+      <span class="status-ribbon__eyebrow">Urban Digital Twin</span>
+      <strong>Den Bosch Operations Overview</strong>
+    </div>
+    <div class="status-ribbon__metrics">
+      <article class="status-chip">
+        <span class="status-chip__label">Twin Status</span>
+        <strong class="status-chip__value" id="statusTwinMode">Prototype Live</strong>
+      </article>
+      <article class="status-chip">
+        <span class="status-chip__label">Data Freshness</span>
+        <strong class="status-chip__value" id="statusDataFreshness">Refreshing demo feeds</strong>
+      </article>
+      <article class="status-chip">
+        <span class="status-chip__label">Active Focus</span>
+        <strong class="status-chip__value" id="statusFocusArea">City Core Monitoring</strong>
+      </article>
+    </div>
+  </section>
 
   <section class="prototype-banner" aria-label="Prototype status">
     <div class="prototype-pill">Prototype</div>
     <p>Demo version. For the full multi-streaming platform, contact Daniel at info@datatwinlabs.nl.</p>
+  </section>
+
+  <section class="hero-panel" aria-label="Prototype overview">
+    <div class="hero-panel__copy">
+      <span class="hero-panel__eyebrow">Operational Storyboard</span>
+      <h2>Public digital twin prototype for live city operations, mobility, and environmental insight.</h2>
+      <p>This showcase runs in demo mode today, but it is designed to present how a full multi-streaming urban twin can support command centers, planners, and city stakeholders.</p>
+    </div>
+    <div class="hero-panel__meta">
+      <div class="hero-panel__card">
+        <span>Prototype Scope</span>
+        <strong>3D city, alerts, scenarios, analytics</strong>
+      </div>
+      <div class="hero-panel__card">
+        <span>Upgrade Path</span>
+        <strong>Live streaming, backend integration, orchestration</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpi-grid" aria-label="Key prototype indicators">
+    <article class="kpi-card">
+      <span class="kpi-card__label">Mobility Pressure</span>
+      <strong class="kpi-card__value" id="kpiMobility">68%</strong>
+      <p class="kpi-card__meta">Demo congestion pressure around museum and retail corridors.</p>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-card__label">Air Quality Index</span>
+      <strong class="kpi-card__value" id="kpiAir">Fair</strong>
+      <p class="kpi-card__meta">Sample environmental layer tuned for public prototype review.</p>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-card__label">Alerts In View</span>
+      <strong class="kpi-card__value" id="kpiAlerts">03</strong>
+      <p class="kpi-card__meta">Scenario-driven incident cards available for stakeholder walkthroughs.</p>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-card__label">Twin Readiness</span>
+      <strong class="kpi-card__value" id="kpiReadiness">Pilot Ready</strong>
+      <p class="kpi-card__meta">Frontend showcase prepared for GitHub Pages and guided demos.</p>
+    </article>
+  </section>
+
+  <section class="scenario-panel" aria-label="Scenario quick actions">
+    <div class="scenario-panel__header">
+      <div>
+        <span class="scenario-panel__eyebrow">Scenario Cards</span>
+        <h3>Prototype walkthroughs</h3>
+      </div>
+      <p>Use these quick actions during presentations to shift the story from static map viewing to operational outcomes.</p>
+    </div>
+    <div class="scenario-grid">
+      <button class="scenario-card" type="button" data-scenario="mobility">
+        <span class="scenario-card__tag">Mobility</span>
+        <strong>Event traffic surge</strong>
+        <p>Highlight congestion, alert load, and corridor monitoring around the inner city.</p>
+      </button>
+      <button class="scenario-card" type="button" data-scenario="environment">
+        <span class="scenario-card__tag">Environment</span>
+        <strong>Air quality watch</strong>
+        <p>Focus on environmental metrics, public health messaging, and sensor interpretation.</p>
+      </button>
+      <button class="scenario-card" type="button" data-scenario="culture">
+        <span class="scenario-card__tag">Experience</span>
+        <strong>Museum district focus</strong>
+        <p>Frame the twin as a city experience and place-based monitoring platform.</p>
+      </button>
+      <button class="scenario-card" type="button" data-scenario="water">
+        <span class="scenario-card__tag">Water</span>
+        <strong>Rain and resilience</strong>
+        <p>Shift the world toward wet-weather operations with water-risk and resilience framing.</p>
+      </button>
+      <button class="scenario-card" type="button" data-scenario="night">
+        <span class="scenario-card__tag">Night Ops</span>
+        <strong>After-dark monitoring</strong>
+        <p>Switch to a cooler night-time visual state with more atmospheric city lighting.</p>
+      </button>
+      <button class="scenario-card" type="button" data-scenario="aviation">
+        <span class="scenario-card__tag">Aviation</span>
+        <strong>Air corridor view</strong>
+        <p>Show prototype aircraft movement and the city as part of a wider connected region.</p>
+      </button>
+    </div>
   </section>
 
   <!-- Sidebar: commercial layout with dropdowns -->
@@ -116,22 +226,23 @@
     </div>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>Operations</button>
+      <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>City Operations</button>
       <ul id="ops-submenu" class="submenu open" role="menu">
-        <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">Monitor IKDB</button></li>
-        <li role="none"><button id="toggleTraffic" class="menu-item" role="menuitem">Real-time Traffic</button></li>
-        <li role="none"><button id="stopOrbit" class="menu-item" role="menuitem">Fly to Museum Areas</button></li>
-        <li role="none"><button id="startOrbit" class="menu-item" role="menuitem">Fly to Construction Sites</button></li>
+        <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">City Command View</button></li>
+        <li role="none"><button id="toggleTraffic" class="menu-item" role="menuitem">Traffic Flow & CO2</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="mobility">Event & Crowd Mobility</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="water">Flood & Rainfall Readiness</button></li>
       </ul>
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Data Layers</button>
+      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Urban Intelligence</button>
       <ul id="layers-submenu" class="submenu open" role="menu">
         <li role="none"><button id="BAGButton" class="menu-item" role="menuitem">Kadaster Buildings</button></li>
-        <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">High Pedestrian Areas</button></li>
+        <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">Dutch Heritage Sites</button></li>
         <li role="none"><button id="toggleBiodiversityBtn" class="menu-item" role="menuitem">Biodiversity Stream</button></li>
-        <li role="none"><button id="togglePollutionBtn" class="menu-item" role="menuitem">Weather, Traffic, Noise</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="environment">Air Quality & Health View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="culture">Tourism & Cultural Districts</button></li>
       </ul>
 
       <div id="legend" class="legend" aria-label="Building type legend">
@@ -156,20 +267,22 @@
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Analytics</button>
+      <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Citizen & Policy Use Cases</button>
       <ul id="analytics-submenu" class="submenu" role="menu">
-        <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Open Forecast Panel</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Stream Demo</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Alert Feed Demo</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Forecast & Climate Charts</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Sensor Storytelling</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Public Alert Feed</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="night">Night-time Safety View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="aviation">Regional Mobility & Aviation</button></li>
       </ul>
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="false" aria-controls="admin-submenu"><span class="icon" aria-hidden="true">▸</span>Admin</button>
+      <button class="menu-toggle" aria-expanded="false" aria-controls="admin-submenu"><span class="icon" aria-hidden="true">▸</span>Platform & Partnerships</button>
       <ul id="admin-submenu" class="submenu" role="menu">
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/health">System Health</a></li>
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/logs">Event Logs</a></li>
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/settings">Settings</a></li>
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/health">Operational Readiness</a></li>
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/logs">Data Governance & Audit</a></li>
+        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/settings">Municipality Deployment Model</a></li>
       </ul>
     </section>
   </nav>

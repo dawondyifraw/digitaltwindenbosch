@@ -28,14 +28,17 @@
 /* Specific Alert Box Styles */
 .alert-box.traffic {
   border-left-color: #f97316;
+  background: linear-gradient(140deg, rgba(34, 16, 7, 0.92), rgba(12, 18, 32, 0.92));
 }
 
 .alert-box.weather {
   border-left-color: #60a5fa;
+  background: linear-gradient(140deg, rgba(10, 24, 42, 0.92), rgba(12, 18, 32, 0.92));
 }
 
 .alert-box.event {
   border-left-color: #f59e0b;
+  background: linear-gradient(140deg, rgba(39, 27, 8, 0.92), rgba(12, 18, 32, 0.92));
 }
 
 .alert-box.is-hidden {
