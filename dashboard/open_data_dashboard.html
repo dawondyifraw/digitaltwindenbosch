@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Data Dashboard | Digital Twin Den Bosch</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #07101d;
+            --panel: rgba(10, 18, 31, 0.94);
+            --panel-soft: rgba(13, 23, 39, 0.88);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ecf3fb;
+            --muted: #98abc1;
+            --accent: #38d6c5;
+            --accent-soft: rgba(56, 214, 197, 0.15);
+            --warn: #f59e0b;
+            --danger: #fb7185;
+            --shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(900px 520px at 15% 0%, rgba(56, 214, 197, 0.14), transparent 60%),
+                radial-gradient(1000px 640px at 100% 0%, rgba(59, 130, 246, 0.14), transparent 65%),
+                var(--bg);
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        body {
+            padding: 24px;
+        }
+
+        .shell {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .hero-card {
+            padding: 22px;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--accent);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.76rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: clamp(1.8rem, 2vw, 2.5rem);
+            line-height: 1.1;
+        }
+
+        .hero-card p,
+        .summary-list dd,
+        .source-list li,
+        .heritage-list li,
+        .state-line {
+            color: var(--muted);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        button {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(20, 30, 48, 0.94);
+            color: var(--text);
+            padding: 11px 14px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: rgba(56, 214, 197, 0.3);
+            background: rgba(25, 38, 59, 0.98);
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, rgba(56, 214, 197, 0.2), rgba(8, 109, 139, 0.2));
+            border-color: rgba(56, 214, 197, 0.28);
+        }
+
+        .hero-side {
+            padding: 22px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .state-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .kpi {
+            padding: 18px;
+        }
+
+        .kpi span {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .kpi strong {
+            font-size: 1.8rem;
+            line-height: 1.1;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1.15fr 0.7fr;
+            gap: 18px;
+        }
+
+        .chart-panel,
+        .info-panel {
+            padding: 18px;
+        }
+
+        .chart-panel h2,
+        .info-panel h2 {
+            margin: 0 0 12px;
+            font-size: 1.05rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            min-height: 260px;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .summary-list {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 8px 10px;
+            margin: 0;
+        }
+
+        .summary-list dt {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .summary-list dd {
+            margin: 0;
+        }
+
+        .source-list,
+        .heritage-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .heritage-list li,
+        .source-list li {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: var(--panel-soft);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .banner {
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.24);
+            color: #fde9b2;
+        }
+
+        .status-note {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(56, 214, 197, 0.2);
+            color: #dffef8;
+            font-size: 0.92rem;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        @media (max-width: 1180px) {
+            .hero,
+            .dashboard-grid,
+            .kpis {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <article class="panel hero-card">
+                <p class="eyebrow">Runner Blade V.4.0</p>
+                <h1 id="dashboardTitle">Open data dashboard voor Den Bosch</h1>
+                <p id="dashboardIntro">Realtime prototypeanalyse voor weer, luchtkwaliteit, verkeersdruk en nabij erfgoed op basis van browservriendelijke publieke databronnen.</p>
+                <div class="toolbar">
+                    <button class="button-primary" id="refreshDashboardBtn">Data vernieuwen</button>
+                    <button id="useCityCoreBtn">Gebruik binnenstad</button>
+                    <button id="closeWindowBtn">Sluit venster</button>
+                </div>
+            </article>
+            <aside class="panel hero-side">
+                <div class="state-line"><span>Locatie</span><strong id="locationName">Den Bosch centrum</strong></div>
+                <div class="state-line"><span>Coördinaten</span><strong id="locationCoords">51.6889, 5.3031</strong></div>
+                <div class="state-line"><span>Laatste update</span><strong id="lastUpdated">Nog niet geladen</strong></div>
+                <div class="state-line"><span>Datamodus</span><strong id="dataMode">Live publieke feeds</strong></div>
+                <div class="status-note" id="dashboardStatus">Dashboard laden…</div>
+            </aside>
+        </section>
+
+        <section class="kpis">
+            <article class="panel kpi"><span>Temperatuur</span><strong id="kpiTemp">-</strong></article>
+            <article class="panel kpi"><span>Luchtkwaliteit</span><strong id="kpiAqi">-</strong></article>
+            <article class="panel kpi"><span>Verkeerssnelheid</span><strong id="kpiTraffic">-</strong></article>
+            <article class="panel kpi"><span>Nabij erfgoed</span><strong id="kpiHeritage">-</strong></article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="panel chart-panel">
+                <h2>Weersverwachting</h2>
+                <div class="chart-wrap"><canvas id="weatherChart"></canvas></div>
+            </article>
+
+            <article class="panel chart-panel">
+                <h2>Luchtkwaliteitstrend</h2>
+                <div class="chart-wrap"><canvas id="airChart"></canvas></div>
+            </article>
+
+            <article class="panel info-panel">
+                <h2>Locatieoverzicht</h2>
+                <div class="info-grid">
+                    <dl class="summary-list">
+                        <dt>Adres</dt><dd id="summaryAddress">Wordt geladen…</dd>
+                        <dt>Buurt</dt><dd id="summaryNeighborhood">-</dd>
+                        <dt>Gemeente</dt><dd id="summaryMunicipality">-</dd>
+                        <dt>Weer</dt><dd id="summaryWeather">-</dd>
+                        <dt>Lucht</dt><dd id="summaryAir">-</dd>
+                        <dt>Verkeer</dt><dd id="summaryTraffic">-</dd>
+                    </dl>
+                    <div>
+                        <h2>Bronnen</h2>
+                        <ul class="source-list" id="sourceList"></ul>
+                    </div>
+                </div>
+            </article>
+
+            <article class="panel chart-panel">
+                <h2>Verkeersprofiel</h2>
+                <div class="chart-wrap"><canvas id="trafficChart"></canvas></div>
+            </article>
+
+            <article class="panel chart-panel">
+                <h2>Comfort en drukte</h2>
+                <div class="chart-wrap"><canvas id="cityStateChart"></canvas></div>
+            </article>
+
+            <article class="panel info-panel">
+                <h2>CBS buurtprofiel</h2>
+                <div class="info-grid">
+                    <dl class="summary-list">
+                        <dt>Inwoners</dt><dd id="summaryResidents">-</dd>
+                        <dt>Huishoudens</dt><dd id="summaryHouseholds">-</dd>
+                        <dt>Dichtheid</dt><dd id="summaryDensity">-</dd>
+                        <dt>Auto's / huishouden</dt><dd id="summaryCarsPerHousehold">-</dd>
+                        <dt>Adresdichtheid</dt><dd id="summaryAddressDensity">-</dd>
+                        <dt>Wmo / 1000 inw.</dt><dd id="summaryWmo">-</dd>
+                    </dl>
+                    <div class="chart-wrap" style="min-height:220px"><canvas id="demographicsChart"></canvas></div>
+                </div>
+            </article>
+
+            <article class="panel info-panel">
+                <h2>Nederlands erfgoed in de buurt</h2>
+                <div class="banner">PDOK/RCE-gegevens worden binnen een kleine straal rond het gekozen punt opgehaald.</div>
+                <ul class="heritage-list" id="heritageList">
+                    <li>Bezig met laden…</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const DEFAULT_LOCATION = {
+            lat: 51.6889,
+            lon: 5.3031,
+            name: "Den Bosch centrum"
+        };
+        const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/ps-ch/wfs/v1_0";
+        const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
+        const chartInstances = {};
+        let currentLocation = { ...DEFAULT_LOCATION };
+        let config = null;
+
+        async function loadConfig() {
+            try {
+                const response = await fetch("../config.json");
+                if (!response.ok) throw new Error("Config not available");
+                config = await response.json();
+            } catch (error) {
+                config = {};
+            }
+        }
+
+        function getQueryLocation() {
+            const params = new URLSearchParams(window.location.search);
+            const lat = Number(params.get("lat"));
+            const lon = Number(params.get("lon"));
+            const name = params.get("name");
+            if (Number.isFinite(lat) && Number.isFinite(lon)) {
+                return {
+                    lat,
+                    lon,
+                    name: name || DEFAULT_LOCATION.name
+                };
+            }
+
+            try {
+                const stored = JSON.parse(localStorage.getItem("udt_last_location") || "null");
+                if (stored && Number.isFinite(stored.lat) && Number.isFinite(stored.lon)) {
+                    return {
+                        lat: stored.lat,
+                        lon: stored.lon,
+                        name: stored.name || DEFAULT_LOCATION.name
+                    };
+                }
+            } catch (error) {}
+
+            return { ...DEFAULT_LOCATION };
+        }
+
+        function getWeatherApiKey() {
+            return (config && (config.WEATHERAPI || config.AIRQUALITYAPI)) || "";
+        }
+
+        function getTomTomKey() {
+            return (config && config.TOMTOMAPI) || "";
+        }
+
+        function setStatus(message, demoMode) {
+            const status = document.getElementById("dashboardStatus");
+            status.textContent = message;
+            document.getElementById("dataMode").textContent = demoMode ? "Demo fallback" : "Live publieke feeds";
+        }
+
+        function formatTime(date = new Date()) {
+            return new Intl.DateTimeFormat("nl-NL", {
+                dateStyle: "medium",
+                timeStyle: "short"
+            }).format(date);
+        }
+
+        function updateLocationHeader() {
+            document.getElementById("locationName").textContent = currentLocation.name || DEFAULT_LOCATION.name;
+            document.getElementById("locationCoords").textContent = `${currentLocation.lat.toFixed(4)}, ${currentLocation.lon.toFixed(4)}`;
+        }
+
+        async function fetchJson(url, fallback = null) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                return fallback;
+            }
+        }
+
+        function createChart(canvasId, config) {
+            const ctx = document.getElementById(canvasId).getContext("2d");
+            return new Chart(ctx, config);
+        }
+
+        function initCharts() {
+            chartInstances.weather = createChart("weatherChart", {
+                type: "line",
+                data: { labels: [], datasets: [
+                    { label: "Temperatuur °C", data: [], borderColor: "#38d6c5", backgroundColor: "rgba(56,214,197,0.18)", tension: 0.3, fill: true },
+                    { label: "Luchtvochtigheid %", data: [], borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)", tension: 0.3, fill: false }
+                ] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            chartInstances.air = createChart("airChart", {
+                type: "line",
+                data: { labels: [], datasets: [
+                    { label: "PM2.5", data: [], borderColor: "#f59e0b", tension: 0.3 },
+                    { label: "NO2", data: [], borderColor: "#fb7185", tension: 0.3 },
+                    { label: "O3", data: [], borderColor: "#38bdf8", tension: 0.3 }
+                ] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            chartInstances.traffic = createChart("trafficChart", {
+                type: "bar",
+                data: { labels: ["Huidig", "Vrije doorstroming", "Vertraging", "Betrouwbaarheid"], datasets: [{
+                    label: "Verkeersprofiel",
+                    data: [],
+                    backgroundColor: ["#38d6c5", "#60a5fa", "#f59e0b", "#c084fc"]
+                }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            chartInstances.state = createChart("cityStateChart", {
+                type: "radar",
+                data: {
+                    labels: ["Temperatuur", "Lucht", "Verkeer", "Vochtigheid", "Erfgoedcontext"],
+                    datasets: [{
+                        label: "Gebiedsprofiel",
+                        data: [],
+                        backgroundColor: "rgba(56,214,197,0.16)",
+                        borderColor: "#38d6c5"
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
+            });
+
+            chartInstances.demographics = createChart("demographicsChart", {
+                type: "bar",
+                data: {
+                    labels: ["0-15", "15-25", "25-45", "45-65", "65+"],
+                    datasets: [{
+                        label: "Leeftijdsopbouw buurt (%)",
+                        data: [],
+                        backgroundColor: ["#38d6c5", "#60a5fa", "#f59e0b", "#c084fc", "#fb7185"]
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function fallbackData() {
+            return {
+                weatherCurrent: { main: { temp: 8.4, humidity: 72, feels_like: 6.1 }, weather: [{ description: "licht bewolkt" }], wind: { speed: 5.1 } },
+                weatherForecast: {
+                    list: Array.from({ length: 8 }, (_, index) => ({
+                        dt: Date.now() / 1000 + index * 10800,
+                        main: { temp: 8 + index * 0.6, humidity: 70 - index },
+                    }))
+                },
+                airCurrent: { list: [{ main: { aqi: 2 }, components: { pm2_5: 7.2, no2: 5.4, o3: 82.5 } }] },
+                airForecast: {
+                    list: Array.from({ length: 8 }, (_, index) => ({
+                        dt: Date.now() / 1000 + index * 3600,
+                        components: { pm2_5: 7 + index * 0.5, no2: 5 + index * 0.4, o3: 80 + index }
+                    }))
+                },
+                traffic: { flowSegmentData: { currentSpeed: 31, freeFlowSpeed: 39, currentTravelTime: 84, confidence: 0.83, roadName: "Binnenstad-corridor" } },
+                cbs: {
+                    buurtnaam: "Binnenstad centrum",
+                    gemeentenaam: "'s-Hertogenbosch",
+                    aantalInwoners: 6960,
+                    huishoudens: 4615,
+                    bevolkingsdichtheid: 9767,
+                    adressendichtheid: 4125,
+                    autosPerHuishouden: 0.7,
+                    leeftijd0tot15: 5,
+                    leeftijd15tot25: 14,
+                    leeftijd25tot45: 43,
+                    leeftijd45tot65: 22,
+                    leeftijd65plus: 16,
+                    wmoClientenPer1000: null
+                },
+                heritage: { features: [] },
+                address: currentLocation.name
+            };
+        }
+
+        function normalizeCbsValue(value) {
+            if (value === null || value === undefined || value === "" || Number.isNaN(value)) return null;
+            if (typeof value === "number" && value <= -99995) return null;
+            return value;
+        }
+
+        function pointInRing(point, ring) {
+            let inside = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const xi = ring[i][0], yi = ring[i][1];
+                const xj = ring[j][0], yj = ring[j][1];
+                const intersects = ((yi > point[1]) !== (yj > point[1]))
+                    && (point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || 1e-9) + xi);
+                if (intersects) inside = !inside;
+            }
+            return inside;
+        }
+
+        function pointInPolygonGeometry(point, geometry) {
+            if (!geometry || !geometry.type || !geometry.coordinates) return false;
+            if (geometry.type === "Polygon") {
+                return geometry.coordinates.some((ring) => pointInRing(point, ring));
+            }
+            if (geometry.type === "MultiPolygon") {
+                return geometry.coordinates.some((polygon) => polygon.some((ring) => pointInRing(point, ring)));
+            }
+            return false;
+        }
+
+        async function fetchCbsNeighborhoodStats(lat, lon) {
+            const params = new URLSearchParams({
+                service: "WFS",
+                version: "2.0.0",
+                request: "GetFeature",
+                typeNames: "wijkenbuurten:buurten",
+                count: "24",
+                outputFormat: "application/json",
+                srsName: "EPSG:4326",
+                bbox: `${lat - 0.012},${lon - 0.012},${lat + 0.012},${lon + 0.012},EPSG:4326`
+            });
+            const data = await fetchJson(`${CBS_WIJKBUURT_WFS_URL}?${params.toString()}`);
+            const features = Array.isArray(data && data.features) ? data.features : [];
+            const match = features.find((feature) => pointInPolygonGeometry([lon, lat], feature.geometry)) || features[0];
+            if (!match) return null;
+            const properties = match.properties || {};
+            return {
+                buurtnaam: properties.buurtnaam || "Onbekende buurt",
+                gemeentenaam: properties.gemeentenaam || "'s-Hertogenbosch",
+                aantalInwoners: normalizeCbsValue(properties.aantalInwoners),
+                huishoudens: normalizeCbsValue(properties.aantalHuishoudens),
+                bevolkingsdichtheid: normalizeCbsValue(properties.bevolkingsdichtheidInwonersPerKm2),
+                adressendichtheid: normalizeCbsValue(properties.omgevingsadressendichtheid),
+                autosPerHuishouden: normalizeCbsValue(properties.personenautosPerHuishouden),
+                leeftijd0tot15: normalizeCbsValue(properties.percentagePersonen0Tot15Jaar),
+                leeftijd15tot25: normalizeCbsValue(properties.percentagePersonen15Tot25Jaar),
+                leeftijd25tot45: normalizeCbsValue(properties.percentagePersonen25Tot45Jaar),
+                leeftijd45tot65: normalizeCbsValue(properties.percentagePersonen45Tot65Jaar),
+                leeftijd65plus: normalizeCbsValue(properties.percentagePersonen65JaarEnOuder),
+                wmoClientenPer1000: normalizeCbsValue(properties.aantalWmoClientenPer1000Inwoners)
+            };
+        }
+
+        async function fetchDashboardData() {
+            const weatherKey = getWeatherApiKey();
+            const tomtomKey = getTomTomKey();
+            const lat = currentLocation.lat;
+            const lon = currentLocation.lon;
+
+            if (!weatherKey || !tomtomKey) {
+                return { ...fallbackData(), demoMode: true };
+            }
+
+            const heritageParams = new URLSearchParams({
+                service: "WFS",
+                version: "2.0.0",
+                request: "GetFeature",
+                typeNames: "ps-ch:rce_inspire_points",
+                count: "12",
+                outputFormat: "application/json",
+                srsName: "EPSG:4326",
+                bbox: `${lon - 0.015},${lat - 0.015},${lon + 0.015},${lat + 0.015},EPSG:4326`
+            });
+
+            const [
+                weatherCurrent,
+                weatherForecast,
+                airCurrent,
+                airForecast,
+                traffic,
+                reverse,
+                heritage,
+                cbs
+            ] = await Promise.all([
+                fetchJson(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
+                fetchJson(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
+                fetchJson(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${weatherKey}`),
+                fetchJson(`https://api.openweathermap.org/data/2.5/air_pollution/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}`),
+                fetchJson(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${tomtomKey}&point=${lat},${lon}`),
+                fetchJson(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${tomtomKey}`),
+                fetchJson(`${HERITAGE_SERVICE_URL}?${heritageParams.toString()}`),
+                fetchCbsNeighborhoodStats(lat, lon)
+            ]);
+
+            const liveUsable = weatherCurrent && weatherForecast && airCurrent && traffic;
+            if (!liveUsable) {
+                return { ...fallbackData(), demoMode: true };
+            }
+
+            return {
+                weatherCurrent,
+                weatherForecast,
+                airCurrent,
+                airForecast,
+                traffic,
+                cbs,
+                heritage,
+                address: reverse && reverse.addresses && reverse.addresses[0] ? reverse.addresses[0].address.freeformAddress : currentLocation.name,
+                demoMode: false
+            };
+        }
+
+        function renderSources(demoMode) {
+            const sourceList = document.getElementById("sourceList");
+            sourceList.innerHTML = "";
+            [
+                `OpenWeatherMap${demoMode ? " (fallback mogelijk)" : ""}`,
+                `TomTom Traffic${demoMode ? " (fallback mogelijk)" : ""}`,
+                "PDOK / CBS buurtprofielen",
+                "PDOK / RCE erfgoed",
+                "Lokale prototypeconfiguratie"
+            ].forEach((label) => {
+                const li = document.createElement("li");
+                li.textContent = label;
+                sourceList.appendChild(li);
+            });
+        }
+
+        function renderHeritage(heritageData) {
+            const list = document.getElementById("heritageList");
+            list.innerHTML = "";
+            const features = Array.isArray(heritageData && heritageData.features) ? heritageData.features.slice(0, 6) : [];
+            document.getElementById("kpiHeritage").textContent = `${features.length}`;
+
+            if (!features.length) {
+                const item = document.createElement("li");
+                item.textContent = "Geen erfgoedpunten gevonden binnen deze kleine straal of de feed is tijdelijk niet beschikbaar.";
+                list.appendChild(item);
+                return;
+            }
+
+            features.forEach((feature) => {
+                const props = feature.properties || {};
+                const item = document.createElement("li");
+                item.innerHTML = `<strong>${props.localid || "Erfgoedpunt"}</strong><br><span class="muted">${props.versionid || "PDOK / RCE registratie"}</span>`;
+                list.appendChild(item);
+            });
+        }
+
+        function renderSummary(data) {
+            const weather = data.weatherCurrent;
+            const air = data.airCurrent.list[0];
+            const traffic = data.traffic.flowSegmentData;
+            const aqiMap = ["Onbekend", "Goed", "Redelijk", "Matig", "Slecht", "Zeer slecht"];
+            const cbs = data.cbs || {};
+
+            document.getElementById("summaryAddress").textContent = data.address || currentLocation.name;
+            document.getElementById("summaryNeighborhood").textContent = cbs.buurtnaam || "Onbekend";
+            document.getElementById("summaryMunicipality").textContent = cbs.gemeentenaam || "'s-Hertogenbosch";
+            document.getElementById("summaryWeather").textContent = `${Math.round(weather.main.temp)} °C, ${weather.weather[0].description}`;
+            document.getElementById("summaryAir").textContent = `AQI ${air.main.aqi} (${aqiMap[air.main.aqi] || "Onbekend"}), PM2.5 ${air.components.pm2_5}`;
+            document.getElementById("summaryTraffic").textContent = `${traffic.currentSpeed} km/h op ${traffic.roadName || "lokale corridor"}`;
+            document.getElementById("summaryResidents").textContent = cbs.aantalInwoners != null ? cbs.aantalInwoners.toLocaleString("nl-NL") : "Onbekend";
+            document.getElementById("summaryHouseholds").textContent = cbs.huishoudens != null ? cbs.huishoudens.toLocaleString("nl-NL") : "Onbekend";
+            document.getElementById("summaryDensity").textContent = cbs.bevolkingsdichtheid != null ? `${cbs.bevolkingsdichtheid.toLocaleString("nl-NL")} inw/km²` : "Onbekend";
+            document.getElementById("summaryCarsPerHousehold").textContent = cbs.autosPerHuishouden != null ? cbs.autosPerHuishouden.toLocaleString("nl-NL") : "Onbekend";
+            document.getElementById("summaryAddressDensity").textContent = cbs.adressendichtheid != null ? cbs.adressendichtheid.toLocaleString("nl-NL") : "Onbekend";
+            document.getElementById("summaryWmo").textContent = cbs.wmoClientenPer1000 != null ? cbs.wmoClientenPer1000.toLocaleString("nl-NL") : "Onbekend";
+
+            document.getElementById("kpiTemp").textContent = `${Math.round(weather.main.temp)} °C`;
+            document.getElementById("kpiAqi").textContent = `AQI ${air.main.aqi}`;
+            document.getElementById("kpiTraffic").textContent = `${traffic.currentSpeed} km/h`;
+        }
+
+        function renderCharts(data) {
+            const weatherForecast = data.weatherForecast.list.slice(0, 8);
+            const airForecast = (data.airForecast && Array.isArray(data.airForecast.list) && data.airForecast.list.length)
+                ? data.airForecast.list.slice(0, 8)
+                : fallbackData().airForecast.list;
+            const traffic = data.traffic.flowSegmentData;
+            const humidityNow = data.weatherCurrent.main.humidity;
+            const heritageCount = Array.isArray(data.heritage && data.heritage.features) ? data.heritage.features.length : 0;
+            const cbs = data.cbs || {};
+
+            const labels = weatherForecast.map((item) => new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit" }).format(new Date((item.dt || Date.now() / 1000) * 1000)));
+            chartInstances.weather.data.labels = labels;
+            chartInstances.weather.data.datasets[0].data = weatherForecast.map((item) => Math.round(item.main.temp * 10) / 10);
+            chartInstances.weather.data.datasets[1].data = weatherForecast.map((item) => item.main.humidity);
+            chartInstances.weather.update();
+
+            chartInstances.air.data.labels = airForecast.map((item) => new Intl.DateTimeFormat("nl-NL", { hour: "2-digit" }).format(new Date((item.dt || Date.now() / 1000) * 1000)));
+            chartInstances.air.data.datasets[0].data = airForecast.map((item) => Math.round(item.components.pm2_5 * 10) / 10);
+            chartInstances.air.data.datasets[1].data = airForecast.map((item) => Math.round(item.components.no2 * 10) / 10);
+            chartInstances.air.data.datasets[2].data = airForecast.map((item) => Math.round(item.components.o3 * 10) / 10);
+            chartInstances.air.update();
+
+            chartInstances.traffic.data.datasets[0].data = [
+                traffic.currentSpeed || 0,
+                traffic.freeFlowSpeed || 0,
+                Math.max((traffic.currentTravelTime || 0) - 60, 0),
+                Math.round((traffic.confidence || 0) * 100)
+            ];
+            chartInstances.traffic.update();
+
+            const airMain = data.airCurrent.list[0];
+            chartInstances.state.data.datasets[0].data = [
+                Math.min(Math.round((data.weatherCurrent.main.temp + 5) * 5), 100),
+                Math.max(100 - airMain.main.aqi * 16, 10),
+                Math.min(Math.round((traffic.currentSpeed / Math.max(traffic.freeFlowSpeed || 1, 1)) * 100), 100),
+                humidityNow,
+                Math.min(heritageCount * 10, 100)
+            ];
+            chartInstances.state.update();
+
+            chartInstances.demographics.data.datasets[0].data = [
+                cbs.leeftijd0tot15 || 0,
+                cbs.leeftijd15tot25 || 0,
+                cbs.leeftijd25tot45 || 0,
+                cbs.leeftijd45tot65 || 0,
+                cbs.leeftijd65plus || 0
+            ];
+            chartInstances.demographics.update();
+        }
+
+        async function loadDashboard() {
+            setStatus("Open-data dashboard laden…", false);
+            updateLocationHeader();
+            const data = await fetchDashboardData();
+            renderSummary(data);
+            renderCharts(data);
+            renderHeritage(data.heritage);
+            renderSources(data.demoMode);
+            document.getElementById("lastUpdated").textContent = formatTime(new Date());
+            setStatus(
+                data.demoMode
+                    ? "Live feed niet volledig beschikbaar. Dashboard toont waar nodig demo-fallbacks, maar blijft bruikbaar voor publieke presentaties."
+                    : "Live weer-, lucht-, verkeers-, CBS-buurt- en erfgoedinformatie geladen voor deze locatie.",
+                data.demoMode
+            );
+        }
+
+        document.getElementById("refreshDashboardBtn").addEventListener("click", loadDashboard);
+        document.getElementById("useCityCoreBtn").addEventListener("click", () => {
+            currentLocation = { ...DEFAULT_LOCATION };
+            localStorage.setItem("udt_last_location", JSON.stringify(currentLocation));
+            loadDashboard();
+        });
+        document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
+
+        (async function init() {
+            await loadConfig();
+            currentLocation = getQueryLocation();
+            initCharts();
+            await loadDashboard();
+        })();
+    </script>
+</body>
+</html>

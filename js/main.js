@@ -6,6 +6,7 @@ let viewer = null;
 let name = "";
 let trafficFlowEntities = [];
 let trafficPulseEntities = [];
+let trafficCorridorEntities = [];
 let trafficAnimationTimer = null;
 
 // API keys filled from config.json
@@ -19,6 +20,7 @@ let biodiversityState = {
     dataSource: null,
     refreshTimer: null
 };
+let cbsNeighborhoodLayer = null;
 let heritageState = {
     active: false,
     dataSource: null
@@ -27,19 +29,65 @@ let aviationState = {
     active: false,
     entities: []
 };
-
-const DEMO_KPI_ROTATION = [
-    { mobility: "68%", air: "Fair", alerts: "03", readiness: "Pilot Ready", freshness: "12 sec ago", focus: "City Core Monitoring" },
-    { mobility: "74%", air: "Moderate", alerts: "05", readiness: "Showcase Active", freshness: "19 sec ago", focus: "Museum District Focus" },
-    { mobility: "63%", air: "Good", alerts: "02", readiness: "Demo Stable", freshness: "8 sec ago", focus: "Environmental Watch" }
-];
+const operationalState = {
+    mode: "Prototype live",
+    focus: "City core monitoring",
+    lastUpdatedAt: null,
+    lastUpdatedLabel: "Waiting for live actions",
+    activeLayers: new Set()
+};
 
 const BIODIVERSITY_SERVICE_URL = "https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11";
 const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
+const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
+const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 
 // Helper to get elements
 function $(id) {
     return document.getElementById(id);
+}
+
+function markOperationalUpdate(label, focus) {
+    operationalState.lastUpdatedAt = Date.now();
+    operationalState.lastUpdatedLabel = label || operationalState.lastUpdatedLabel;
+    if (focus) {
+        operationalState.focus = focus;
+    }
+    refreshOperationalState();
+}
+
+function refreshOperationalState() {
+    const twinMode = $("statusTwinMode");
+    const dataFreshness = $("statusDataFreshness");
+    const focusArea = $("statusFocusArea");
+
+    const layerCount = operationalState.activeLayers.size;
+    let modeText = layerCount > 0
+        ? `Prototype live | ${layerCount} layers active`
+        : "Prototype live | map baseline";
+
+    let freshnessText = operationalState.lastUpdatedLabel || "Waiting for live actions";
+    if (operationalState.lastUpdatedAt) {
+        const elapsedSeconds = Math.max(1, Math.round((Date.now() - operationalState.lastUpdatedAt) / 1000));
+        freshnessText = `${elapsedSeconds} sec ago | ${operationalState.lastUpdatedLabel}`;
+    }
+
+    if (twinMode) twinMode.textContent = modeText;
+    if (dataFreshness) dataFreshness.textContent = freshnessText;
+    if (focusArea) focusArea.textContent = operationalState.focus;
+}
+
+function setLayerActive(layerName, isActive, focusLabel, freshnessLabel) {
+    if (isActive) {
+        operationalState.activeLayers.add(layerName);
+    } else {
+        operationalState.activeLayers.delete(layerName);
+    }
+    if (freshnessLabel || focusLabel) {
+        markOperationalUpdate(freshnessLabel || operationalState.lastUpdatedLabel, focusLabel || operationalState.focus);
+    } else {
+        refreshOperationalState();
+    }
 }
 
 function setLayerLoadingState(active, label) {
@@ -158,6 +206,11 @@ function wireUi() {
         heritageBtn.addEventListener("click", toggleDutchHeritageLayer);
     }
 
+    const cbsBtn = $("toggleCbsNeighborhoodsBtn");
+    if (cbsBtn) {
+        cbsBtn.addEventListener("click", toggleCbsNeighborhoodOverlay);
+    }
+
     document.querySelectorAll("[data-scenario]").forEach((button) => {
         button.addEventListener("click", () => {
             activateScenario(button.getAttribute("data-scenario"));
@@ -189,6 +242,7 @@ async function loadBuildings3DTiles() {
 
         console.log("3D Tiles for buildings loaded successfully.");
         showNotification("event", "Kadaster 3D buildings loaded successfully.");
+        setLayerActive("kadaster", true, "Kadaster buildings", "Kadaster 3D buildings loaded");
     } catch (error) {
         console.error("Error loading 3D Tiles for buildings:", error);
         showNotification("event", "Kadaster 3D buildings could not be loaded.");
@@ -200,15 +254,36 @@ async function loadBuildings3DTiles() {
 // Init Cesium viewer
 async function initCesium() {
     try {
+        let terrainProvider = undefined;
+        let imageryProvider = undefined;
+        if (typeof Cesium.createWorldTerrainAsync === "function") {
+            terrainProvider = await Cesium.createWorldTerrainAsync();
+        } else if (typeof Cesium.createWorldTerrain === "function") {
+            terrainProvider = Cesium.createWorldTerrain();
+        }
+        if (typeof Cesium.createWorldImageryAsync === "function") {
+            imageryProvider = await Cesium.createWorldImageryAsync();
+        } else if (typeof Cesium.createWorldImagery === "function") {
+            imageryProvider = Cesium.createWorldImagery();
+        }
+
         viewer = new Cesium.Viewer("cesiumContainer", {
-            terrainProvider: Cesium.createWorldTerrain(),
-            imageryProvider: Cesium.createWorldImagery(),
+            terrainProvider,
+            baseLayer: imageryProvider ? new Cesium.ImageryLayer(imageryProvider) : false,
             requestRenderMode: true,
             animation: true,
             timeline: true,
             sceneMode: Cesium.SceneMode.SCENE3D,
             baseLayerPicker: false
         });
+
+        if (viewer.imageryLayers.length === 0) {
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.OpenStreetMapImageryProvider({
+                    url: "https://tile.openstreetmap.org/"
+                })
+            );
+        }
 
         // Replace Cesium logo with Den Bosch logo
         viewer.scene.postRender.addEventListener(() => {
@@ -252,34 +327,35 @@ async function loadTileset() {
     console.log("Loading main tileset and OSM buildings");
 
     try {
-        const tilesetResource = await Cesium.IonResource.fromAssetId(2275207);
-        const tileset = new Cesium.Cesium3DTileset({
-            url: tilesetResource
-        });
+        if (typeof Cesium.createOsmBuildingsAsync === "function") {
+            osmBuildingsTileset = viewer.scene.primitives.add(await Cesium.createOsmBuildingsAsync());
+        } else if (typeof Cesium.createOsmBuildings === "function") {
+            osmBuildingsTileset = viewer.scene.primitives.add(Cesium.createOsmBuildings());
+        } else {
+            osmBuildingsTileset = null;
+        }
 
-        viewer.scene.primitives.add(tileset);
-
-        osmBuildingsTileset = viewer.scene.primitives.add(Cesium.createOsmBuildings());
-
-        osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
-            color: {
-                conditions: [
-                    ["${building} === 'school'", "color('rgba(70, 130, 180, 0.8)')"],
-                    ["${building} === 'university'", "color('rgba(34, 139, 34, 0.8)')"],
-                    ["${building} === 'hospital'", "color('rgba(255, 69, 0, 0.8)')"],
-                    ["${building} === 'parking'", "color('rgba(128, 128, 128, 0.7)')"],
-                    ["${building} === 'church'", "color('rgba(148, 0, 211, 0.8)')"],
-                    ["${building} === 'retail'", "color('rgba(255, 165, 0, 0.8)')"],
-                    ["${building} === 'industrial'", "color('rgba(160, 82, 45, 0.8)')"],
-                    ["${building} === 'commercial'", "color('rgba(0, 0, 139, 0.8)')"],
-                    ["${building} === 'hotel'", "color('rgba(255, 223, 0, 0.8)')"],
-                    ["${building} === 'house'", "color('rgba(255, 182, 193, 0.8)')"],
-                    ["${building} === 'apartments'", "color('rgba(135, 206, 235, 0.8)')"],
-                    ["${building} === 'office'", "color('rgba(105, 105, 105, 0.8)')"],
-                    ["true", "color('rgba(200, 200, 200, 0.6)')"]
-                ]
-            }
-        });
+        if (osmBuildingsTileset) {
+            osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
+                color: {
+                    conditions: [
+                        ["${building} === 'school'", "color('rgba(70, 130, 180, 0.8)')"],
+                        ["${building} === 'university'", "color('rgba(34, 139, 34, 0.8)')"],
+                        ["${building} === 'hospital'", "color('rgba(255, 69, 0, 0.8)')"],
+                        ["${building} === 'parking'", "color('rgba(128, 128, 128, 0.7)')"],
+                        ["${building} === 'church'", "color('rgba(148, 0, 211, 0.8)')"],
+                        ["${building} === 'retail'", "color('rgba(255, 165, 0, 0.8)')"],
+                        ["${building} === 'industrial'", "color('rgba(160, 82, 45, 0.8)')"],
+                        ["${building} === 'commercial'", "color('rgba(0, 0, 139, 0.8)')"],
+                        ["${building} === 'hotel'", "color('rgba(255, 223, 0, 0.8)')"],
+                        ["${building} === 'house'", "color('rgba(255, 182, 193, 0.8)')"],
+                        ["${building} === 'apartments'", "color('rgba(135, 206, 235, 0.8)')"],
+                        ["${building} === 'office'", "color('rgba(105, 105, 105, 0.8)')"],
+                        ["true", "color('rgba(200, 200, 200, 0.6)')"]
+                    ]
+                }
+            });
+        }
 
         function addBuildingPin(buildingType, latitude, longitude) {
             const pinBuilder = new Cesium.PinBuilder();
@@ -365,7 +441,9 @@ async function loadTileset() {
             }
         });
 
-        await viewer.zoomTo(tileset);
+        if (osmBuildingsTileset) {
+            await viewer.zoomTo(osmBuildingsTileset);
+        }
         viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(5.3154, 51.67855, 500),
             orientation: {
@@ -393,6 +471,13 @@ function setupMapClickHandler() {
             const longitude = Cesium.Math.toDegrees(cartographicPosition.longitude);
 
             await getPlaceName(latitude, longitude);
+            try {
+                localStorage.setItem("udt_last_location", JSON.stringify({
+                    lat: latitude,
+                    lon: longitude,
+                    name: name || ""
+                }));
+            } catch (error) { }
             await fetchAndDisplayWeather(latitude, longitude);
             await fetchAndDisplayAirQuality(latitude, longitude);
             await fetchAndDisplayTraffic(latitude, longitude);
@@ -608,6 +693,7 @@ async function fetchAndDisplayWeather(latitude, longitude) {
             Wind: ${weatherData.wind.speed} m/s, ${weatherData.wind.deg}
         `;
         showNotification("weather", weatherContent);
+        markOperationalUpdate("Weather snapshot updated", "Weather and air quality");
     } catch (error) {
         console.error("Error fetching weather data:", error);
         showNotification("weather", "Error fetching weather data");
@@ -635,6 +721,7 @@ async function fetchAndDisplayAirQuality(latitude, longitude) {
             CO: ${components.co} µg/m³
         `;
         showNotification("air-quality", airQualityContent);
+        markOperationalUpdate("Air quality snapshot updated", "Weather and air quality");
     } catch (error) {
         console.error("Error fetching air quality data:", error);
         showNotification("air-quality", "Error fetching air quality data");
@@ -650,19 +737,176 @@ async function fetchAndDisplayTraffic(latitude, longitude) {
         const trafficData = await response.json();
         if (trafficData && trafficData.flowSegmentData) {
             const traffic = trafficData.flowSegmentData;
+            const congestionRatio = traffic.freeFlowSpeed > 0
+                ? traffic.currentSpeed / traffic.freeFlowSpeed
+                : 1;
+            const congestionState = congestionRatio >= 0.9
+                ? "Vlotte doorstroming"
+                : congestionRatio >= 0.7
+                    ? "Lichte congestie"
+                    : congestionRatio >= 0.5
+                        ? "Drukke corridor"
+                        : "Zware congestie";
+            const delaySeconds = Math.max((traffic.currentTravelTime || 0) - 60, 0);
+            const confidencePercent = Math.round((traffic.confidence || 0) * 100);
             const trafficContent = `
                 <strong>Traffic Information at ${name}</strong><br>
                 Road: ${traffic.roadName || "N/A"}<br>
                 Speed: ${traffic.currentSpeed} km/h<br>
                 Free Flow Speed: ${traffic.freeFlowSpeed} km/h<br>
                 Travel Time: ${traffic.currentTravelTime} seconds<br>
-                Confidence: ${traffic.confidence}%
+                Confidence: ${confidencePercent}%
             `;
             showNotification("traffic", trafficContent);
+            const trafficStateTarget = $("trafficStateContent");
+            if (trafficStateTarget) {
+                trafficStateTarget.innerHTML = `
+                    <strong>${congestionState}</strong><br>
+                    Vertraging: ${delaySeconds} seconden<br>
+                    Corridorbetrouwbaarheid: ${confidencePercent}%<br>
+                    Snelheidsverhouding: ${Math.round(congestionRatio * 100)}% van vrije doorstroming
+                `;
+                trafficStateTarget.dataset.hasData = "true";
+            }
+            markOperationalUpdate("Traffic segment updated", "Traffic and mobility");
         }
     } catch (error) {
         console.error("Error fetching traffic data:", error);
         showNotification("traffic", "Error fetching traffic data");
+        const trafficStateTarget = $("trafficStateContent");
+        if (trafficStateTarget) {
+            trafficStateTarget.textContent = "Verkeersstatus tijdelijk niet beschikbaar.";
+            trafficStateTarget.dataset.hasData = "false";
+        }
+    }
+}
+
+async function fetchTrafficSnapshot(latitude, longitude) {
+    try {
+        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${TomTomAPI}&point=${latitude},${longitude}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch traffic snapshot");
+        const data = await response.json();
+        return data && data.flowSegmentData ? data.flowSegmentData : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function fetchWeatherSnapshot(latitude, longitude) {
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${weatherApiKey}&units=metric`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch weather snapshot");
+        return await response.json();
+    } catch (error) {
+        return null;
+    }
+}
+
+async function fetchNearbyHeritageSummary(latitude, longitude) {
+    try {
+        const params = new URLSearchParams({
+            service: "WFS",
+            version: "2.0.0",
+            request: "GetFeature",
+            typeNames: "ps-ch:rce_inspire_points",
+            count: "5",
+            outputFormat: "application/json",
+            srsName: "EPSG:4326",
+            bbox: `${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01},EPSG:4326`
+        });
+        const response = await fetch(`${HERITAGE_SERVICE_URL}?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch heritage summary");
+        const data = await response.json();
+        return Array.isArray(data.features) ? data.features : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function normalizeCbsValue(value) {
+    if (value === null || value === undefined || value === "" || Number.isNaN(value)) return null;
+    if (typeof value === "number" && value <= -99995) return null;
+    return value;
+}
+
+function pointInRing(point, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0];
+        const yi = ring[i][1];
+        const xj = ring[j][0];
+        const yj = ring[j][1];
+        const intersects = ((yi > point[1]) !== (yj > point[1]))
+            && (point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || 1e-9) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
+}
+
+function pointInPolygonGeometry(point, geometry) {
+    if (!geometry || !geometry.type || !geometry.coordinates) return false;
+    if (geometry.type === "Polygon") {
+        return geometry.coordinates.some((ring) => pointInRing(point, ring));
+    }
+    if (geometry.type === "MultiPolygon") {
+        return geometry.coordinates.some((polygon) => polygon.some((ring) => pointInRing(point, ring)));
+    }
+    return false;
+}
+
+function summarizeCbsNeighborhood(properties = {}) {
+    return {
+        buurtnaam: properties.buurtnaam || "Onbekende buurt",
+        gemeentenaam: properties.gemeentenaam || "'s-Hertogenbosch",
+        aantalInwoners: normalizeCbsValue(properties.aantalInwoners),
+        bevolkingsdichtheid: normalizeCbsValue(properties.bevolkingsdichtheidInwonersPerKm2),
+        huishoudens: normalizeCbsValue(properties.aantalHuishoudens),
+        adressendichtheid: normalizeCbsValue(properties.omgevingsadressendichtheid),
+        autosPerHuishouden: normalizeCbsValue(properties.personenautosPerHuishouden),
+        leeftijd0tot15: normalizeCbsValue(properties.percentagePersonen0Tot15Jaar),
+        leeftijd15tot25: normalizeCbsValue(properties.percentagePersonen15Tot25Jaar),
+        leeftijd25tot45: normalizeCbsValue(properties.percentagePersonen25Tot45Jaar),
+        leeftijd45tot65: normalizeCbsValue(properties.percentagePersonen45Tot65Jaar),
+        leeftijd65plus: normalizeCbsValue(properties.percentagePersonen65JaarEnOuder),
+        inkomenPerInwoner: normalizeCbsValue(properties.gemiddeldInkomenPerInwoner),
+        wmoClientenPer1000: normalizeCbsValue(properties.aantalWmoClientenPer1000Inwoners)
+    };
+}
+
+async function fetchCbsNeighborhoodStats(latitude, longitude) {
+    const cacheKey = `cbs_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const delta = 0.012;
+    const params = new URLSearchParams({
+        service: "WFS",
+        version: "2.0.0",
+        request: "GetFeature",
+        typeNames: "wijkenbuurten:buurten",
+        count: "24",
+        outputFormat: "application/json",
+        srsName: "EPSG:4326",
+        bbox: `${latitude - delta},${longitude - delta},${latitude + delta},${longitude + delta},EPSG:4326`
+    });
+
+    try {
+        const response = await fetch(`${CBS_WIJKBUURT_WFS_URL}?${params.toString()}`);
+        if (!response.ok) throw new Error(`CBS buurtprofielen fetch failed: ${response.status}`);
+        const data = await response.json();
+        const features = Array.isArray(data.features) ? data.features : [];
+        const point = [longitude, latitude];
+        const match = features.find((feature) => pointInPolygonGeometry(point, feature.geometry)) || features[0];
+        if (!match) return null;
+
+        const result = summarizeCbsNeighborhood(match.properties || {});
+        cacheSet(cacheKey, result, 12 * 60 * 60 * 1000);
+        return result;
+    } catch (error) {
+        console.warn("CBS buurtprofielen tijdelijk niet beschikbaar:", error);
+        return null;
     }
 }
 
@@ -687,6 +931,7 @@ function showNotification(type, content) {
     }
     if (target) {
         target.innerHTML = content;
+        target.dataset.hasData = "true";
     }
     card.classList.remove("is-hidden");
 }
@@ -695,20 +940,32 @@ function addPrototypeTrafficExperience() {
     if (!viewer || trafficFlowEntities.length > 0) return;
 
     const corridors = [
-        { lon: 5.3035, lat: 51.6873, co2: 420, flow: "High" },
-        { lon: 5.3125, lat: 51.6835, co2: 455, flow: "Medium" },
-        { lon: 5.2925, lat: 51.6892, co2: 398, flow: "Elevated" },
-        { lon: 5.3215, lat: 51.6922, co2: 440, flow: "High" }
+        { lon: 5.3035, lat: 51.6873, co2: 420, flow: "High", radius: 140 },
+        { lon: 5.3125, lat: 51.6835, co2: 455, flow: "Medium", radius: 120 },
+        { lon: 5.2925, lat: 51.6892, co2: 398, flow: "Elevated", radius: 110 },
+        { lon: 5.3215, lat: 51.6922, co2: 440, flow: "High", radius: 135 }
     ];
 
     trafficPulseEntities = corridors.map((corridor) => viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(corridor.lon, corridor.lat, 0),
         ellipse: {
-            semiMinorAxis: 90,
-            semiMajorAxis: 90,
-            material: Cesium.Color.fromCssColorString("#f97316").withAlpha(0.18),
+            semiMinorAxis: corridor.radius,
+            semiMajorAxis: corridor.radius,
+            material: Cesium.Color.fromCssColorString("#f97316").withAlpha(0.26),
             outline: true,
-            outlineColor: Cesium.Color.fromCssColorString("#fbbf24").withAlpha(0.5)
+            outlineWidth: 2,
+            outlineColor: Cesium.Color.fromCssColorString("#fde047").withAlpha(0.78),
+            height: 2
+        },
+        label: {
+            text: `${corridor.flow} flow | CO2 ${corridor.co2} ppm`,
+            font: "bold 13px sans-serif",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -26),
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000)
         },
         description: `
             <h2>Mobility & CO2 Corridor</h2>
@@ -730,26 +987,63 @@ function addPrototypeTrafficExperience() {
             [5.314, 51.6898],
             [5.309, 51.6887],
             [5.304, 51.6876]
+        ],
+        [
+            [5.2918, 51.6891],
+            [5.2961, 51.6888],
+            [5.3012, 51.6885],
+            [5.3074, 51.6882]
         ]
     ];
 
+    trafficCorridorEntities = vehiclePaths.map((path, index) => {
+        const flatPositions = path.flat();
+        const corridorColor = index === 0
+            ? Cesium.Color.fromCssColorString("#3dd6c6")
+            : index === 1
+                ? Cesium.Color.fromCssColorString("#f59e0b")
+                : Cesium.Color.fromCssColorString("#fb7185");
+
+        return viewer.entities.add({
+            polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArray(flatPositions),
+                width: 10,
+                clampToGround: false,
+                material: new Cesium.PolylineGlowMaterialProperty({
+                    glowPower: 0.28,
+                    taperPower: 0.7,
+                    color: corridorColor.withAlpha(0.92)
+                })
+            },
+            description: `
+                <h2>Traffic Corridor ${index + 1}</h2>
+                <p><strong>Status:</strong> Active prototype mobility flow</p>
+                <p><strong>Visual:</strong> Glow line indicates heavy movement corridor</p>
+            `
+        });
+    });
+
     trafficFlowEntities = vehiclePaths.map((path, index) => {
         const [startLon, startLat] = path[0];
+        const markerColor = index === 0 ? "#3dd6c6" : index === 1 ? "#f59e0b" : "#fb7185";
         return viewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(startLon, startLat, 18),
-            billboard: {
-                image: "https://cdn-icons-png.flaticon.com/512/744/744465.png",
-                scale: 0.08,
-                color: Cesium.Color.fromCssColorString(index === 0 ? "#3dd6c6" : "#f59e0b")
+            point: {
+                pixelSize: 16,
+                color: Cesium.Color.fromCssColorString(markerColor),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2,
+                heightReference: Cesium.HeightReference.NONE
             },
             label: {
-                text: index === 0 ? "Mobility flow A" : "Mobility flow B",
-                font: "12px sans-serif",
+                text: index === 0 ? "Mobility flow A" : index === 1 ? "Mobility flow B" : "Mobility flow C",
+                font: "bold 13px sans-serif",
                 fillColor: Cesium.Color.WHITE,
                 outlineColor: Cesium.Color.BLACK,
                 outlineWidth: 3,
                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -20)
+                pixelOffset: new Cesium.Cartesian2(0, -24),
+                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 14000)
             },
             properties: {
                 pathIndex: index,
@@ -766,6 +1060,9 @@ function addPrototypeTrafficExperience() {
             entity.position = Cesium.Cartesian3.fromDegrees(lon, lat, 18);
             entity.properties.stepIndex = nextStep;
         });
+        if (viewer && viewer.scene) {
+            viewer.scene.requestRender();
+        }
     }, 2200);
 }
 
@@ -776,8 +1073,10 @@ function removePrototypeTrafficExperience() {
     }
     trafficFlowEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
     trafficPulseEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
+    trafficCorridorEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
     trafficFlowEntities = [];
     trafficPulseEntities = [];
+    trafficCorridorEntities = [];
 }
 
 function toggleTraffic() {
@@ -789,20 +1088,25 @@ function toggleTraffic() {
                 maximumLevel: 18
             })
         );
+        tomTomTrafficLayer.alpha = 0.72;
+        tomTomTrafficLayer.brightness = 1.25;
+        tomTomTrafficLayer.contrast = 1.18;
+        tomTomTrafficLayer.saturation = 1.1;
         addPrototypeTrafficExperience();
-        updatePrototypeHud({
-            mobility: "81%",
-            air: "Traffic Watch",
-            alerts: "07",
-            readiness: "Mobility Layer Active",
-            freshness: "Flow refreshed now",
-            focus: "Traffic & CO2 Corridors"
-        });
+        setLayerActive("traffic", true, "Traffic and CO2 corridors", "Traffic flow layer activated");
+        if (viewer && viewer.scene) {
+            viewer.scene.requestRender();
+        }
+        updatePrototypeHud({ freshness: "Flow refreshed now", focus: "Traffic & CO2 Corridors" });
         showNotification("traffic", "<strong>Traffic Flow & CO2</strong><br>Prototype corridor flow, moving vehicles, and emission hotspots activated.");
     } else {
         viewer.imageryLayers.remove(tomTomTrafficLayer, false);
         tomTomTrafficLayer = null;
         removePrototypeTrafficExperience();
+        setLayerActive("traffic", false, "City core monitoring", "Traffic flow layer hidden");
+        if (viewer && viewer.scene) {
+            viewer.scene.requestRender();
+        }
     }
 }
 
@@ -849,6 +1153,7 @@ async function toggleDutchHeritageLayer() {
             button.textContent = "Dutch Heritage Sites";
         }
         showNotification("event", "Dutch heritage layer hidden.");
+        setLayerActive("heritage", false, "City core monitoring", "Dutch heritage layer hidden");
         return;
     }
 
@@ -867,10 +1172,54 @@ async function toggleDutchHeritageLayer() {
             focus: "Dutch Heritage Sites"
         });
         showNotification("event", "Dutch government heritage data loaded from PDOK.");
+        setLayerActive("heritage", true, "Dutch heritage sites", "PDOK heritage feed loaded");
     } catch (error) {
         console.error("Error loading Dutch heritage sites:", error);
         showNotification("event", "Unable to load Dutch heritage open data right now.");
     }
+}
+
+function toggleCbsNeighborhoodOverlay() {
+    const button = $("toggleCbsNeighborhoodsBtn");
+    if (!viewer) return;
+
+    if (cbsNeighborhoodLayer) {
+        viewer.imageryLayers.remove(cbsNeighborhoodLayer, false);
+        cbsNeighborhoodLayer = null;
+        if (button) {
+            button.textContent = "CBS Buurtprofielen";
+            button.setAttribute("aria-pressed", "false");
+        }
+        showNotification("event", "CBS buurtprofielen verborgen.");
+        setLayerActive("cbs", false, "City core monitoring", "CBS neighborhood layer hidden");
+        return;
+    }
+
+    cbsNeighborhoodLayer = viewer.imageryLayers.addImageryProvider(
+        new Cesium.WebMapServiceImageryProvider({
+            url: CBS_WIJKBUURT_WMS_URL,
+            layers: "buurten",
+            parameters: {
+                service: "WMS",
+                version: "1.3.0",
+                request: "GetMap",
+                transparent: true,
+                format: "image/png"
+            }
+        })
+    );
+    cbsNeighborhoodLayer.alpha = 0.42;
+    cbsNeighborhoodLayer.brightness = 1.05;
+    cbsNeighborhoodLayer.contrast = 1.15;
+
+    if (button) {
+        button.textContent = "CBS Buurtprofielen ON";
+        button.setAttribute("aria-pressed", "true");
+    }
+
+    showNotification("event", "CBS buurtprofielen geladen vanuit PDOK / CBS.");
+    setLayerActive("cbs", true, "CBS neighborhood profiles", "CBS neighborhood layer loaded");
+    viewer.scene.requestRender();
 }
 
 async function loadDutchHeritageSites() {
@@ -973,6 +1322,7 @@ async function toggleBiodiversityStream() {
             button.textContent = "Biodiversity Stream OFF";
             button.setAttribute("aria-pressed", "false");
         }
+        setLayerActive("biodiversity", false, "City core monitoring", "Biodiversity stream hidden");
         return;
     }
 
@@ -984,6 +1334,7 @@ async function toggleBiodiversityStream() {
 
     await loadBiodiversityTrees();
     biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
+    setLayerActive("biodiversity", true, "Biodiversity stream", "Biodiversity stream activated");
 }
 
 async function loadBiodiversityTrees() {
@@ -1066,22 +1417,19 @@ async function loadBiodiversityTrees() {
 }
 
 function setupPrototypeHud() {
-    updatePrototypeHud(DEMO_KPI_ROTATION[0]);
-    let rotationIndex = 0;
-    window.setInterval(() => {
-        rotationIndex = (rotationIndex + 1) % DEMO_KPI_ROTATION.length;
-        updatePrototypeHud(DEMO_KPI_ROTATION[rotationIndex]);
-    }, 9000);
+    markOperationalUpdate("System initialized", "City core monitoring");
 }
 
 function updatePrototypeHud(state) {
+    if (state.freshness || state.focus) {
+        markOperationalUpdate(state.freshness || operationalState.lastUpdatedLabel, state.focus || operationalState.focus);
+    }
+
     const mapping = {
         kpiMobility: state.mobility,
         kpiAir: state.air,
         kpiAlerts: state.alerts,
-        kpiReadiness: state.readiness,
-        statusDataFreshness: state.freshness,
-        statusFocusArea: state.focus
+        kpiReadiness: state.readiness
     };
 
     Object.entries(mapping).forEach(([id, value]) => {
@@ -1135,25 +1483,27 @@ function activateScenario(scenarioName) {
             destination: Cesium.Cartesian3.fromDegrees(5.3043, 51.6863, 1200),
             heading: 10,
             pitch: -38,
-            hud: DEMO_KPI_ROTATION[1]
+            hud: {
+                freshness: "Scenario mobility camera activated",
+                focus: "Mobility corridor focus"
+            }
         },
         environment: {
             destination: Cesium.Cartesian3.fromDegrees(5.291, 51.6905, 1800),
             heading: -20,
             pitch: -50,
-            hud: DEMO_KPI_ROTATION[2]
+            hud: {
+                freshness: "Scenario environmental camera activated",
+                focus: "Environmental watch"
+            }
         },
         culture: {
             destination: Cesium.Cartesian3.fromDegrees(5.3038, 51.6872, 900),
             heading: 35,
             pitch: -32,
             hud: {
-                mobility: "61%",
-                air: "Fair",
-                alerts: "04",
-                readiness: "Experience Ready",
-                freshness: "15 sec ago",
-                focus: "Heritage & Visitor Flow"
+                freshness: "Scenario heritage camera activated",
+                focus: "Heritage and visitor flow"
             }
         }
     };
@@ -1375,7 +1725,19 @@ function addCombinedContextMenu(viewer) {
     const dashboardBtn = $("dashboardBtn");
     if (dashboardBtn) {
         dashboardBtn.addEventListener("click", () => {
-            window.open("dashboard/dashboard_sensors.html", "_blank");
+            let targetUrl = "dashboard/open_data_dashboard.html";
+            try {
+                const lastLocation = JSON.parse(localStorage.getItem("udt_last_location") || "null");
+                if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
+                    const params = new URLSearchParams({
+                        lat: String(lastLocation.lat),
+                        lon: String(lastLocation.lon),
+                        name: lastLocation.name || ""
+                    });
+                    targetUrl += `?${params.toString()}`;
+                }
+            } catch (error) { }
+            window.open(targetUrl, "_blank");
             hideContextMenu();
         });
     }
@@ -1633,8 +1995,12 @@ function addCombinedContextMenu(viewer) {
                 await getPlaceName(lat, lon).catch(() => null);
                 const popPromise = fetchPopulationNearby(lat, lon, name).catch(() => null);
                 const airPromise = fetchAirPollutionTrend(lat, lon).catch(() => null);
+                const trafficPromise = fetchTrafficSnapshot(lat, lon).catch(() => null);
+                const weatherPromise = fetchWeatherSnapshot(lat, lon).catch(() => null);
+                const heritagePromise = fetchNearbyHeritageSummary(lat, lon).catch(() => []);
+                const cbsPromise = fetchCbsNeighborhoodStats(lat, lon).catch(() => null);
 
-                const [pop, air] = await Promise.all([popPromise, airPromise]);
+                const [pop, air, traffic, weather, heritage, cbs] = await Promise.all([popPromise, airPromise, trafficPromise, weatherPromise, heritagePromise, cbsPromise]);
                 const place = null; // name is available via global 'name'
                 if (spinner) spinner.style.display = 'none';
 
@@ -1658,8 +2024,41 @@ function addCombinedContextMenu(viewer) {
                     html += `<div style="margin-bottom:6px"><strong>Air pollution:</strong> Not available (API key missing, rate-limited, or no data)</div>`;
                 }
 
-                html += `<div style="margin-top:6px;font-size:11px;color:#666">Data sources: Wikidata (population), OpenWeatherMap (air pollution). Results may be approximate and are subject to API limits.</div>`;
+                if (weather && weather.main) {
+                    html += `<div style="margin-bottom:6px"><strong>Current weather:</strong> ${Math.round(weather.main.temp)} °C, ${weather.weather && weather.weather[0] ? weather.weather[0].description : "unknown"}<br><strong>Humidity:</strong> ${weather.main.humidity}%</div>`;
+                } else {
+                    html += `<div style="margin-bottom:6px"><strong>Current weather:</strong> Not available</div>`;
+                }
+
+                if (traffic) {
+                    const ratio = traffic.freeFlowSpeed > 0 ? Math.round((traffic.currentSpeed / traffic.freeFlowSpeed) * 100) : 100;
+                    html += `<div style="margin-bottom:6px"><strong>Traffic state:</strong> ${traffic.currentSpeed} / ${traffic.freeFlowSpeed} km/h<br><strong>Road:</strong> ${traffic.roadName || "N/A"}<br><strong>Flow ratio:</strong> ${ratio}% of free flow</div>`;
+                } else {
+                    html += `<div style="margin-bottom:6px"><strong>Traffic state:</strong> Not available</div>`;
+                }
+
+                if (cbs) {
+                    html += `<div style="margin-bottom:6px"><strong>CBS buurtprofiel:</strong> ${cbs.buurtnaam}, ${cbs.gemeentenaam}<br><strong>Inwoners:</strong> ${cbs.aantalInwoners != null ? cbs.aantalInwoners.toLocaleString("nl-NL") : "Onbekend"}<br><strong>Huishoudens:</strong> ${cbs.huishoudens != null ? cbs.huishoudens.toLocaleString("nl-NL") : "Onbekend"}<br><strong>Dichtheid:</strong> ${cbs.bevolkingsdichtheid != null ? `${cbs.bevolkingsdichtheid.toLocaleString("nl-NL")} inw/km²` : "Onbekend"}<br><strong>Auto's per huishouden:</strong> ${cbs.autosPerHuishouden != null ? cbs.autosPerHuishouden.toLocaleString("nl-NL") : "Onbekend"}</div>`;
+                } else {
+                    html += `<div style="margin-bottom:6px"><strong>CBS buurtprofiel:</strong> Tijdelijk niet beschikbaar</div>`;
+                }
+
+                html += `<div style="margin-bottom:6px"><strong>Nearby heritage points:</strong> ${Array.isArray(heritage) ? heritage.length : 0}</div>`;
+                html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button id="openAnalyzeDashboard" type="button" style="padding:6px 10px;border:none;border-radius:8px;background:#22c55e;color:#08131f;cursor:pointer;font-weight:600">Open data dashboard</button></div>`;
+                html += `<div style="margin-top:6px;font-size:11px;color:#666">Data sources: Wikidata, OpenWeatherMap, TomTom Traffic, PDOK/RCE, PDOK/CBS. Results may be approximate and subject to API limits.</div>`;
                 contentEl.innerHTML = html;
+                const openAnalyzeDashboardBtn = document.getElementById('openAnalyzeDashboard');
+                if (openAnalyzeDashboardBtn) {
+                    openAnalyzeDashboardBtn.onclick = () => {
+                        const params = new URLSearchParams({
+                            lat: String(lat),
+                            lon: String(lon),
+                            name: name || ""
+                        });
+                        window.open(`dashboard/open_data_dashboard.html?${params.toString()}`, "_blank");
+                    };
+                }
+                markOperationalUpdate("Analyze Here refreshed", "Location analysis");
             } catch (e) {
                 console.error('Analyze failed', e);
                 contentEl.innerHTML = '<em>Error while fetching analysis data.</em>';

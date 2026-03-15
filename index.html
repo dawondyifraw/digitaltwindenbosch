@@ -14,7 +14,7 @@
 
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
-  <link href="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.139/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
   <link href="css/main.css?v=20260315b" rel="stylesheet" />
   <link href="notificationservice/notification_alert.css?v=20260315b" rel="stylesheet" />
   <link href="chatbotservice/chatbot.css?v=20260315b" rel="stylesheet" />
@@ -143,6 +143,20 @@
       <div class="version">Runner Blade V.4.0</div>
     </div>
 
+    <section class="sidebar-tools" aria-label="Prototype controls">
+      <div class="sidebar-tools__row">
+        <button id="sidebarBriefingToggle" class="sidebar-action-btn" type="button" aria-expanded="false">Briefing openen</button>
+        <div class="locale-switch" role="group" aria-label="Taalkeuze">
+          <button id="localeNlBtn" class="locale-switch__btn is-active" type="button" data-locale="nl">NL</button>
+          <button id="localeEnBtn" class="locale-switch__btn" type="button" data-locale="en">EN</button>
+        </div>
+      </div>
+      <div id="sidebarBriefingPanel" class="sidebar-briefing" hidden>
+        <h3 id="sidebarBriefingTitle">Prototypebriefing</h3>
+        <p id="sidebarBriefingText">Demoversie. Voor het volledige multi-streaming platform neem contact op met Daniel via info@datatwinlabs.nl.</p>
+      </div>
+    </section>
+
     <section class="menu-group">
       <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>City Operations</button>
       <ul id="ops-submenu" class="submenu open" role="menu">
@@ -157,6 +171,7 @@
         <li role="none"><button id="BAGButton" class="menu-item" role="menuitem">Kadaster Buildings</button></li>
         <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">Dutch Heritage Sites</button></li>
         <li role="none"><button id="toggleBiodiversityBtn" class="menu-item" role="menuitem">Biodiversity Stream</button></li>
+        <li role="none"><button id="toggleCbsNeighborhoodsBtn" class="menu-item" role="menuitem">CBS Buurtprofielen</button></li>
       </ul>
 
       <div id="legend" class="legend" aria-label="Building type legend">
@@ -184,6 +199,7 @@
       <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Citizen & Policy Use Cases</button>
       <ul id="analytics-submenu" class="submenu" role="menu">
         <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Forecast & Climate Charts</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" id="openDataDashboardBtn">Open Data Dashboard</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Sensor Storytelling</button></li>
         <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Public Alert Feed</button></li>
       </ul>
@@ -226,6 +242,13 @@
         <h5>Verkeer</h5>
         <div id="locationTrafficContent">Nog geen locatie geselecteerd.</div>
       </div>
+      <div class="location-info-card__section">
+        <h5 id="trafficStateHeading">Verkeersstatus</h5>
+        <div id="trafficStateContent">Nog geen locatie geselecteerd.</div>
+      </div>
+      <div class="location-info-card__actions">
+        <button id="openLocationDashboardBtn" class="location-info-card__action-btn" type="button">Open dashboard</button>
+      </div>
     </article>
   </section>
 
@@ -260,7 +283,7 @@
   <script defer src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
   <script defer src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script defer src="https://cesium.com/downloads/cesiumjs/releases/1.100/Build/Cesium/Cesium.js"></script>
+  <script defer src="https://cesium.com/downloads/cesiumjs/releases/1.139/Build/Cesium/Cesium.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
@@ -322,6 +345,12 @@ const chatContainer = document.querySelector('.chat-container');
 const closeChatBtn = document.getElementById('close-chat-btn');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
 const locationInfoCloseBtn = document.getElementById('locationInfoCloseBtn');
+const openLocationDashboardBtn = document.getElementById('openLocationDashboardBtn');
+const sidebarBriefingToggle = document.getElementById('sidebarBriefingToggle');
+const sidebarBriefingPanel = document.getElementById('sidebarBriefingPanel');
+const localeNlBtn = document.getElementById('localeNlBtn');
+const localeEnBtn = document.getElementById('localeEnBtn');
+const openDataDashboardBtn = document.getElementById('openDataDashboardBtn');
 
 closeChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.add('is-closed');
@@ -333,6 +362,59 @@ toggleChatBtn?.addEventListener('click', () => {
 
 locationInfoCloseBtn?.addEventListener('click', () => {
   document.getElementById('locationInfoCard')?.classList.add('is-hidden');
+});
+
+sidebarBriefingToggle?.addEventListener('click', () => {
+  const isOpen = sidebarBriefingToggle.getAttribute('aria-expanded') === 'true';
+  const next = !isOpen;
+  sidebarBriefingToggle.setAttribute('aria-expanded', String(next));
+  if (sidebarBriefingPanel) {
+    sidebarBriefingPanel.hidden = !next;
+  }
+  if (window.udtI18n) {
+    sidebarBriefingToggle.textContent = window.udtI18n.t(next ? 'briefing_close' : 'briefing_open');
+  }
+});
+
+[localeNlBtn, localeEnBtn].forEach((button) => {
+  button?.addEventListener('click', () => {
+    const locale = button.dataset.locale;
+    if (window.udtI18n && locale) {
+      window.udtI18n.setLocale(locale);
+    }
+  });
+});
+
+openDataDashboardBtn?.addEventListener('click', () => {
+  let targetUrl = 'dashboard/open_data_dashboard.html';
+  try {
+    const lastLocation = JSON.parse(localStorage.getItem('udt_last_location') || 'null');
+    if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
+      const params = new URLSearchParams({
+        lat: String(lastLocation.lat),
+        lon: String(lastLocation.lon),
+        name: lastLocation.name || ''
+      });
+      targetUrl += `?${params.toString()}`;
+    }
+  } catch (error) {}
+  window.open(targetUrl, '_blank');
+});
+
+openLocationDashboardBtn?.addEventListener('click', () => {
+  let targetUrl = 'dashboard/open_data_dashboard.html';
+  try {
+    const lastLocation = JSON.parse(localStorage.getItem('udt_last_location') || 'null');
+    if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
+      const params = new URLSearchParams({
+        lat: String(lastLocation.lat),
+        lon: String(lastLocation.lon),
+        name: lastLocation.name || ''
+      });
+      targetUrl += `?${params.toString()}`;
+    }
+  } catch (error) {}
+  window.open(targetUrl, '_blank');
 });
 
       // Chat submit
