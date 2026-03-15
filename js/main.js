@@ -50,6 +50,7 @@ const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wf
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
 const KADASTER_3D_TILESET_URL = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
+const RIVM_STATIONS_URL = "https://data.rivm.nl/data/luchtmeetnet/Metadata/luchtmeetnet_meetlocaties.csv";
 
 // Helper to get elements
 function $(id) {
@@ -657,6 +658,7 @@ function setupMapClickHandler() {
             await fetchAndDisplayAirQuality(latitude, longitude);
             await fetchAndDisplayTraffic(latitude, longitude);
             await fetchAndDisplayBagInfo(latitude, longitude);
+            await fetchAndDisplayRivmSensors(latitude, longitude);
             if (typeof updateCharts === "function") {
                 updateCharts(latitude, longitude);
             }
@@ -726,6 +728,143 @@ function makeSparkline(values = [], color = '#007bff') {
         return `${x},${y}`;
     }).join(' ');
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+
+function parseSemicolonCsv(text) {
+    return text
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => line.split(";"));
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getRivmMonthlyCandidates() {
+    const now = new Date();
+    const candidates = [];
+    for (let offset = 1; offset <= 3; offset++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        candidates.push({
+            PM25: `${year}_${month}_PM25.csv`,
+            NO2: `${year}_${month}_NO2.csv`,
+            O3: `${year}_${month}_O3.csv`
+        });
+    }
+    return candidates;
+}
+
+async function fetchRivmStations() {
+    const cacheKey = "rivm_stations_metadata";
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const response = await fetch(RIVM_STATIONS_URL);
+    if (!response.ok) {
+        throw new Error(`RIVM station metadata unavailable: ${response.status}`);
+    }
+
+    const text = await response.text();
+    const rows = parseSemicolonCsv(text);
+    const headers = rows[0] || [];
+    const stations = rows.slice(1)
+        .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])))
+        .filter((row) => !row.meetlocatie_einddatumtijd && row.breedtegraad && row.lengtegraad);
+
+    cacheSet(cacheKey, stations, 12 * 60 * 60 * 1000);
+    return stations;
+}
+
+async function fetchRivmComponentLatest(filename, stationId) {
+    const cacheKey = `rivm_component_${filename}_${stationId}`;
+    const cached = cacheGet(cacheKey);
+    if (cached !== null && cached !== undefined) return cached;
+
+    try {
+        const response = await fetch(`https://data.rivm.nl/data/luchtmeetnet/Actueel-jaar/${filename}`);
+        if (!response.ok) {
+            throw new Error(`RIVM component file unavailable: ${response.status}`);
+        }
+
+        const text = await response.text();
+        const rows = parseSemicolonCsv(text);
+        const headers = rows[0] || [];
+        const stationIndex = headers.indexOf("meetlocatie_id");
+        const valueIndex = headers.indexOf("waarde");
+        const endIndex = headers.indexOf("einddatumtijd");
+        let latest = null;
+
+        rows.slice(1).forEach((row) => {
+            if (row[stationIndex] !== stationId) return;
+            const value = Number(row[valueIndex]);
+            if (!Number.isFinite(value)) return;
+            const timestamp = row[endIndex];
+            if (!latest || timestamp > latest.timestamp) {
+                latest = { value, timestamp };
+            }
+        });
+
+        cacheSet(cacheKey, latest, 30 * 60 * 1000);
+        return latest;
+    } catch (error) {
+        cacheSet(cacheKey, null, 10 * 60 * 1000);
+        return null;
+    }
+}
+
+async function fetchNearestRivmSensors(latitude, longitude) {
+    const cacheKey = `rivm_nearest_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const stations = await fetchRivmStations();
+    const nearestStations = stations
+        .map((station) => ({
+            stationId: station.meetlocatie_id,
+            stationName: station.meetlocatie_naam,
+            place: station.meetlocatie_plaatsnaam,
+            source: station.bron_id,
+            lat: Number(station.breedtegraad),
+            lon: Number(station.lengtegraad),
+            distanceKm: distanceKm(latitude, longitude, Number(station.breedtegraad), Number(station.lengtegraad))
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 2);
+
+    for (const station of nearestStations) {
+        let values = null;
+        let latestTimestamp = null;
+        for (const candidate of getRivmMonthlyCandidates()) {
+            const [pm25, no2, o3] = await Promise.all([
+                fetchRivmComponentLatest(candidate.PM25, station.stationId),
+                fetchRivmComponentLatest(candidate.NO2, station.stationId),
+                fetchRivmComponentLatest(candidate.O3, station.stationId)
+            ]);
+
+            if (pm25 || no2 || o3) {
+                values = {
+                    PM25: pm25 ? pm25.value : null,
+                    NO2: no2 ? no2.value : null,
+                    O3: o3 ? o3.value : null
+                };
+                latestTimestamp = pm25?.timestamp || no2?.timestamp || o3?.timestamp || null;
+                break;
+            }
+        }
+
+        station.values = values || { PM25: null, NO2: null, O3: null };
+        station.timestamp = latestTimestamp;
+    }
+
+    cacheSet(cacheKey, nearestStations, 30 * 60 * 1000);
+    return nearestStations;
 }
 
 async function fetchPopulationNearby(lat, lon, labelFallback) {
@@ -1051,6 +1190,41 @@ async function fetchAndDisplayBagInfo(latitude, longitude) {
         Status: ${bagInfo.status || "Onbekend"}
     `;
     bagTarget.dataset.hasData = "true";
+}
+
+async function fetchAndDisplayRivmSensors(latitude, longitude) {
+    const rivmTarget = $("locationRivmContent");
+    if (!rivmTarget) return;
+
+    try {
+        const sensors = await fetchNearestRivmSensors(latitude, longitude);
+        if (!Array.isArray(sensors) || sensors.length === 0) {
+            rivmTarget.textContent = window.udtI18n
+                ? window.udtI18n.t("no_official_sensor_data")
+                : "Geen actuele officiele meetpunten gevonden voor deze locatie.";
+            rivmTarget.dataset.hasData = "false";
+            return;
+        }
+
+        rivmTarget.innerHTML = sensors.map((sensor) => `
+            <div class="location-inline-block">
+                <strong>${sensor.stationName}</strong><br>
+                ${sensor.place || "Onbekende plaats"} • ${sensor.source || "RIVM"} • ${sensor.distanceKm.toFixed(1)} km<br>
+                PM2.5: ${sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/b"} µg/m³<br>
+                NO2: ${sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/b"} µg/m³<br>
+                O3: ${sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/b"} µg/m³
+                ${sensor.timestamp ? `<br>Laatst gemeten: ${sensor.timestamp}` : ""}
+            </div>
+        `).join("<hr>");
+        rivmTarget.dataset.hasData = "true";
+        markOperationalUpdate("Official RIVM station data updated", "Official sensor monitoring");
+    } catch (error) {
+        console.error("Error fetching official RIVM station data:", error);
+        rivmTarget.textContent = window.udtI18n
+            ? window.udtI18n.t("no_official_sensor_data")
+            : "Geen actuele officiele meetpunten gevonden voor deze locatie.";
+        rivmTarget.dataset.hasData = "false";
+    }
 }
 
 function normalizeCbsValue(value) {

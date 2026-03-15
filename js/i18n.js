@@ -50,8 +50,10 @@ window.udtI18n = (function () {
             air_quality: "Luchtkwaliteit",
             traffic: "Verkeer",
             bag_building_info: "BAG gebouwinfo",
+            official_sensor_data: "Officiele RIVM meetpunten",
             traffic_state: "Verkeersstatus",
             no_location_selected: "Nog geen locatie geselecteerd.",
+            no_official_sensor_data: "Geen actuele officiele meetpunten gevonden voor deze locatie.",
             open_dashboard: "Open dashboard",
             briefing_open: "Briefing openen",
             briefing_close: "Briefing sluiten",
@@ -110,8 +112,10 @@ window.udtI18n = (function () {
             air_quality: "Air quality",
             traffic: "Traffic",
             bag_building_info: "BAG building info",
+            official_sensor_data: "Official RIVM stations",
             traffic_state: "Traffic state",
             no_location_selected: "No location selected yet.",
+            no_official_sensor_data: "No current official stations found for this location.",
             open_dashboard: "Open dashboard",
             briefing_open: "Open briefing",
             briefing_close: "Close briefing",
@@ -192,6 +196,7 @@ window.udtI18n = (function () {
         applyText(".location-info-card__section:nth-of-type(2) h5", "air_quality");
         applyText(".location-info-card__section:nth-of-type(3) h5", "traffic");
         applyText("#bagInfoHeading", "bag_building_info");
+        applyText("#rivmInfoHeading", "official_sensor_data");
         applyText("#trafficStateHeading", "traffic_state");
         applyText("#openLocationDashboardBtn", "open_dashboard");
 
@@ -199,11 +204,13 @@ window.udtI18n = (function () {
         const airContent = document.getElementById("locationAirContent");
         const trafficContent = document.getElementById("locationTrafficContent");
         const bagContent = document.getElementById("locationBagContent");
+        const rivmContent = document.getElementById("locationRivmContent");
         const trafficStateContent = document.getElementById("trafficStateContent");
         if (weatherContent && !weatherContent.dataset.hasData) weatherContent.textContent = t("no_location_selected");
         if (airContent && !airContent.dataset.hasData) airContent.textContent = t("no_location_selected");
         if (trafficContent && !trafficContent.dataset.hasData) trafficContent.textContent = t("no_location_selected");
         if (bagContent && !bagContent.dataset.hasData) bagContent.textContent = t("no_location_selected");
+        if (rivmContent && !rivmContent.dataset.hasData) rivmContent.textContent = t("no_location_selected");
         if (trafficStateContent && !trafficStateContent.dataset.hasData) trafficStateContent.textContent = t("no_location_selected");
 
         applyText("#sidebarBriefingTitle", "briefing_title");
