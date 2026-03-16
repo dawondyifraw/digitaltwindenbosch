@@ -1,6 +1,6 @@
-console.log(`Notification loaded`); // Debugging
+console.log(`Notification loaded`);
 let isClicked = false;
-let notificationInterval; // Store the interval ID for toggling
+let notificationInterval;
 const demoContactMessage = "Demoversie. Voor het volledige multi-streaming platform neem contact op met Daniel via info@datatwinlabs.nl.";
 
 // Notification Data for Simulated Alerts
@@ -20,17 +20,7 @@ const notificationData = [
     { type: 'event', message: 'Local festival starting this weekend.' },
     { type: 'event', message: 'Community meeting at the town hall tomorrow.' },
     { type: 'event', message: 'Charity run on Saturday, expect road closures.' },
-    { type: 'event', message: 'Farmers market open in the central square today.' },
-
-    // Emergency Alerts
-    { type: 'emergency', message: 'Amber alert issued in the local area.' },
-    { type: 'emergency', message: 'Flood warning in low-lying neighborhoods.' },
-    { type: 'emergency', message: 'Fire reported near Oakwood Park, avoid the area.' },
-
-    // Public Service Announcements
-    { type: 'public_service', message: 'COVID-19 vaccination drive at the community center.' },
-    { type: 'public_service', message: 'Water supply maintenance scheduled for tonight.' },
-    { type: 'public_service', message: 'Power outage expected in the downtown area from 2-4 PM.' }
+    { type: 'event', message: 'Farmers market open in the central square today.' }
 ];
 
 
@@ -38,95 +28,88 @@ const notificationData = [
 
 // Function to generate a random notification and update the corresponding alert box
 function generateRandomNotification() {
-    console.log('Generating random notification'); // Debugging
     const randomNotification = notificationData[Math.floor(Math.random() * notificationData.length)];
-    console.log('Random Notification:', randomNotification); // Debugging
 
-    // Update the corresponding alert box based on the type
     updateAlertBox(randomNotification.type, randomNotification.message);
-
-    // Play sound when notification is updated
     playNotificationSound();
 }
 
-// Function to update a specific alert box based on type
 function updateAlertBox(type, message) {
-    console.log(`Updating alert box for type: ${type}`); // Debugging
     const alertBox = document.getElementById(`${type}Alert`);
     if (!alertBox) {
         console.error(`Alert box with ID ${type}Alert not found.`);
         return;
     }
     const alertContent = alertBox.querySelector('.alert-content');
-    
-    // Update the alert content with the new message
+
     alertContent.textContent = message;
-
-    // Show the alert box
     alertBox.classList.remove('is-hidden');
-
-    // Add a flash effect to highlight the update
     alertBox.classList.add('flash');
     setTimeout(() => {
         alertBox.classList.remove('flash');
     }, 500);
 }
 
-// Function to play a notification sound
 function playNotificationSound() {
-    console.log('Playing notification sound');
     const audio = new Audio();
-    
-    // Add multiple sources for better compatibility
     audio.src = 'notification-sound.mp3';
-    audio.type = 'audio/mp3'; // Specify the type if needed
-    
-    // Fallback in case mp3 doesn't work, using ogg as an alternative
+    audio.type = 'audio/mp3';
     const oggSource = document.createElement('source');
     oggSource.src = 'notification-sound.ogg';
     oggSource.type = 'audio/ogg';
-    
     audio.appendChild(oggSource);
-
     audio.play().catch(error => {
         console.error('Error playing sound:', error);
     });
 }
 
-// Start Notifications on Button Click
-document.getElementById('startNotifications').addEventListener('click', (event) => {
-    // Toggle real-time alerts
-    if (!isClicked) {
-        event.target.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_on') : 'Demo-waarschuwingen aan';
-        event.target.style.backgroundColor = 'lightblue';
-        isClicked = true;
+function startDemoAlerts(button) {
+    if (!button) return;
+    button.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_on') : 'Demo-waarschuwingen aan';
+    button.style.backgroundColor = 'lightblue';
+    isClicked = true;
 
-        // Initialize AudioContext for permissions (if needed)
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const buffer = audioContext.createBuffer(1, 1, 22050);
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start(0);
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = audioContext.createBuffer(1, 1, 22050);
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
 
-        // Start the notification interval
-        notificationInterval = setInterval(generateRandomNotification, 10000); // Every 10 seconds
-        updateAlertBox('event', demoContactMessage);
-        generateRandomNotification(); // Call it immediately
+    notificationInterval = setInterval(generateRandomNotification, 10000);
+    updateAlertBox('event', demoContactMessage);
+    generateRandomNotification();
+}
+
+function stopDemoAlerts(button) {
+    if (!button) return;
+    button.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_off') : 'Publieke waarschuwingen';
+    button.style.backgroundColor = '';
+    isClicked = false;
+    clearInterval(notificationInterval);
+    hideAllAlertBoxes();
+}
+
+window.toggleDemoAlerts = function toggleDemoAlerts(forceState) {
+    const button = document.getElementById('startNotifications');
+    if (!button) return;
+
+    const shouldEnable = typeof forceState === 'boolean' ? forceState : !isClicked;
+    if (shouldEnable) {
+        startDemoAlerts(button);
     } else {
-        event.target.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_off') : 'Publieke waarschuwingen';
-        event.target.style.backgroundColor = ''; // Reset to default background
-        isClicked = false;
+        stopDemoAlerts(button);
+    }
+};
 
-        // Clear the notification interval to stop alerts
-        clearInterval(notificationInterval);
-
-        // Hide all alert boxes when alerts are turned off
-        hideAllAlertBoxes();
+document.getElementById('startNotifications').addEventListener('click', (event) => {
+    if (!isClicked) {
+        startDemoAlerts(event.target);
+    } else {
+        stopDemoAlerts(event.target);
     }
 });
 
-// Function to hide all alert boxes
 function hideAllAlertBoxes() {
     const alertBoxes = document.querySelectorAll('.alert-box');
     alertBoxes.forEach(alertBox => {

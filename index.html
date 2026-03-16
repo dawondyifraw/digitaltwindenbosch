@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Den Bosch Urban Digital Twin: real‑time 3D city, traffic, air quality, and alerts." />
+  <meta name="description" content="Digital Twin Den Bosch: a 3D city interface for mobility, air quality, weather, and municipal insight." />
   <meta name="theme-color" content="#0d6efd" />
-  <title>DenBosch Digital Twins — UDT Console (DataTwinLabs)</title>
+  <title>Den Bosch Digital Twin — UDT Console (DataTwinLabs)</title>
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="preconnect" href="https://cesium.com" />
@@ -15,7 +15,7 @@
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.css" rel="stylesheet" />
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.139/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
-  <link href="css/main.css?v=20260316a" rel="stylesheet" />
+  <link href="css/main.css?v=20260316b" rel="stylesheet" />
   <link href="notificationservice/notification_alert.css?v=20260316a" rel="stylesheet" />
   <link href="chatbotservice/chatbot.css?v=20260316a" rel="stylesheet" />
 
@@ -92,23 +92,23 @@
     <div class="inner">
       <p class="welcome-kicker">DataTwinLabs presents</p>
       <h1>Digital Twin • ’s‑Hertogenbosch</h1>
-      <p class="welcome-lead">A civic intelligence limited version for live urban insight, planning, mobility, environment, and municipal storytelling.</p>
-      <p id="loadingText">Loading modules and data…</p>
+      <p class="welcome-lead">A limited civic-intelligence edition for urban insight, planning, mobility, environment, and municipal storytelling.</p>
+      <p id="loadingText">Loading core modules and live data…</p>
       <div class="logo-container" aria-hidden="true">
         <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="DataTwinLabs" class="logo" />
         <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Gemeente ’s‑Hertogenbosch" class="logo" />
       </div>
       <div class="loading-bar" aria-hidden="true"><div></div></div>
       <div class="welcome-verification" id="welcomeVerification" aria-live="polite">
-        <p class="welcome-verification__label">Human verification</p>
-        <p class="welcome-verification__question" id="verificationQuestion">Enter the security code shown below.</p>
+        <p class="welcome-verification__label">Security check</p>
+        <p class="welcome-verification__question" id="verificationQuestion">Enter the code shown below.</p>
         <canvas id="verificationCanvas" class="welcome-verification__canvas" width="280" height="84" aria-label="Security verification code"></canvas>
         <div class="welcome-verification__row">
           <input id="verificationAnswer" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" placeholder="Security code" aria-label="Verification answer" />
           <button id="verificationCheckBtn" type="button">Verify</button>
           <button id="verificationRefreshBtn" type="button" aria-label="New challenge">↻</button>
         </div>
-        <p class="welcome-verification__status" id="verificationStatus">Complete the captcha to unlock the twin.</p>
+        <p class="welcome-verification__status" id="verificationStatus">Complete the security check to enter the twin.</p>
       </div>
       <div class="welcome-actions">
         <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter Digital Twin</button>
@@ -140,167 +140,147 @@
   <section class="status-ribbon" aria-label="City status overview">
     <div class="status-ribbon__intro">
       <span class="status-ribbon__eyebrow">Urban Digital Twin</span>
-      <strong>Den Bosch Operations Overview</strong>
+      <strong>Digital Twin Den Bosch</strong>
+      <span class="status-ribbon__subtitle">Municipal 3D viewer for city center navigation, live layers, and thematic viewpoints.</span>
     </div>
-    <div class="status-ribbon__metrics">
-      <article class="status-chip">
-        <span class="status-chip__label">Twin Status</span>
-        <strong class="status-chip__value" id="statusTwinMode">Prototype Live</strong>
-      </article>
-      <article class="status-chip">
-        <span class="status-chip__label">Data Freshness</span>
-        <strong class="status-chip__value" id="statusDataFreshness">Refreshing demo feeds</strong>
-      </article>
-      <article class="status-chip">
-        <span class="status-chip__label">Active Focus</span>
-        <strong class="status-chip__value" id="statusFocusArea">City Core Monitoring</strong>
-      </article>
+    <div class="status-ribbon__actions">
+      <div class="toolbar-group" role="toolbar" aria-label="Viewer tools">
+        <button id="topHomeBtn" class="status-ribbon__btn status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">⌂</span><span class="status-ribbon__btn-label">Home</span></button>
+        <button id="topInfoBtn" class="status-ribbon__btn status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">i</span><span class="status-ribbon__btn-label">Info</span></button>
+        <button id="topWeatherBtn" class="status-ribbon__btn status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">◔</span><span class="status-ribbon__btn-label">Weather</span></button>
+        <button id="topDashboardBtn" class="status-ribbon__btn status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">▦</span><span class="status-ribbon__btn-label">Dashboard</span></button>
+        <button id="topAlertsBtn" class="status-ribbon__btn status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">!</span><span class="status-ribbon__btn-label">Alerts</span></button>
+        <button id="topAssistantBtn" class="status-ribbon__btn status-ribbon__btn--secondary status-ribbon__btn--icon" type="button"><span class="status-ribbon__btn-icon" aria-hidden="true">◌</span><span class="status-ribbon__btn-label">Assistant</span></button>
+      </div>
+    </div>
+    <div class="status-ribbon__statusline" aria-live="polite">
+      <span class="status-inline">
+        <span class="status-inline__label">Mode</span>
+        <strong id="statusTwinMode">Prototype Live</strong>
+      </span>
+      <span class="status-inline">
+        <span class="status-inline__label">Updated</span>
+        <strong id="statusDataFreshness">Refreshing live feeds</strong>
+      </span>
+      <span class="status-inline">
+        <span class="status-inline__label">Focus</span>
+        <strong id="statusFocusArea">City Core Monitoring</strong>
+      </span>
     </div>
   </section>
 
   <!-- Sidebar: commercial layout with dropdowns -->
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
-      <div>
-        <div class="brand">UDT Console</div>
-        <a class="sidebar-header__link" href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">datatwinlabs.nl</a>
+      <div class="sidebar-brandline">
+        <span class="sidebar-section-label">Content</span>
+        <span class="brand">Digital Twin Den Bosch</span>
       </div>
-      <div class="version">Runner Blade V.4.1</div>
     </div>
 
-    <section class="sidebar-tools" aria-label="Prototype controls">
-      <div class="sidebar-tools__row">
-        <button id="sidebarBriefingToggle" class="sidebar-action-btn" type="button" aria-expanded="false">Briefing openen</button>
-        <div class="locale-switch" role="group" aria-label="Taalkeuze">
-          <button id="localeNlBtn" class="locale-switch__btn is-active" type="button" data-locale="nl">NL</button>
-          <button id="localeEnBtn" class="locale-switch__btn" type="button" data-locale="en">EN</button>
-        </div>
-      </div>
-      <div id="sidebarBriefingPanel" class="sidebar-briefing" hidden>
-        <h3 id="sidebarBriefingTitle">Prototypebriefing</h3>
-        <p id="sidebarBriefingText">Beperkte versie. Bezoek DataTwinLabs.nl om een real-time full-data demo en event in te plannen met Daniel of Prof. Jos voor het volledige multi-streaming platform en de gemeentelijke uitrolroadmap.</p>
-      </div>
-    </section>
+    <div class="locale-switch sidebar-locale" role="group" aria-label="Taalkeuze">
+      <button id="localeNlBtn" class="locale-switch__btn is-active" type="button" data-locale="nl">NL</button>
+      <button id="localeEnBtn" class="locale-switch__btn" type="button" data-locale="en">EN</button>
+    </div>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>City Operations</button>
+      <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>Viewer</button>
       <ul id="ops-submenu" class="submenu open" role="menu">
-        <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">City Command View</button></li>
+        <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">City Center</button></li>
       </ul>
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="quick-submenu"><span class="icon" aria-hidden="true">▸</span>Snelle weergaven</button>
-      <ul id="quick-submenu" class="submenu open" role="menu">
-        <li role="none"><button id="toggleTrafficQuick" class="menu-item" role="menuitem">Verkeersstroom & CO2</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="mobility">Event & Crowd Mobility</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="environment">Air Quality & Health View</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-scenario="culture">Tourism & Cultural Districts</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" data-world-effect="weather-water">Flood & Rainfall Readiness</button></li>
+      <button class="menu-toggle" aria-expanded="false" aria-controls="quick-submenu"><span class="icon" aria-hidden="true">▸</span>Viewpoints</button>
+      <ul id="quick-submenu" class="submenu" role="menu">
+        <li role="none"><button id="toggleTrafficQuick" class="menu-item" role="menuitem">Traffic View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="mobility">Mobility View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="environment">Environment View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="culture">Heritage View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-world-effect="weather-water">Water Readiness</button></li>
         <li role="none"><button class="menu-item" role="menuitem" data-world-effect="weather-night">Night View</button></li>
       </ul>
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Gemeentelijke objecten</button>
-      <div id="layers-submenu" class="submenu open catalog-shell" role="group" aria-label="Gemeentelijke objectcatalogus">
-        <details class="catalog-group" open>
-          <summary>Panden</summary>
+      <button class="menu-toggle" aria-expanded="false" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Layers</button>
+      <div id="layers-submenu" class="submenu catalog-shell" role="group" aria-label="Municipal object catalog">
+        <details class="catalog-group">
+          <summary>Buildings</summary>
           <div class="catalog-items">
-            <button id="BAGButton" class="menu-item catalog-item" type="button">Kadastergebouwen</button>
-            <details class="catalog-subgroup" open>
-              <summary>Themaweergave</summary>
+            <button id="BAGButton" class="menu-item catalog-item" type="button">Kadaster buildings</button>
+            <details class="catalog-subgroup">
+              <summary>Thematic view</summary>
               <div class="catalog-items">
                 <label class="catalog-check">
                   <input type="radio" name="buildingTheme" value="neutral">
-                  <span>Neutraal</span>
+                  <span>Neutral</span>
                 </label>
                 <label class="catalog-check">
                   <input type="radio" name="buildingTheme" value="function" checked>
-                  <span>Gebouwfunctie</span>
+                  <span>Building function</span>
                 </label>
               </div>
             </details>
             <details class="catalog-subgroup">
-              <summary>Bouwtypen</summary>
-              <div id="legend" class="legend catalog-legend" aria-label="Legenda gebouwtypes">
+              <summary>Building types</summary>
+              <div id="legend" class="legend catalog-legend" aria-label="Building type legend">
                 <ul>
                   <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
-                  <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> Universiteit</li>
-                  <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Ziekenhuis</li>
-                  <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parkeren</li>
+                  <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> University</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Hospital</li>
+                  <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parking</li>
                   <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Kerk</li>
                   <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
-                  <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrie</li>
-                  <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Kas</li>
-                  <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercieel</li>
-                  <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Bouwplaats</li>
-                  <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
-                  <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> Woning</li>
-                  <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Appartementen</li>
-                  <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Kantoor</li>
+                  <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industry</li>
+                  <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Greenhouse</li>
+                  <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercial</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Construction</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> Housing</li>
+                  <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Apartments</li>
+                  <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Office</li>
                 </ul>
               </div>
             </details>
           </div>
         </details>
 
-        <details class="catalog-group" open>
-          <summary>Omgeving</summary>
+        <details class="catalog-group">
+          <summary>Traffic</summary>
           <div class="catalog-items">
-            <button id="toggleMuseumsBtn" class="menu-item catalog-item" type="button">Erfgoedpunten (PDOK/RCE)</button>
-            <button id="toggleCbsNeighborhoodsBtn" class="menu-item catalog-item" type="button">CBS buurtstatistiek</button>
-          </div>
-        </details>
-
-        <details class="catalog-group" open>
-          <summary>Inrichting</summary>
-          <div class="catalog-items">
-            <button id="toggleBiodiversityBtn" class="menu-item catalog-item" type="button">Gemeentelijke bomenlaag</button>
-          </div>
-        </details>
-
-        <details class="catalog-group" open>
-          <summary>Mobiliteit</summary>
-          <div class="catalog-items">
-            <button id="toggleTraffic" class="menu-item catalog-item" type="button">Verkeersstroom & CO2</button>
-            <div class="catalog-note">Inclusief bottleneckzones, corridorstatus en mobiliteitslegenda.</div>
+            <button id="toggleTraffic" class="menu-item catalog-item" type="button">Traffic</button>
+            <div class="catalog-note">Corridors, bottleneck zones, and current flow status for the city center network.</div>
           </div>
         </details>
 
         <details class="catalog-group">
-          <summary>Ecologisch / milieu</summary>
+          <summary>Heritage</summary>
           <div class="catalog-items">
-            <div class="catalog-note">RIVM meetpunten, luchtkwaliteit en weeranalyse worden via locatieklik en open data-dashboard getoond.</div>
+            <button id="toggleMuseumsBtn" class="menu-item catalog-item" type="button">Heritage</button>
           </div>
         </details>
 
         <details class="catalog-group">
-          <summary>Veiligheid</summary>
+          <summary>CBS</summary>
           <div class="catalog-items">
-            <div class="catalog-note">Publieke waarschuwingen en scenario’s worden in de volgende stap verder uitgebreid.</div>
+            <button id="toggleCbsNeighborhoodsBtn" class="menu-item catalog-item" type="button">CBS</button>
+          </div>
+        </details>
+
+        <details class="catalog-group">
+          <summary>Trees</summary>
+          <div class="catalog-items">
+            <button id="toggleBiodiversityBtn" class="menu-item catalog-item" type="button">Trees</button>
+          </div>
+        </details>
+
+        <details class="catalog-group">
+          <summary>Environment</summary>
+          <div class="catalog-items">
+            <div class="catalog-note">Air quality and weather details stay available through click analysis and the weather panel.</div>
           </div>
         </details>
       </div>
-    </section>
-
-    <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="false" aria-controls="analytics-submenu"><span class="icon" aria-hidden="true">▸</span>Citizen & Policy Use Cases</button>
-      <ul id="analytics-submenu" class="submenu" role="menu">
-        <li role="none"><button class="menu-item" role="menuitem" data-action="openRightPanel">Forecast & Climate Charts</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="openDataDashboardBtn">Open Data Dashboard</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="toggleStreamBtn" aria-pressed="false">Live Sensor Storytelling</button></li>
-        <li role="none"><button class="menu-item" role="menuitem" id="startNotifications" aria-pressed="false">Public Alert Feed</button></li>
-      </ul>
-    </section>
-
-    <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="false" aria-controls="admin-submenu"><span class="icon" aria-hidden="true">▸</span>Platform & Partnerships</button>
-      <ul id="admin-submenu" class="submenu" role="menu">
-        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="readiness">Operational readiness</button></li>
-        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="governance">Data governance and audit</button></li>
-        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="deployment">Municipality deployment model</button></li>
-      </ul>
     </section>
   </nav>
 
@@ -327,7 +307,7 @@
   </aside>
 
   <!-- Right analytics panel -->
-  <aside id="rightPanel" class="window-panel" aria-label="Weather and air quality" data-window-panel>
+  <aside id="rightPanel" class="window-panel is-closed" aria-label="Weather and air quality" data-window-panel>
     <div class="panel-window__header" data-window-handle>
       <h2>Weather and Air Quality Forecast</h2>
       <div class="panel-window__actions">
@@ -345,6 +325,18 @@
 
   <!-- Notifications -->
   <section id="notificationArea" aria-label="Live notifications">
+    <div class="alert-box traffic is-hidden" id="trafficAlert" role="status" aria-live="polite">
+      <h4>Traffic alert</h4>
+      <p class="alert-content">Traffic updates will appear here.</p>
+    </div>
+    <div class="alert-box weather is-hidden" id="weatherAlert" role="status" aria-live="polite">
+      <h4>Weather alert</h4>
+      <p class="alert-content">Weather updates will appear here.</p>
+    </div>
+    <div class="alert-box event is-hidden" id="eventAlert" role="status" aria-live="polite">
+      <h4>Public alert</h4>
+      <p class="alert-content">Public alerts will appear here.</p>
+    </div>
     <article id="locationInfoCard" class="location-info-card is-hidden window-panel" role="status" aria-live="polite" data-window-panel>
       <div class="panel-window__header" data-window-handle>
         <h4 id="locationInfoTitle">Locatiegegevens</h4>
@@ -412,7 +404,7 @@
     </div>
   </aside>
 
-  <aside id="buildingThemeLegend" class="building-theme-legend window-panel" aria-label="Gebouwfuncties legenda" data-window-panel>
+  <aside id="buildingThemeLegend" class="building-theme-legend is-hidden window-panel" aria-label="Gebouwfuncties legenda" data-window-panel>
     <div class="panel-window__header" data-window-handle>
       <h4>Gebouwfunctie</h4>
       <div class="panel-window__actions">
@@ -434,16 +426,19 @@
   </aside>
 
   <!-- Minimap -->
+  <section id="minimap-container" class="is-hidden" aria-label="Overview map">
+    <div id="minimap" role="img" aria-label="Minimap"></div>
+  </section>
 
   <!-- Chat -->
-  <section class="chat-container window-panel" aria-label="Assistant chat" data-window-panel>
+  <section class="chat-container window-panel is-closed" aria-label="Assistant chat" data-window-panel>
     <div class="card">
       <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center panel-window__header" data-window-handle>
         <span>City Assistant</span>
-        <div>
-          <button class="btn btn-sm btn-light" id="minimize-chat-btn" aria-label="Minimize chat">−</button>
-          <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
-          <button id="close-chat-btn" class="btn btn-sm btn-light" aria-label="Close chat">&#x2715;</button>
+        <div class="panel-window__actions chat-window__actions">
+          <button class="panel-window__btn" id="minimize-chat-btn" type="button" aria-label="Minimize chat">−</button>
+          <button id="clear-chat-btn" class="panel-window__btn chat-window__clear-btn clear-chat-btn" type="button">Clear</button>
+          <button id="close-chat-btn" class="panel-window__btn" type="button" aria-label="Close chat">&#x2715;</button>
         </div>
       </div>
       <div class="card-body chat-window panel-window__body" id="chat-window" aria-live="polite"></div>
@@ -468,12 +463,18 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
   <script defer src="js/config.js?v=20260316a"></script>
-  <script defer src="js/i18n.js?v=20260316a"></script>
+  <script defer src="js/i18n.js?v=20260316b"></script>
+  <script defer src="js/features/ui-windows.js?v=20260316d"></script>
+  <script defer src="js/features/weather.js?v=20260316c"></script>
+  <script defer src="js/features/air-quality.js?v=20260316c"></script>
+  <script defer src="js/features/incidents.js?v=20260316c"></script>
+  <script defer src="js/features/traffic.js?v=20260316c"></script>
+  <script defer src="js/features/location-analysis.js?v=20260316d"></script>
   <script defer src="dashboard/charts.js?v=20260316a"></script>
-  <script defer src="js/main.js?v=20260316a"></script>
+  <script defer src="js/main.js?v=20260316b"></script>
   <script defer src="notificationservice/notifications_alert.js?v=20260316a"></script>
 <script defer src="realtimestream/kafka.js?v=20260316a"></script>
-  <script defer src="chatbotservice/chatbot.js?v=20260316a"></script>
+  <script defer src="chatbotservice/chatbot.js?v=20260316b"></script>
 
   <script>
     (function(){
@@ -482,18 +483,8 @@
       // Splash handling
       const splash = document.getElementById('splashScreen');
       const loadingText = document.getElementById('loadingText');
-      const enterTwinBtn = document.getElementById('enterTwinBtn');
-      const verificationQuestion = document.getElementById('verificationQuestion');
-      const verificationCanvas = document.getElementById('verificationCanvas');
-      const verificationAnswer = document.getElementById('verificationAnswer');
-      const verificationStatus = document.getElementById('verificationStatus');
-      const verificationCheckBtn = document.getElementById('verificationCheckBtn');
-      const verificationRefreshBtn = document.getElementById('verificationRefreshBtn');
       const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
-      let verificationReady = false;
-      let verificationExpected = null;
       let visitorSessionId = null;
-      let splashReady = false;
 
       const makeVisitorRecord = (eventName, extra = {}) => ({
         event: eventName,
@@ -545,95 +536,6 @@
         sendVisitorRecord(makeVisitorRecord('landing_view'));
       };
 
-      const updateEnterVisibility = () => {
-        if (!enterTwinBtn) return;
-        const unlocked = verificationReady && splashReady;
-        enterTwinBtn.disabled = !unlocked;
-        enterTwinBtn.classList.toggle('is-hidden', !unlocked);
-      };
-
-      const drawVerificationCanvas = (text) => {
-        const ctx = verificationCanvas?.getContext('2d');
-        if (!ctx || !verificationCanvas) return;
-
-        const { width, height } = verificationCanvas;
-        ctx.clearRect(0, 0, width, height);
-
-        const background = ctx.createLinearGradient(0, 0, width, height);
-        background.addColorStop(0, '#09111d');
-        background.addColorStop(1, '#101e31');
-        ctx.fillStyle = background;
-        ctx.fillRect(0, 0, width, height);
-
-        for (let i = 0; i < 24; i += 1) {
-          ctx.strokeStyle = `rgba(${40 + Math.floor(Math.random() * 120)}, ${120 + Math.floor(Math.random() * 90)}, ${140 + Math.floor(Math.random() * 90)}, 0.18)`;
-          ctx.beginPath();
-          ctx.moveTo(Math.random() * width, Math.random() * height);
-          ctx.lineTo(Math.random() * width, Math.random() * height);
-          ctx.stroke();
-        }
-
-        for (let i = 0; i < 48; i += 1) {
-          ctx.fillStyle = `rgba(255,255,255,${0.04 + Math.random() * 0.12})`;
-          ctx.beginPath();
-          ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2.2 + 0.4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        const chars = text.split('');
-        const step = width / (chars.length + 1);
-        chars.forEach((char, index) => {
-          const x = step * (index + 1);
-          const y = height / 2 + 10 + (Math.random() * 10 - 5);
-          const angle = (Math.random() * 0.7) - 0.35;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(angle);
-          ctx.font = `${32 + Math.floor(Math.random() * 6)}px "Segoe UI", sans-serif`;
-          ctx.fillStyle = ['#d8fff4', '#8cf0ff', '#ffd58a', '#f7a0ff'][index % 4];
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-          ctx.shadowBlur = 6;
-          ctx.fillText(char, -10, 0);
-          ctx.restore();
-        });
-
-        ctx.strokeStyle = 'rgba(61, 214, 198, 0.45)';
-        ctx.lineWidth = 2.4;
-        ctx.beginPath();
-        ctx.moveTo(10, height * 0.72);
-        for (let x = 10; x < width - 10; x += 18) {
-          ctx.lineTo(x, height * (0.32 + Math.random() * 0.4));
-        }
-        ctx.stroke();
-      };
-
-      const refreshVerification = () => {
-        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        verificationExpected = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
-        if (verificationQuestion) verificationQuestion.textContent = 'Enter the security code shown below.';
-        drawVerificationCanvas(verificationExpected);
-        if (verificationAnswer) verificationAnswer.value = '';
-        if (verificationStatus) verificationStatus.textContent = 'Complete the captcha to unlock the twin.';
-        verificationReady = false;
-        updateEnterVisibility();
-      };
-
-      const validateVerification = () => {
-        const answer = (verificationAnswer?.value || '').trim().toUpperCase();
-        if (answer === verificationExpected) {
-          verificationReady = true;
-          if (verificationStatus) verificationStatus.textContent = 'Verification complete. The twin is unlocked.';
-          updateEnterVisibility();
-          sendVisitorRecord(makeVisitorRecord('verification_passed'));
-        } else {
-          verificationReady = false;
-          if (verificationStatus) verificationStatus.textContent = 'Verification failed. A new captcha has been generated.';
-          updateEnterVisibility();
-          sendVisitorRecord(makeVisitorRecord('verification_failed'));
-          refreshVerification();
-        }
-      };
-
       const safeHideSplash = () => {
         if (!splash) return;
         sendVisitorRecord(makeVisitorRecord('app_entered'));
@@ -644,34 +546,20 @@
       const setWelcomeReady = (message) => {
         if (loadingText && message) loadingText.textContent = message;
         splash?.classList.add('is-ready');
-        splashReady = true;
-        updateEnterVisibility();
+        setTimeout(safeHideSplash, 400);
       };
       initVisitorSession();
-      refreshVerification();
       let waited = 0;
       const tick = setInterval(()=>{
         waited += 150;
         if (readyCheck()) {
           clearInterval(tick);
-          setWelcomeReady('System ready. Launch the Digital Twin when you are ready.');
+          setWelcomeReady('System ready. Opening the Digital Twin…');
         } else if (waited > 8000) {
           clearInterval(tick);
-          setWelcomeReady('Core modules loaded. You can enter the limited version now.');
+          setWelcomeReady('Core modules loaded. Opening the Digital Twin…');
         }
       },150);
-      verificationCheckBtn?.addEventListener('click', validateVerification);
-      verificationRefreshBtn?.addEventListener('click', () => {
-        refreshVerification();
-        sendVisitorRecord(makeVisitorRecord('verification_refreshed'));
-      });
-      verificationAnswer?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          validateVerification();
-        }
-      });
-      enterTwinBtn?.addEventListener('click', safeHideSplash);
 
       // Sidebar dropdowns
       const toggles = document.querySelectorAll('.menu-toggle');
@@ -692,224 +580,6 @@
         btn.addEventListener('click', () => { const next = !(btn.getAttribute('aria-expanded') === 'true'); setOpen(btn, next); state[id] = next; saveState(state); });
         btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); } });
       });
-
-      // Right panel open/close
-const rightPanel = document.getElementById('rightPanel');
-const closePanelBtn = document.getElementById('closePanelBtn');
-
-document.querySelector('[data-action="openRightPanel"]')
-  ?.addEventListener('click', () => {
-    rightPanel?.classList.remove('is-closed');
-  });
-
-closePanelBtn?.addEventListener('click', () => {
-  rightPanel?.classList.add('is-closed');
-});
-
-// Chat open/close
-const chatContainer = document.querySelector('.chat-container');
-const closeChatBtn = document.getElementById('close-chat-btn');
-const toggleChatBtn = document.getElementById('toggleChatBtn');
-const locationInfoCloseBtn = document.getElementById('locationInfoCloseBtn');
-const openLocationDashboardBtn = document.getElementById('openLocationDashboardBtn');
-const sidebarBriefingToggle = document.getElementById('sidebarBriefingToggle');
-const sidebarBriefingPanel = document.getElementById('sidebarBriefingPanel');
-const localeNlBtn = document.getElementById('localeNlBtn');
-const localeEnBtn = document.getElementById('localeEnBtn');
-const openDataDashboardBtn = document.getElementById('openDataDashboardBtn');
-const adminInfoPanel = document.getElementById('adminInfoPanel');
-const adminInfoTitle = document.getElementById('adminInfoTitle');
-const adminInfoBody = document.getElementById('adminInfoBody');
-const adminInfoCloseBtn = document.getElementById('adminInfoCloseBtn');
-const trafficIncidentsPanel = document.getElementById('trafficIncidentsPanel');
-const trafficIncidentsCloseBtn = document.getElementById('trafficIncidentsCloseBtn');
-const openTrafficIncidentsBtn = document.getElementById('openTrafficIncidentsBtn');
-
-closeChatBtn?.addEventListener('click', () => {
-  if (window.syncChatVisibility) {
-    window.syncChatVisibility(true);
-    return;
-  }
-  chatContainer?.classList.add('is-closed');
-});
-
-toggleChatBtn?.addEventListener('click', () => {
-  if (window.syncChatVisibility) {
-    window.syncChatVisibility(false);
-    return;
-  }
-  chatContainer?.classList.toggle('is-closed');
-});
-
-locationInfoCloseBtn?.addEventListener('click', () => {
-  document.getElementById('locationInfoCard')?.classList.add('is-hidden');
-});
-
-sidebarBriefingToggle?.addEventListener('click', () => {
-  const isOpen = sidebarBriefingToggle.getAttribute('aria-expanded') === 'true';
-  const next = !isOpen;
-  sidebarBriefingToggle.setAttribute('aria-expanded', String(next));
-  if (sidebarBriefingPanel) {
-    sidebarBriefingPanel.hidden = !next;
-  }
-  if (window.udtI18n) {
-    sidebarBriefingToggle.textContent = window.udtI18n.t(next ? 'briefing_close' : 'briefing_open');
-  }
-});
-
-[localeNlBtn, localeEnBtn].forEach((button) => {
-  button?.addEventListener('click', () => {
-    const locale = button.dataset.locale;
-    if (window.udtI18n && locale) {
-      window.udtI18n.setLocale(locale);
-    }
-  });
-});
-
-openDataDashboardBtn?.addEventListener('click', () => {
-  let targetUrl = 'dashboard/open_data_dashboard.html';
-  try {
-    const lastLocation = JSON.parse(localStorage.getItem('udt_last_location') || 'null');
-    if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
-      const params = new URLSearchParams({
-        lat: String(lastLocation.lat),
-        lon: String(lastLocation.lon),
-        name: lastLocation.name || ''
-      });
-      targetUrl += `?${params.toString()}`;
-    }
-  } catch (error) {}
-  window.open(targetUrl, '_blank');
-});
-
-openLocationDashboardBtn?.addEventListener('click', () => {
-  let targetUrl = 'dashboard/open_data_dashboard.html';
-  try {
-    const lastLocation = JSON.parse(localStorage.getItem('udt_last_location') || 'null');
-    if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
-      const params = new URLSearchParams({
-        lat: String(lastLocation.lat),
-        lon: String(lastLocation.lon),
-        name: lastLocation.name || ''
-      });
-      targetUrl += `?${params.toString()}`;
-    }
-  } catch (error) {}
-  window.open(targetUrl, '_blank');
-});
-
-const adminPanelContent = {
-  readiness: {
-    title: 'Operational readiness',
-    body: `
-      <p><strong>Current limited-version state</strong></p>
-      <ul>
-        <li>Frontend ready for simple web hosting</li>
-        <li>Open data feeds active for weather, traffic, CBS, RIVM, BAG and heritage</li>
-        <li>Backend-dependent modules remain optional in this limited version</li>
-      </ul>
-      <p>This view explains what is already deployable today versus what belongs to the full platform version.</p>
-    `
-  },
-  governance: {
-    title: 'Data governance and audit',
-    body: `
-      <p><strong>Current data posture</strong></p>
-      <ul>
-        <li>Public sources are shown with source labels and timestamps where available</li>
-        <li>This limited version still mixes open data with presentation-oriented visual layers</li>
-        <li>Full audit logging and lineage belong to the backend platform phase</li>
-      </ul>
-      <p>For the production twin, this section should later expose source lineage, freshness, permissions and audit trails.</p>
-    `
-  },
-  deployment: {
-    title: 'Municipality deployment model',
-    body: `
-      <p><strong>Prototype deployment path</strong></p>
-      <ul>
-        <li>Current version: static public showcase with optional open-data integrations</li>
-        <li>Next phase: connect to the Digital Twin Den Bosch backend services</li>
-        <li>Production phase: municipality-grade hosting, secured APIs, identity, audit and orchestration</li>
-      </ul>
-      <p>Visit DataTwinLabs.nl to schedule a live full-data demo with Daniel or Prof. Jos and explore the full platform and municipal deployment roadmap.</p>
-    `
-  }
-};
-
-document.querySelectorAll('.admin-info-trigger').forEach((button) => {
-  button.addEventListener('click', () => {
-    const key = button.getAttribute('data-admin-panel');
-    const content = adminPanelContent[key];
-    if (!content || !adminInfoPanel || !adminInfoTitle || !adminInfoBody) return;
-    adminInfoTitle.textContent = content.title;
-    adminInfoBody.innerHTML = content.body;
-    adminInfoPanel.classList.remove('is-hidden');
-  });
-});
-
-adminInfoCloseBtn?.addEventListener('click', () => {
-  adminInfoPanel?.classList.add('is-hidden');
-});
-
-openTrafficIncidentsBtn?.addEventListener('click', () => {
-  trafficIncidentsPanel?.classList.remove('is-hidden');
-});
-
-trafficIncidentsCloseBtn?.addEventListener('click', () => {
-  trafficIncidentsPanel?.classList.add('is-hidden');
-});
-
-document.querySelectorAll('[data-window-panel]').forEach((panel) => {
-  const handle = panel.querySelector('[data-window-handle]');
-  const minimizeBtn = panel.querySelector('[data-window-minimize]');
-
-  if (handle) {
-    let startX = 0;
-    let startY = 0;
-    let panelX = 0;
-    let panelY = 0;
-    let dragging = false;
-
-    handle.addEventListener('pointerdown', (event) => {
-      if (event.target.closest('button, input, textarea, a, label')) return;
-      dragging = true;
-      panel.classList.add('is-dragging');
-      const rect = panel.getBoundingClientRect();
-      startX = event.clientX;
-      startY = event.clientY;
-      panelX = rect.left;
-      panelY = rect.top;
-      panel.style.left = `${rect.left}px`;
-      panel.style.top = `${rect.top}px`;
-      panel.style.right = 'auto';
-      panel.style.bottom = 'auto';
-      panel.style.transform = 'none';
-    });
-
-    window.addEventListener('pointermove', (event) => {
-      if (!dragging) return;
-      const nextLeft = Math.max(8, Math.min(window.innerWidth - panel.offsetWidth - 8, panelX + (event.clientX - startX)));
-      const nextTop = Math.max(8, Math.min(window.innerHeight - 56, panelY + (event.clientY - startY)));
-      panel.style.left = `${nextLeft}px`;
-      panel.style.top = `${nextTop}px`;
-    });
-
-    window.addEventListener('pointerup', () => {
-      if (!dragging) return;
-      dragging = false;
-      panel.classList.remove('is-dragging');
-    });
-  }
-
-  minimizeBtn?.addEventListener('click', () => {
-    panel.classList.toggle('is-minimized');
-  });
-});
-
-document.getElementById('minimize-chat-btn')?.addEventListener('click', () => {
-  chatContainer?.classList.toggle('is-minimized');
-});
 
       // Chat submit
       const chatForm = document.getElementById('chat-form');

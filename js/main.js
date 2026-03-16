@@ -14,6 +14,25 @@ let currentTrafficIncidents = [];
 let mobilityOverlayState = [];
 let buildingThemeMode = "function";
 let sceneTimeSyncTimer = null;
+const DEN_BOSCH_CITY_CENTER = {
+    longitude: 5.3043,
+    latitude: 51.6863,
+    height: 900
+};
+const PRESENTATION_THEME = {
+    neutralBuilding: "#b7c8b7",
+    residential: "#89c97b",
+    commercial: "#57b875",
+    industrial: "#2f7d57",
+    retail: "#9ed667",
+    education: "#75cf98",
+    health: "#c5e86c",
+    civic: "#4fbf8f",
+    fallback: "#8ea293",
+    kadasterTint: "#a5cf86",
+    footprintFill: "#9fd97a",
+    footprintEdge: "#dcf9c7"
+};
 
 // API keys filled from config.json
 let TomTomAPI = "";
@@ -186,6 +205,26 @@ async function startApp() {
 
     console.log("Weather API Key:", weatherApiKey);
 
+    window.udtLocationAnalysis?.configure({
+        getViewer: () => viewer,
+        getTomTomApi: () => TomTomAPI,
+        getEnergyLabelApiKey: () => energyLabelApiKey,
+        getLocationName: () => name,
+        setLocationName: (nextName) => {
+            name = nextName || "";
+        },
+        getHeritageServiceUrl: () => HERITAGE_SERVICE_URL,
+        getBagWfsUrl: () => BAG_WFS_URL,
+        getRivmStationsUrl: () => RIVM_STATIONS_URL,
+        getCbsWfsUrl: () => CBS_WIJKBUURT_WFS_URL,
+        fetchAndDisplayWeather,
+        fetchAndDisplayAirQuality,
+        fetchAndDisplayTraffic,
+        updateCharts: typeof updateCharts === "function" ? updateCharts : null,
+        showSimplifiedPopup,
+        markOperationalUpdate
+    });
+
     try {
         await initCesium();
         wireUi();
@@ -334,6 +373,35 @@ function rewriteTilesetUris(node, prefixUrl) {
     }
 }
 
+function styleImageryLayers() {
+    if (!viewer?.imageryLayers) return;
+
+    for (let index = 0; index < viewer.imageryLayers.length; index += 1) {
+        const layer = viewer.imageryLayers.get(index);
+        if (!layer) continue;
+        layer.brightness = index === 0 ? 0.98 : 1.08;
+        layer.contrast = index === 0 ? 1.12 : 1.04;
+        layer.gamma = 0.95;
+        layer.saturation = index === 0 ? 0.82 : 0.96;
+        layer.hue = index === 0 ? -0.12 : 0;
+    }
+}
+
+function styleKadasterBuildingsTileset() {
+    if (!kadasterBuildingsTileset || !Cesium?.Cesium3DTileStyle) return;
+
+    if (Cesium.Cesium3DTileColorBlendMode) {
+        kadasterBuildingsTileset.colorBlendMode = Cesium.Cesium3DTileColorBlendMode.MIX;
+        kadasterBuildingsTileset.colorBlendAmount = 0.72;
+    }
+
+    kadasterBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
+        color: `color('${PRESENTATION_THEME.kadasterTint}', 0.78)`
+    });
+
+    viewer?.scene?.requestRender();
+}
+
 async function loadKadaster3DTiles() {
     if (!viewer) return;
 
@@ -370,6 +438,7 @@ async function loadKadaster3DTiles() {
     if (kadasterBuildingsTileset.readyPromise) {
         await kadasterBuildingsTileset.readyPromise;
     }
+    styleKadasterBuildingsTileset();
     flytoIKDB();
 }
 
@@ -400,18 +469,18 @@ async function loadBagFootprintFallback() {
     const geojson = await response.json();
     const dataSource = await Cesium.GeoJsonDataSource.load(geojson, {
         clampToGround: true,
-        stroke: Cesium.Color.fromCssColorString("#3dd6c6"),
-        fill: Cesium.Color.fromCssColorString("rgba(61, 214, 198, 0.16)"),
+        stroke: Cesium.Color.fromCssColorString(PRESENTATION_THEME.footprintEdge),
+        fill: Cesium.Color.fromCssColorString(PRESENTATION_THEME.footprintFill).withAlpha(0.18),
         strokeWidth: 1.5
     });
 
     dataSource.entities.values.forEach((entity) => {
         if (!entity.polygon) return;
-        entity.polygon.material = Cesium.Color.fromCssColorString("#3dd6c6").withAlpha(0.14);
+        entity.polygon.material = Cesium.Color.fromCssColorString(PRESENTATION_THEME.footprintFill).withAlpha(0.2);
         entity.polygon.outline = true;
-        entity.polygon.outlineColor = Cesium.Color.fromCssColorString("#8ff4ea").withAlpha(0.72);
+        entity.polygon.outlineColor = Cesium.Color.fromCssColorString(PRESENTATION_THEME.footprintEdge).withAlpha(0.78);
         entity.polygon.height = 0;
-        entity.polygon.extrudedHeight = 8;
+        entity.polygon.extrudedHeight = 12;
 
         const properties = entity.properties;
         const identificatie = properties?.identificatie?.getValue?.() || "Onbekend";
@@ -507,6 +576,7 @@ async function initCesium() {
         viewer.shadows = true;
         viewer.camera.frustum.far = 10000000.0;
         window.viewer = viewer;
+        styleImageryLayers();
 
         syncSceneToLocalTime();
         startSceneTimeSync();
@@ -539,6 +609,13 @@ async function loadTileset() {
                 ? await Cesium.Cesium3DTileset.fromUrl(cityResource)
                 : new Cesium.Cesium3DTileset({ url: cityResource });
             viewer.scene.primitives.add(cityContextTileset);
+            if (Cesium.Cesium3DTileColorBlendMode) {
+                cityContextTileset.colorBlendMode = Cesium.Cesium3DTileColorBlendMode.MIX;
+                cityContextTileset.colorBlendAmount = 0.5;
+            }
+            cityContextTileset.style = new Cesium.Cesium3DTileStyle({
+                color: "color('#dcebdd', 0.3)"
+            });
         } catch (cityError) {
             console.warn("Primary city context tileset unavailable, continuing with OSM buildings.", cityError);
             cityContextTileset = null;
@@ -644,10 +721,14 @@ async function loadTileset() {
             await viewer.zoomTo(osmBuildingsTileset);
         }
         viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(5.3154, 51.67855, 500),
+            destination: Cesium.Cartesian3.fromDegrees(
+                DEN_BOSCH_CITY_CENTER.longitude,
+                DEN_BOSCH_CITY_CENTER.latitude,
+                DEN_BOSCH_CITY_CENTER.height
+            ),
             orientation: {
-                heading: Cesium.Math.toRadians(0.0),
-                pitch: Cesium.Math.toRadians(-30.0),
+                heading: Cesium.Math.toRadians(8.0),
+                pitch: Cesium.Math.toRadians(-38.0),
                 roll: 0.0
             },
             duration: 4
@@ -658,189 +739,39 @@ async function loadTileset() {
 }
 
 function setupMapClickHandler() {
-    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(async function (click) {
-        const pickedPosition = viewer.camera.pickEllipsoid(
-            click.position,
-            viewer.scene.globe.ellipsoid
-        );
-        if (pickedPosition) {
-            const cartographicPosition = Cesium.Cartographic.fromCartesian(pickedPosition);
-            const latitude = Cesium.Math.toDegrees(cartographicPosition.latitude);
-            const longitude = Cesium.Math.toDegrees(cartographicPosition.longitude);
-
-            await getPlaceName(latitude, longitude);
-            try {
-                localStorage.setItem("udt_last_location", JSON.stringify({
-                    lat: latitude,
-                    lon: longitude,
-                    name: name || ""
-                }));
-            } catch (error) { }
-            await fetchAndDisplayWeather(latitude, longitude);
-            await fetchAndDisplayAirQuality(latitude, longitude);
-            await fetchAndDisplayTraffic(latitude, longitude);
-            const bagInfo = await fetchAndDisplayBagInfo(latitude, longitude);
-            await fetchAndDisplayEnergyLabel(bagInfo);
-            await fetchAndDisplayRivmSensors(latitude, longitude);
-            if (typeof updateCharts === "function") {
-                updateCharts(latitude, longitude);
-            }
-        }
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    return window.udtLocationAnalysis.setupMapClickHandler();
 }
 
 async function getPlaceName(latitude, longitude) {
-    const url = `https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json?key=${TomTomAPI}`;
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error. Status: ${response.status}`);
-
-        const data = await response.json();
-
-        if (data.addresses && data.addresses.length > 0) {
-            name = data.addresses[0].address.freeformAddress;
-            console.log(`Place name found: ${name}`);
-
-            if (name === "'s-Gravesandestraat 40, 5223 BS 's-Hertogenbosch") {
-                showSimplifiedPopup(latitude, longitude);
-            }
-        } else {
-            console.warn("No addresses data returned from the API.");
-        }
-    } catch (error) {
-        console.error("Error fetching place name:", error);
-    }
+    return window.udtLocationAnalysis.getPlaceName(latitude, longitude);
 }
 
-// --- Module-level simple cache and helpers (reduce rate-limit calls) ---
-const UDT_CACHE = {};
 function cacheSet(key, value, ttlMs) {
-    const expires = Date.now() + (ttlMs || 10 * 60 * 1000);
-    UDT_CACHE[key] = { value, expires };
-    try { localStorage.setItem('udt_cache_' + key, JSON.stringify({ value, expires })); } catch (e) { }
-}
-function cacheGet(key) {
-    const inmem = UDT_CACHE[key];
-    if (inmem && inmem.expires > Date.now()) return inmem.value;
-    try {
-        const s = localStorage.getItem('udt_cache_' + key);
-        if (s) {
-            const obj = JSON.parse(s);
-            if (obj.expires > Date.now()) {
-                UDT_CACHE[key] = obj;
-                return obj.value;
-            } else {
-                localStorage.removeItem('udt_cache_' + key);
-            }
-        }
-    } catch (e) { }
-    return null;
+    return window.udtLocationAnalysis.cacheSet(key, value, ttlMs);
 }
 
-function makeSparkline(values = [], color = '#007bff') {
-    if (!values || values.length === 0) return '';
-    const w = Math.max(60, values.length * 6);
-    const h = 40;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = (max - min) || 1;
-    const points = values.map((v, i) => {
-        const x = (i / (values.length - 1)) * (w - 4) + 2;
-        const y = h - 4 - ((v - min) / range) * (h - 8);
-        return `${x},${y}`;
-    }).join(' ');
-    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+function cacheGet(key) {
+    return window.udtLocationAnalysis.cacheGet(key);
+}
+
+function makeSparkline(values = [], color = "#007bff") {
+    return window.udtLocationAnalysis.makeSparkline(values, color);
 }
 
 function parseSemicolonCsv(text) {
-    return text
-        .split(/\r?\n/)
-        .filter((line) => line && !line.startsWith("#"))
-        .map((line) => line.split(";"));
+    return window.udtLocationAnalysis.parseSemicolonCsv(text);
 }
 
 function distanceKm(lat1, lon1, lat2, lon2) {
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2
-        + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function getRivmMonthlyCandidates() {
-    const now = new Date();
-    const candidates = [];
-    for (let offset = 1; offset <= 3; offset++) {
-        const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        candidates.push({
-            PM25: `${year}_${month}_PM25.csv`,
-            NO2: `${year}_${month}_NO2.csv`,
-            O3: `${year}_${month}_O3.csv`
-        });
-    }
-    return candidates;
+    return window.udtLocationAnalysis.distanceKm(lat1, lon1, lat2, lon2);
 }
 
 async function fetchRivmStations() {
-    const cacheKey = "rivm_stations_metadata";
-    const cached = cacheGet(cacheKey);
-    if (cached) return cached;
-
-    const response = await fetch(RIVM_STATIONS_URL);
-    if (!response.ok) {
-        throw new Error(`RIVM station metadata unavailable: ${response.status}`);
-    }
-
-    const text = await response.text();
-    const rows = parseSemicolonCsv(text);
-    const headers = rows[0] || [];
-    const stations = rows.slice(1)
-        .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])))
-        .filter((row) => !row.meetlocatie_einddatumtijd && row.breedtegraad && row.lengtegraad);
-
-    cacheSet(cacheKey, stations, 12 * 60 * 60 * 1000);
-    return stations;
+    return window.udtLocationAnalysis.fetchRivmStations();
 }
 
 async function fetchRivmComponentLatest(filename, stationId) {
-    const cacheKey = `rivm_component_${filename}_${stationId}`;
-    const cached = cacheGet(cacheKey);
-    if (cached !== null && cached !== undefined) return cached;
-
-    try {
-        const response = await fetch(`https://data.rivm.nl/data/luchtmeetnet/Actueel-jaar/${filename}`);
-        if (!response.ok) {
-            throw new Error(`RIVM component file unavailable: ${response.status}`);
-        }
-
-        const text = await response.text();
-        const rows = parseSemicolonCsv(text);
-        const headers = rows[0] || [];
-        const stationIndex = headers.indexOf("meetlocatie_id");
-        const valueIndex = headers.indexOf("waarde");
-        const endIndex = headers.indexOf("einddatumtijd");
-        let latest = null;
-
-        rows.slice(1).forEach((row) => {
-            if (row[stationIndex] !== stationId) return;
-            const value = Number(row[valueIndex]);
-            if (!Number.isFinite(value)) return;
-            const timestamp = row[endIndex];
-            if (!latest || timestamp > latest.timestamp) {
-                latest = { value, timestamp };
-            }
-        });
-
-        cacheSet(cacheKey, latest, 30 * 60 * 1000);
-        return latest;
-    } catch (error) {
-        cacheSet(cacheKey, null, 10 * 60 * 1000);
-        return null;
-    }
+    return window.udtLocationAnalysis.fetchRivmComponentLatest(filename, stationId);
 }
 
 function syncSceneToLocalTime() {
@@ -867,22 +798,23 @@ function configureCesiumEnvironment() {
 
     if (viewer.scene.fog) {
         viewer.scene.fog.enabled = true;
-        viewer.scene.fog.density = 0.00055;
-        viewer.scene.fog.minimumBrightness = 0.25;
-        viewer.scene.fog.screenSpaceErrorFactor = 1.7;
+        viewer.scene.fog.density = 0.00042;
+        viewer.scene.fog.minimumBrightness = 0.34;
+        viewer.scene.fog.screenSpaceErrorFactor = 1.55;
     }
 
     if (viewer.scene.skyAtmosphere) {
         viewer.scene.skyAtmosphere.show = true;
-        viewer.scene.skyAtmosphere.brightnessShift = -0.04;
-        viewer.scene.skyAtmosphere.saturationShift = -0.02;
+        viewer.scene.skyAtmosphere.brightnessShift = -0.06;
+        viewer.scene.skyAtmosphere.saturationShift = 0.06;
+        viewer.scene.skyAtmosphere.hueShift = -0.08;
     }
 
     if (viewer.scene.atmosphere) {
         if (typeof Cesium.DynamicAtmosphereLightingType !== "undefined") {
             viewer.scene.atmosphere.dynamicLighting = Cesium.DynamicAtmosphereLightingType.SUNLIGHT;
         }
-        viewer.scene.atmosphere.lightIntensity = 11.0;
+        viewer.scene.atmosphere.lightIntensity = 10.2;
         viewer.scene.atmosphere.rayleighCoefficient = new Cesium.Cartesian3(5.5e-6, 13.0e-6, 28.4e-6);
         viewer.scene.atmosphere.mieCoefficient = new Cesium.Cartesian3(21e-6, 21e-6, 21e-6);
     }
@@ -917,790 +849,103 @@ function applyCesiumAtmosphereProfile(profile = {}) {
 }
 
 async function fetchNearestRivmSensors(latitude, longitude) {
-    const cacheKey = `rivm_nearest_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
-    const cached = cacheGet(cacheKey);
-    if (cached) return cached;
-
-    const stations = await fetchRivmStations();
-    const nearestStations = stations
-        .map((station) => ({
-            stationId: station.meetlocatie_id,
-            stationName: station.meetlocatie_naam,
-            place: station.meetlocatie_plaatsnaam,
-            source: station.bron_id,
-            lat: Number(station.breedtegraad),
-            lon: Number(station.lengtegraad),
-            distanceKm: distanceKm(latitude, longitude, Number(station.breedtegraad), Number(station.lengtegraad))
-        }))
-        .sort((a, b) => a.distanceKm - b.distanceKm)
-        .slice(0, 2);
-
-    for (const station of nearestStations) {
-        let values = null;
-        let latestTimestamp = null;
-        for (const candidate of getRivmMonthlyCandidates()) {
-            const [pm25, no2, o3] = await Promise.all([
-                fetchRivmComponentLatest(candidate.PM25, station.stationId),
-                fetchRivmComponentLatest(candidate.NO2, station.stationId),
-                fetchRivmComponentLatest(candidate.O3, station.stationId)
-            ]);
-
-            if (pm25 || no2 || o3) {
-                values = {
-                    PM25: pm25 ? pm25.value : null,
-                    NO2: no2 ? no2.value : null,
-                    O3: o3 ? o3.value : null
-                };
-                latestTimestamp = pm25?.timestamp || no2?.timestamp || o3?.timestamp || null;
-                break;
-            }
-        }
-
-        station.values = values || { PM25: null, NO2: null, O3: null };
-        station.timestamp = latestTimestamp;
-    }
-
-    cacheSet(cacheKey, nearestStations, 30 * 60 * 1000);
-    return nearestStations;
+    return window.udtLocationAnalysis.fetchNearestRivmSensors(latitude, longitude);
 }
 
 async function fetchPopulationNearby(lat, lon, labelFallback) {
-    const key = `pop_${lat.toFixed(4)}_${lon.toFixed(4)}` + (labelFallback ? `_label_${labelFallback.replace(/\s+/g,'_')}` : '');
-    const cached = cacheGet(key);
-    if (cached) return cached;
-    // SPARQL: find nearest entity with population claim (P1082)
-    const wkt = `Point(${lon} ${lat})`;
-    const sparql = `SELECT ?item ?itemLabel ?population WHERE { ?item wdt:P625 ?coord . SERVICE wikibase:around { ?item wdt:P625 ?location . bd:serviceParam wikibase:center "${wkt}"^^geo:wktLiteral; bd:serviceParam wikibase:radius "2". } OPTIONAL { ?item wdt:P1082 ?population. } SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } ORDER BY DESC(?population) LIMIT 1`;
-    const url = 'https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql);
-    try {
-        const resp = await fetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        const bindings = data.results.bindings;
-        if (bindings && bindings.length > 0) {
-            const b = bindings[0];
-            const result = {
-                label: b.itemLabel ? b.itemLabel.value : null,
-                population: b.population ? parseInt(b.population.value, 10) : null
-            };
-            cacheSet(key, result, 24 * 60 * 60 * 1000); // cache 24h
-            return result;
-        }
-    } catch (e) {
-        console.warn('fetchPopulationNearby failed', e);
-    }
-    // fallback: try label-based lookup if we have a place name
-    if (labelFallback) {
-        try {
-            const fb = await fetchPopulationByLabel(labelFallback);
-            if (fb) {
-                cacheSet(key, fb, 24 * 60 * 60 * 1000);
-                return fb;
-            }
-        } catch (e) {
-            console.warn('fetchPopulationNearby fallback failed', e);
-        }
-    }
-    return null;
+    return window.udtLocationAnalysis.fetchPopulationNearby(lat, lon, labelFallback);
 }
 
 async function fetchPopulationByLabel(label) {
-    if (!label) return null;
-    const key = `pop_label_${label.replace(/\s+/g,'_')}`;
-    const cached = cacheGet(key);
-    if (cached) return cached;
-    try {
-        const searchUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=en&search=' + encodeURIComponent(label) + '&origin=*';
-        const sresp = await fetch(searchUrl);
-        if (!sresp.ok) return null;
-        const sdata = await sresp.json();
-        if (sdata && sdata.search && sdata.search.length > 0) {
-            const qid = sdata.search[0].id;
-            const entUrl = 'https://www.wikidata.org/w/api.php?action=wbgetentities&ids=' + encodeURIComponent(qid) + '&props=claims|labels&languages=en&format=json&origin=*';
-            const eres = await fetch(entUrl);
-            if (!eres.ok) return null;
-            const ed = await eres.json();
-            const entity = ed.entities && ed.entities[qid];
-            if (entity) {
-                let population = null;
-                try {
-                    const claims = entity.claims && entity.claims.P1082;
-                    if (claims && claims.length) {
-                        // pick the latest non-deprecated claim
-                        for (const c of claims) {
-                            if (c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value) {
-                                population = parseInt(c.mainsnak.datavalue.value.amount || c.mainsnak.datavalue.value, 10);
-                                if (!isNaN(population)) break;
-                            }
-                        }
-                    }
-                } catch (e) { }
-                const result = { label: entity.labels && entity.labels.en && entity.labels.en.value ? entity.labels.en.value : label, population: population };
-                cacheSet(key, result, 24 * 60 * 60 * 1000);
-                return result;
-            }
-        }
-    } catch (e) {
-        console.warn('fetchPopulationByLabel failed', e);
-    }
-    return null;
+    return window.udtLocationAnalysis.fetchPopulationByLabel(label);
 }
 
 async function fetchAirPollutionTrend(lat, lon) {
-    const keyCache = `air_${lat.toFixed(4)}_${lon.toFixed(4)}`;
-    const cached = cacheGet(keyCache);
-    if (cached) return cached;
-    const key = (typeof airQualityApiKey === 'string' && airQualityApiKey) ? airQualityApiKey : (window.config && window.config.conf && (window.config.conf.AIRQUALITYAPI || window.config.conf.WEATHERAPI));
-    if (!key) return null;
-    const url = `https://api.openweathermap.org/data/2.5/air_pollution/forecast?lat=${lat}&lon=${lon}&appid=${key}`;
-    // simple retry with exponential backoff for 429/network errors
-    let attempt = 0;
-    const maxAttempts = 3;
-    let lastErr = null;
-    while (attempt < maxAttempts) {
-        try {
-            const resp = await fetch(url);
-            if (!resp.ok) {
-                lastErr = new Error('HTTP ' + resp.status);
-                if (resp.status === 429) {
-                    // rate limited — wait and retry
-                    attempt++;
-                    await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-                    continue;
-                }
-                return null;
-            }
-            const data = await resp.json();
-            if (!data.list || !Array.isArray(data.list)) return null;
-            const co = data.list.map(item => (item.components && item.components.co) ? item.components.co : 0).slice(0, 24);
-            const pm25 = data.list.map(item => (item.components && item.components.pm2_5) ? item.components.pm2_5 : 0).slice(0, 24);
-            const no2 = data.list.map(item => (item.components && item.components.no2) ? item.components.no2 : 0).slice(0, 24);
-            const o3 = data.list.map(item => (item.components && item.components.o3) ? item.components.o3 : 0).slice(0, 24);
-            const result = { co, pm25, no2, o3 };
-            cacheSet(keyCache, result, 10 * 60 * 1000); // cache 10 minutes
-            return result;
-        } catch (e) {
-            lastErr = e;
-            attempt++;
-            await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
-        }
-    }
-    console.warn('fetchAirPollutionTrend failed after retries', lastErr);
-    return null;
+    return window.udtAirQuality.fetchAirPollutionTrend(lat, lon);
 }
 
 async function fetchAndDisplayWeather(latitude, longitude) {
-    try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${weatherApiKey}&units=metric`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch weather data");
-
-        const weatherData = await response.json();
-        applyLiveWeatherEffects(weatherData);
-        const weatherContent = `
-            <div class="info-stack">
-                ${renderInfoBadge(`${weatherData.main.temp.toFixed(1)} °C`, "accent")}
-                ${renderInfoBadge(weatherData.weather[0].main || "Weather", "neutral")}
-            </div>
-            ${renderInfoRows([
-                { label: "Feels like", value: `${Math.round(weatherData.main.feels_like)} °C` },
-                { label: "Humidity", value: `${weatherData.main.humidity}%` },
-                { label: "Wind", value: `${weatherData.wind.speed} m/s` }
-            ])}
-        `;
-        showNotification("weather", weatherContent);
-        markOperationalUpdate("Weather snapshot updated", "Weather and air quality");
-    } catch (error) {
-        console.error("Error fetching weather data:", error);
-        showNotification("weather", "Error fetching weather data");
-    }
+    return window.udtWeather.fetchAndDisplayWeather(latitude, longitude);
 }
 
 async function fetchAndDisplayAirQuality(latitude, longitude) {
-    try {
-        const url = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${latitude}&lon=${longitude}&appid=${airQualityApiKey}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch air quality data");
-
-        const airQualityData = await response.json();
-        const airQuality = airQualityData.list[0];
-        const aqi = airQuality.main.aqi;
-        const components = airQuality.components;
-        const aqiDescription = ["Good", "Fair", "Moderate", "Poor", "Very Poor"][aqi - 1];
-        const airQualityContent = `
-            <div class="info-stack">
-                ${renderInfoBadge(aqiDescription, aqi <= 2 ? "good" : aqi === 3 ? "warn" : "alert")}
-                ${renderInfoBadge(`AQI ${aqi}`, "neutral")}
-            </div>
-            ${renderInfoRows([
-                { label: "PM2.5", value: `${components.pm2_5} µg/m³` },
-                { label: "PM10", value: `${components.pm10} µg/m³` },
-                { label: "NO2", value: `${components.no2} µg/m³` },
-                { label: "O3", value: `${components.o3} µg/m³` }
-            ])}
-        `;
-        showNotification("air-quality", airQualityContent);
-        markOperationalUpdate("Air quality snapshot updated", "Weather and air quality");
-    } catch (error) {
-        console.error("Error fetching air quality data:", error);
-        showNotification("air-quality", "Error fetching air quality data");
-    }
+    return window.udtAirQuality.fetchAndDisplayAirQuality(latitude, longitude);
 }
 
 async function fetchAndDisplayTraffic(latitude, longitude) {
-    try {
-        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${TomTomAPI}&point=${latitude},${longitude}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch traffic data");
-
-        const trafficData = await response.json();
-        if (trafficData && trafficData.flowSegmentData) {
-            const traffic = trafficData.flowSegmentData;
-            const congestionRatio = traffic.freeFlowSpeed > 0
-                ? traffic.currentSpeed / traffic.freeFlowSpeed
-                : 1;
-            const congestionState = congestionRatio >= 0.9
-                ? "Vlotte doorstroming"
-                : congestionRatio >= 0.7
-                    ? "Lichte congestie"
-                    : congestionRatio >= 0.5
-                        ? "Drukke corridor"
-                        : "Zware congestie";
-            const delaySeconds = Math.max((traffic.currentTravelTime || 0) - 60, 0);
-            const confidencePercent = Math.round((traffic.confidence || 0) * 100);
-            const trafficContent = `
-                <div class="info-stack">
-                    ${renderInfoBadge(`${traffic.currentSpeed} km/h`, "accent")}
-                    ${renderInfoBadge(traffic.roadName || "Local road", "neutral")}
-                </div>
-                ${renderInfoRows([
-                    { label: "Free flow", value: `${traffic.freeFlowSpeed} km/h` },
-                    { label: "Travel time", value: `${traffic.currentTravelTime}s` },
-                    { label: "Confidence", value: `${confidencePercent}%` }
-                ])}
-            `;
-            showNotification("traffic", trafficContent);
-            const trafficStateTarget = $("trafficStateContent");
-            if (trafficStateTarget) {
-                trafficStateTarget.innerHTML = `
-                    <div class="info-stack">
-                        ${renderInfoBadge(congestionState, congestionRatio >= 0.9 ? "good" : congestionRatio >= 0.7 ? "warn" : "alert")}
-                    </div>
-                    ${renderInfoRows([
-                        { label: "Delay", value: `${delaySeconds}s` },
-                        { label: "Confidence", value: `${confidencePercent}%` },
-                        { label: "Flow ratio", value: `${Math.round(congestionRatio * 100)}%` }
-                    ])}
-                `;
-                trafficStateTarget.dataset.hasData = "true";
-            }
-            markOperationalUpdate("Traffic segment updated", "Traffic and mobility");
-        }
-    } catch (error) {
-        console.error("Error fetching traffic data:", error);
-        showNotification("traffic", "Error fetching traffic data");
-        const trafficStateTarget = $("trafficStateContent");
-        if (trafficStateTarget) {
-            trafficStateTarget.textContent = "Verkeersstatus tijdelijk niet beschikbaar.";
-            trafficStateTarget.dataset.hasData = "false";
-        }
-    }
-
-    await fetchAndDisplayTrafficIncidents(latitude, longitude);
+    return window.udtTraffic.fetchAndDisplayTraffic(latitude, longitude);
 }
 
 async function fetchAndDisplayTrafficIncidents(latitude, longitude) {
-    const target = $("trafficIncidentsContent");
-    if (!target) return;
-
-    const incidents = await fetchTomTomTrafficIncidents(latitude, longitude);
-    currentTrafficIncidents = incidents;
-    if (!incidents.length) {
-        target.innerHTML = `
-            <div class="info-stack">
-                ${renderInfoBadge("No active incidents", "good")}
-            </div>
-            ${renderInfoRows([
-                { label: "Status", value: "Traffic in this area is currently clear." }
-            ])}
-        `;
-        target.dataset.hasData = "false";
-        renderTrafficIncidentPanel();
-        return;
-    }
-
-    const severeCount = incidents.filter((incident) => (Number(incident?.properties?.magnitudeOfDelay) || 0) >= 3).length;
-    target.innerHTML = `
-        <div class="info-stack">
-            ${renderInfoBadge(`${incidents.length} incidents`, severeCount ? "warn" : "neutral")}
-            ${severeCount ? renderInfoBadge(`${severeCount} severe`, "alert") : ""}
-        </div>
-        ${renderInfoRows([
-            { label: "Top issue", value: getIncidentDisplay(incidents[0]).description },
-            { label: "Action", value: "Open incident window for full details" }
-        ])}
-    `;
-    target.dataset.hasData = "true";
-    renderTrafficIncidentPanel();
+    return window.udtIncidents.fetchAndDisplayTrafficIncidents(latitude, longitude);
 }
 
 function applyLiveWeatherEffects(weatherData) {
-    if (!weatherData || !weatherData.weather || !weatherData.weather.length) return;
-
-    const weatherMain = String(weatherData.weather[0].main || "").toLowerCase();
-    const weatherDescription = String(weatherData.weather[0].description || "").toLowerCase();
-    const cloudiness = Number(weatherData.clouds && weatherData.clouds.all) || 0;
-    const sunrise = Number(weatherData.sys && weatherData.sys.sunrise) || 0;
-    const sunset = Number(weatherData.sys && weatherData.sys.sunset) || 0;
-    const observedAt = Number(weatherData.dt) || Math.floor(Date.now() / 1000);
-
-    let effectName = "weather-clear";
-
-    if (weatherMain.includes("snow") || weatherDescription.includes("sneeuw")) {
-        effectName = "weather-snow";
-    } else if (
-        weatherMain.includes("rain")
-        || weatherMain.includes("drizzle")
-        || weatherMain.includes("thunderstorm")
-        || weatherDescription.includes("regen")
-    ) {
-        effectName = "weather-rain";
-    } else if (weatherMain.includes("mist") || weatherMain.includes("fog") || weatherMain.includes("haze") || cloudiness >= 85) {
-        effectName = "weather-water";
-    } else if (sunrise && sunset && (observedAt < sunrise || observedAt > sunset)) {
-        effectName = "weather-night";
-    }
-
-    setWorldEffectState(effectName);
+    return window.udtWeather.applyLiveWeatherEffects(weatherData);
 }
 
 async function fetchTrafficSnapshot(latitude, longitude) {
-    try {
-        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${TomTomAPI}&point=${latitude},${longitude}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch traffic snapshot");
-        const data = await response.json();
-        return data && data.flowSegmentData ? data.flowSegmentData : null;
-    } catch (error) {
-        return null;
-    }
+    return window.udtTraffic.fetchTrafficSnapshot(latitude, longitude);
 }
 
 async function fetchTomTomTrafficIncidents(latitude, longitude, delta = 0.018) {
-    try {
-        const params = new URLSearchParams({
-            bbox: `${longitude - delta},${latitude - delta},${longitude + delta},${latitude + delta}`,
-            fields: "{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,delay,events{description},roadNumbers,startTime,endTime,from,to,length}}}",
-            language: "nl-NL",
-            timeValidityFilter: "present",
-            key: TomTomAPI
-        });
-        const response = await fetch(`https://api.tomtom.com/traffic/services/5/incidentDetails?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to fetch TomTom incidents");
-        const data = await response.json();
-        return Array.isArray(data.incidents) ? data.incidents : [];
-    } catch (error) {
-        return [];
-    }
+    return window.udtIncidents.fetchTomTomTrafficIncidents(latitude, longitude, delta);
 }
 
 function getIncidentDisplay(incident) {
-    const props = incident?.properties || {};
-    const firstEvent = Array.isArray(props.events) && props.events[0] ? props.events[0].description : null;
-    const description = firstEvent || "Verkeersincident";
-    const severity = Number(props.magnitudeOfDelay) || 0;
-    let color = "#facc15";
-    if (severity >= 4) color = "#f43f5e";
-    else if (severity >= 3) color = "#fb923c";
-    else if (severity >= 2) color = "#facc15";
-    else color = "#38d6c5";
-    return { description, severity, color };
+    return window.udtIncidents.getIncidentDisplay(incident);
 }
 
 async function fetchWeatherSnapshot(latitude, longitude) {
-    try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${weatherApiKey}&units=metric`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch weather snapshot");
-        return await response.json();
-    } catch (error) {
-        return null;
-    }
+    return window.udtWeather.fetchWeatherSnapshot(latitude, longitude);
 }
 
 async function fetchNearbyHeritageSummary(latitude, longitude) {
-    try {
-        const params = new URLSearchParams({
-            service: "WFS",
-            version: "2.0.0",
-            request: "GetFeature",
-            typeNames: "ps-ch:rce_inspire_points",
-            count: "5",
-            outputFormat: "application/json",
-            srsName: "EPSG:4326",
-            bbox: `${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01},EPSG:4326`
-        });
-        const response = await fetch(`${HERITAGE_SERVICE_URL}?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to fetch heritage summary");
-        const data = await response.json();
-        return Array.isArray(data.features) ? data.features : [];
-    } catch (error) {
-        return [];
-    }
+    return window.udtLocationAnalysis.fetchNearbyHeritageSummary(latitude, longitude);
 }
 
 async function fetchNearestBagBuildingInfo(latitude, longitude) {
-    try {
-        const delta = 0.0012;
-        const params = new URLSearchParams({
-            service: "WFS",
-            version: "2.0.0",
-            request: "GetFeature",
-            typeNames: "bag:verblijfsobject",
-            count: "1",
-            outputFormat: "application/json",
-            srsName: "EPSG:4326",
-            bbox: `${latitude - delta},${longitude - delta},${latitude + delta},${longitude + delta},EPSG:4326`
-        });
-        const response = await fetch(`${BAG_WFS_URL}?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to fetch BAG building info");
-        const data = await response.json();
-        const feature = Array.isArray(data.features) ? data.features[0] : null;
-        return feature ? feature.properties || null : null;
-    } catch (error) {
-        return null;
-    }
+    return window.udtLocationAnalysis.fetchNearestBagBuildingInfo(latitude, longitude);
 }
 
 async function fetchEnergyLabelForAddress(bagInfo) {
-    if (!energyLabelApiKey) return { unavailableReason: "missingKey" };
-    if (!bagInfo || !bagInfo.postcode || !bagInfo.huisnummer) return { unavailableReason: "missingAddress" };
-
-    const postcode = String(bagInfo.postcode).replace(/\s+/g, "").toUpperCase();
-    const huisnummer = String(bagInfo.huisnummer);
-    const huisletter = bagInfo.huisletter || "";
-    const huisnummertoevoeging = bagInfo.toevoeging || "";
-    const cacheKey = `energy_label_${postcode}_${huisnummer}_${huisletter}_${huisnummertoevoeging}`;
-    const cached = cacheGet(cacheKey);
-    if (cached) return cached;
-
-    const params = new URLSearchParams({
-        postcode,
-        huisnummer
-    });
-    if (huisletter) params.set("huisletter", huisletter);
-    if (huisnummertoevoeging) params.set("huisnummertoevoeging", huisnummertoevoeging);
-
-    try {
-        const response = await fetch(`https://public.ep-online.nl/api/v5/PandEnergielabel/Adres?${params.toString()}`, {
-            headers: {
-                Authorization: energyLabelApiKey,
-                Accept: "application/json"
-            }
-        });
-
-        if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                return { unavailableReason: "unauthorized" };
-            }
-            if (response.status === 404) {
-                return { unavailableReason: "notFound" };
-            }
-            throw new Error(`Failed to fetch energy label: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const energyLabel = Array.isArray(data) ? (data[0] || null) : data;
-        cacheSet(cacheKey, energyLabel, 12 * 60 * 60 * 1000);
-        return energyLabel;
-    } catch (error) {
-        console.error("Error fetching energy label data:", error);
-        return { unavailableReason: "fetchError" };
-    }
+    return window.udtLocationAnalysis.fetchEnergyLabelForAddress(bagInfo);
 }
 
 async function fetchAndDisplayBagInfo(latitude, longitude) {
-    const bagTarget = $("locationBagContent");
-    if (!bagTarget) return;
-
-    const bagInfo = await fetchNearestBagBuildingInfo(latitude, longitude);
-    if (!bagInfo) {
-        bagTarget.innerHTML = "Geen BAG gebouwinformatie gevonden voor deze locatie.";
-        bagTarget.dataset.hasData = "false";
-        return null;
-    }
-
-    const addressParts = [
-        bagInfo.openbare_ruimte,
-        bagInfo.huisnummer,
-        bagInfo.huisletter || "",
-        bagInfo.toevoeging || ""
-    ].filter(Boolean).join(" ");
-
-    bagTarget.innerHTML = `
-        <div class="info-stack">
-            ${renderInfoBadge(addressParts || "BAG object", "accent")}
-        </div>
-        ${renderInfoRows([
-            { label: "Postcode", value: `${bagInfo.postcode || "Unknown"} ${bagInfo.woonplaats || ""}`.trim() },
-            { label: "Use", value: bagInfo.gebruiksdoel || "Unknown" },
-            { label: "Area", value: `${bagInfo.oppervlakte || "?"} m²` },
-            { label: "Year", value: bagInfo.bouwjaar || "?" }
-        ])}
-    `;
-    bagTarget.dataset.hasData = "true";
-    return bagInfo;
+    return window.udtLocationAnalysis.fetchAndDisplayBagInfo(latitude, longitude);
 }
 
 async function fetchAndDisplayEnergyLabel(bagInfo) {
-    const energyTarget = $("locationEnergyContent");
-    if (!energyTarget) return;
-
-    if (!bagInfo) {
-        energyTarget.textContent = "Geen adresgegevens beschikbaar voor een energielabelcheck.";
-        energyTarget.dataset.hasData = "false";
-        return;
-    }
-
-    const energyLabel = await fetchEnergyLabelForAddress(bagInfo);
-    if (!energyLabel || energyLabel.unavailableReason) {
-        const messages = {
-            missingKey: "EP-Online API-sleutel ontbreekt. Voeg ENERGYLABELAPI toe om echte energielabeldata te laden.",
-            missingAddress: "Adresgegevens zijn niet volledig genoeg voor een energielabelcheck.",
-            unauthorized: "EP-Online API-sleutel is ongeldig of heeft geen toegang.",
-            notFound: "Geen energielabel gevonden voor dit adres.",
-            fetchError: "Energielabeldata kon nu niet worden geladen."
-        };
-        energyTarget.textContent = messages[energyLabel?.unavailableReason] || "Energielabeldata is niet beschikbaar.";
-        energyTarget.dataset.hasData = "false";
-        return;
-    }
-
-    energyTarget.innerHTML = `
-        <div class="info-stack">
-            ${renderInfoBadge(`Label ${energyLabel.Energieklasse || "Unknown"}`, "accent")}
-            ${renderInfoBadge(energyLabel.Status || "Unknown", "neutral")}
-        </div>
-        ${renderInfoRows([
-            { label: "Type", value: energyLabel.Gebouwtype || energyLabel.Gebouwklasse || "Unknown" },
-            { label: "Year", value: energyLabel.Bouwjaar || "?" },
-            { label: "CO2", value: energyLabel.BerekendeCO2Emissie != null ? `${Number(energyLabel.BerekendeCO2Emissie).toLocaleString("nl-NL")} kg/yr` : "Unknown" },
-            { label: "Use", value: energyLabel.BerekendeEnergieverbruik != null ? `${Number(energyLabel.BerekendeEnergieverbruik).toLocaleString("nl-NL")} kWh/yr` : "Unknown" }
-        ])}
-    `;
-    energyTarget.dataset.hasData = "true";
-    markOperationalUpdate("Energy label data updated", "Building performance");
+    return window.udtLocationAnalysis.fetchAndDisplayEnergyLabel(bagInfo);
 }
 
 async function fetchAndDisplayRivmSensors(latitude, longitude) {
-    const rivmTarget = $("locationRivmContent");
-    if (!rivmTarget) return;
-
-    try {
-        const sensors = await fetchNearestRivmSensors(latitude, longitude);
-        if (!Array.isArray(sensors) || sensors.length === 0) {
-            rivmTarget.textContent = window.udtI18n
-                ? window.udtI18n.t("no_official_sensor_data")
-                : "Geen actuele officiele meetpunten gevonden voor deze locatie.";
-            rivmTarget.dataset.hasData = "false";
-            return;
-        }
-
-        rivmTarget.innerHTML = sensors.map((sensor) => `
-            <div class="location-inline-block">
-                <div class="info-stack">
-                    ${renderInfoBadge(sensor.stationName, "neutral")}
-                </div>
-                ${renderInfoRows([
-                    { label: "Distance", value: `${sensor.distanceKm.toFixed(1)} km` },
-                    { label: "PM2.5", value: sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/a" },
-                    { label: "NO2", value: sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/a" },
-                    { label: "O3", value: sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/a" }
-                ])}
-            </div>
-        `).join("<hr>");
-        rivmTarget.dataset.hasData = "true";
-        markOperationalUpdate("Official RIVM station data updated", "Official sensor monitoring");
-    } catch (error) {
-        console.error("Error fetching official RIVM station data:", error);
-        rivmTarget.textContent = window.udtI18n
-            ? window.udtI18n.t("no_official_sensor_data")
-            : "Geen actuele officiele meetpunten gevonden voor deze locatie.";
-        rivmTarget.dataset.hasData = "false";
-    }
-}
-
-function normalizeCbsValue(value) {
-    if (value === null || value === undefined || value === "" || Number.isNaN(value)) return null;
-    if (typeof value === "number" && value <= -99995) return null;
-    return value;
-}
-
-function pointInRing(point, ring) {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const xi = ring[i][0];
-        const yi = ring[i][1];
-        const xj = ring[j][0];
-        const yj = ring[j][1];
-        const intersects = ((yi > point[1]) !== (yj > point[1]))
-            && (point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || 1e-9) + xi);
-        if (intersects) inside = !inside;
-    }
-    return inside;
-}
-
-function pointInPolygonGeometry(point, geometry) {
-    if (!geometry || !geometry.type || !geometry.coordinates) return false;
-    if (geometry.type === "Polygon") {
-        return geometry.coordinates.some((ring) => pointInRing(point, ring));
-    }
-    if (geometry.type === "MultiPolygon") {
-        return geometry.coordinates.some((polygon) => polygon.some((ring) => pointInRing(point, ring)));
-    }
-    return false;
-}
-
-function summarizeCbsNeighborhood(properties = {}) {
-    return {
-        buurtnaam: properties.buurtnaam || "Onbekende buurt",
-        gemeentenaam: properties.gemeentenaam || "'s-Hertogenbosch",
-        aantalInwoners: normalizeCbsValue(properties.aantalInwoners),
-        bevolkingsdichtheid: normalizeCbsValue(properties.bevolkingsdichtheidInwonersPerKm2),
-        huishoudens: normalizeCbsValue(properties.aantalHuishoudens),
-        adressendichtheid: normalizeCbsValue(properties.omgevingsadressendichtheid),
-        autosPerHuishouden: normalizeCbsValue(properties.personenautosPerHuishouden),
-        leeftijd0tot15: normalizeCbsValue(properties.percentagePersonen0Tot15Jaar),
-        leeftijd15tot25: normalizeCbsValue(properties.percentagePersonen15Tot25Jaar),
-        leeftijd25tot45: normalizeCbsValue(properties.percentagePersonen25Tot45Jaar),
-        leeftijd45tot65: normalizeCbsValue(properties.percentagePersonen45Tot65Jaar),
-        leeftijd65plus: normalizeCbsValue(properties.percentagePersonen65JaarEnOuder),
-        inkomenPerInwoner: normalizeCbsValue(properties.gemiddeldInkomenPerInwoner),
-        wmoClientenPer1000: normalizeCbsValue(properties.aantalWmoClientenPer1000Inwoners)
-    };
+    return window.udtLocationAnalysis.fetchAndDisplayRivmSensors(latitude, longitude);
 }
 
 async function fetchCbsNeighborhoodStats(latitude, longitude) {
-    const cacheKey = `cbs_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
-    const cached = cacheGet(cacheKey);
-    if (cached) return cached;
-
-    const delta = 0.012;
-    const params = new URLSearchParams({
-        service: "WFS",
-        version: "2.0.0",
-        request: "GetFeature",
-        typeNames: "wijkenbuurten:buurten",
-        count: "24",
-        outputFormat: "application/json",
-        srsName: "EPSG:4326",
-        bbox: `${latitude - delta},${longitude - delta},${latitude + delta},${longitude + delta},EPSG:4326`
-    });
-
-    try {
-        const response = await fetch(`${CBS_WIJKBUURT_WFS_URL}?${params.toString()}`);
-        if (!response.ok) throw new Error(`CBS buurtprofielen fetch failed: ${response.status}`);
-        const data = await response.json();
-        const features = Array.isArray(data.features) ? data.features : [];
-        const point = [longitude, latitude];
-        const match = features.find((feature) => pointInPolygonGeometry(point, feature.geometry)) || features[0];
-        if (!match) return null;
-
-        const result = summarizeCbsNeighborhood(match.properties || {});
-        cacheSet(cacheKey, result, 12 * 60 * 60 * 1000);
-        return result;
-    } catch (error) {
-        console.warn("CBS buurtprofielen tijdelijk niet beschikbaar:", error);
-        return null;
-    }
+    return window.udtLocationAnalysis.fetchCbsNeighborhoodStats(latitude, longitude);
 }
 
 function showNotification(type, content) {
-    if (type === "event") {
-        showStatusToast(content);
-        return;
-    }
-
-    const card = $("locationInfoCard");
-    if (!card) return;
-
-    const targetMap = {
-        weather: "locationWeatherContent",
-        "air-quality": "locationAirContent",
-        traffic: "locationTrafficContent"
-    };
-
-    const targetId = targetMap[type];
-    if (!targetId) return;
-
-    const target = $(targetId);
-    const title = $("locationInfoTitle");
-    if (title && name) {
-        title.textContent = name;
-    }
-    if (target) {
-        target.innerHTML = content;
-        target.dataset.hasData = "true";
-    }
-    card.classList.remove("is-hidden");
+    return window.udtLocationAnalysis.showNotification(type, content);
 }
 
 function showStatusToast(content) {
-    const area = $("notificationArea");
-    if (!area) return;
-
-    const toast = document.createElement("div");
-    toast.className = "status-toast";
-    toast.innerHTML = content;
-    area.prepend(toast);
-
-    window.setTimeout(() => {
-        toast.classList.add("is-hiding");
-        window.setTimeout(() => toast.remove(), 220);
-    }, 3200);
+    return window.udtLocationAnalysis.showStatusToast(content);
 }
 
 function renderInfoRows(rows = []) {
-    return `<div class="info-kv">${rows.map(({ label, value }) => `
-        <div class="info-kv__row">
-            <span class="info-kv__label">${label}</span>
-            <strong class="info-kv__value">${value}</strong>
-        </div>
-    `).join("")}</div>`;
+    return window.udtLocationAnalysis.renderInfoRows(rows);
 }
 
 function renderInfoBadge(value, tone = "neutral") {
-    return `<span class="info-badge info-badge--${tone}">${value}</span>`;
+    return window.udtLocationAnalysis.renderInfoBadge(value, tone);
 }
 
 function renderTrafficIncidentPanel() {
-    const panelBody = $("trafficIncidentsPanelBody");
-    if (!panelBody) return;
-
-    if (!currentTrafficIncidents.length) {
-        panelBody.innerHTML = "<p>No current incidents available for this location.</p>";
-        return;
-    }
-
-    panelBody.innerHTML = currentTrafficIncidents.map((incident) => {
-        const props = incident.properties || {};
-        const display = getIncidentDisplay(incident);
-        const road = Array.isArray(props.roadNumbers) && props.roadNumbers.length ? props.roadNumbers.join(", ") : "Local road";
-        const route = props.from && props.to ? `${props.from} → ${props.to}` : (props.from || props.to || "Route details unavailable");
-        return `
-            <div class="location-inline-block">
-                <div class="info-stack">
-                    ${renderInfoBadge(display.description, display.severity >= 4 ? "alert" : display.severity >= 2 ? "warn" : "neutral")}
-                    ${renderInfoBadge(`Severity ${display.severity || "n/a"}`, "neutral")}
-                </div>
-                ${renderInfoRows([
-                    { label: "Road", value: road },
-                    { label: "Route", value: route },
-                    { label: "Length", value: props.length ? `${Math.round(props.length)} m` : "n/a" }
-                ])}
-            </div>
-        `;
-    }).join("<hr>");
+    return window.udtIncidents.renderTrafficIncidentPanel();
 }
 
 function addPrototypeTrafficExperience() {
@@ -1954,21 +1199,15 @@ function toggleRightPanel() {
 }
 
 function flytoIKDB() {
-    const IKDBCoordinates = {
-        longitude: 5.291,
-        latitude: 51.686,
-        height: 500
-    };
-
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
-            IKDBCoordinates.longitude,
-            IKDBCoordinates.latitude,
-            IKDBCoordinates.height
+            DEN_BOSCH_CITY_CENTER.longitude,
+            DEN_BOSCH_CITY_CENTER.latitude,
+            DEN_BOSCH_CITY_CENTER.height
         ),
         orientation: {
-            heading: Cesium.Math.toRadians(0),
-            pitch: Cesium.Math.toRadians(-30),
+            heading: Cesium.Math.toRadians(8),
+            pitch: Cesium.Math.toRadians(-38),
             roll: 0.0
         },
       duration: 3.0
@@ -2099,7 +1338,7 @@ async function loadDutchHeritageSites() {
 
         const [lon, lat] = geometry.coordinates;
         const props = feature.properties || {};
-        const monumentId = props.localid || "Unknown";
+        const monumentId = props.localid || "Not available";
         const citation = props.ci_citation || "";
 
         heritageState.dataSource.entities.add({
@@ -2125,7 +1364,7 @@ async function loadDutchHeritageSites() {
                 <h2>Dutch Heritage Site</h2>
                 <p><strong>ID:</strong> ${monumentId}</p>
                 <p><strong>Source:</strong> PDOK / RCE</p>
-                <p><strong>Version:</strong> ${props.versionid || "Unknown"}</p>
+                <p><strong>Version:</strong> ${props.versionid || "Not available"}</p>
                 ${citation ? `<p><a href="${citation}" target="_blank" rel="noopener noreferrer">Open monument record</a></p>` : ""}
             `
         });
@@ -2620,7 +1859,7 @@ function applyBuildingTheme(mode = "function") {
 
     if (mode === "neutral") {
         osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
-            color: "color('rgba(196, 190, 182, 0.82)')"
+            color: `color('${PRESENTATION_THEME.neutralBuilding}', 0.82)`
         });
         if (viewer?.scene) {
             viewer.scene.requestRender();
@@ -2631,14 +1870,14 @@ function applyBuildingTheme(mode = "function") {
     osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
         color: {
             conditions: [
-                ["${building} === 'house' || ${building} === 'residential' || ${building} === 'apartments'", "color('#ffb703', 0.86)"],
-                ["${building} === 'office' || ${building} === 'commercial'", "color('#38bdf8', 0.86)"],
-                ["${building} === 'industrial' || ${building} === 'warehouse'", "color('#8b5cf6', 0.86)"],
-                ["${building} === 'retail' || ${building} === 'shop' || ${building} === 'supermarket' || ${building} === 'kiosk'", "color('#ef4444', 0.88)"],
-                ["${building} === 'school' || ${building} === 'university' || ${building} === 'college' || ${building} === 'kindergarten'", "color('#22c55e', 0.88)"],
-                ["${building} === 'hospital' || ${building} === 'clinic'", "color('#eab308', 0.88)"],
-                ["${building} === 'church' || ${building} === 'civic' || ${building} === 'public' || ${building} === 'parking' || ${building} === 'hotel'", "color('#14b8a6', 0.84)"],
-                ["true", "color('#a3a3a3', 0.72)"]
+                ["${building} === 'house' || ${building} === 'residential' || ${building} === 'apartments'", `color('${PRESENTATION_THEME.residential}', 0.88)`],
+                ["${building} === 'office' || ${building} === 'commercial'", `color('${PRESENTATION_THEME.commercial}', 0.88)`],
+                ["${building} === 'industrial' || ${building} === 'warehouse'", `color('${PRESENTATION_THEME.industrial}', 0.9)`],
+                ["${building} === 'retail' || ${building} === 'shop' || ${building} === 'supermarket' || ${building} === 'kiosk'", `color('${PRESENTATION_THEME.retail}', 0.9)`],
+                ["${building} === 'school' || ${building} === 'university' || ${building} === 'college' || ${building} === 'kindergarten'", `color('${PRESENTATION_THEME.education}', 0.9)`],
+                ["${building} === 'hospital' || ${building} === 'clinic'", `color('${PRESENTATION_THEME.health}', 0.9)`],
+                ["${building} === 'church' || ${building} === 'civic' || ${building} === 'public' || ${building} === 'parking' || ${building} === 'hotel'", `color('${PRESENTATION_THEME.civic}', 0.86)`],
+                ["true", `color('${PRESENTATION_THEME.fallback}', 0.78)`]
             ]
         }
     });

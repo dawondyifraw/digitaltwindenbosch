@@ -213,7 +213,7 @@ if (toggleChatBtn) {
   });
 }
 
-syncChatVisibility(false);
+syncChatVisibility(true);
 
 document.addEventListener('configLoaded', () => {
   if (isPrototypeMode()) {
