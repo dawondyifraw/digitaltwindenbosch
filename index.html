@@ -111,7 +111,7 @@
         <p class="welcome-verification__status" id="verificationStatus">Complete the quick check to enter the viewer.</p>
       </div>
       <div class="welcome-actions">
-        <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter viewer</button>
+        <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter Digital Twin</button>
       </div>
       <div class="welcome-footer">
         <strong>Built by DataTwinLabs, 2026</strong>
@@ -628,7 +628,7 @@
         if (!enterTwinBtn) return;
         const canEnter = splashReady && verificationPassed;
         enterTwinBtn.disabled = !canEnter;
-        enterTwinBtn.classList.toggle('is-hidden', !splashReady);
+        enterTwinBtn.classList.toggle('is-hidden', !canEnter);
       };
 
       const drawVerificationCode = () => {
