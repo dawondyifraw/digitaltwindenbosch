@@ -70,6 +70,7 @@ window.udtI18n = (function () {
             air_quality: "Luchtkwaliteit",
             traffic: "Verkeer",
             bag_building_info: "BAG gebouwinfo",
+            energy_label: "Energielabel",
             official_sensor_data: "Officiele RIVM meetpunten",
             traffic_state: "Verkeersstatus",
             traffic_incidents: "Incidenten gemeld",
@@ -154,6 +155,7 @@ window.udtI18n = (function () {
             air_quality: "Air quality",
             traffic: "Traffic",
             bag_building_info: "BAG building info",
+            energy_label: "Energy label",
             official_sensor_data: "Official RIVM stations",
             traffic_state: "Traffic state",
             traffic_incidents: "Reported incidents",
@@ -276,6 +278,7 @@ window.udtI18n = (function () {
         applyText(".location-info-card__section:nth-of-type(2) h5", "air_quality");
         applyText(".location-info-card__section:nth-of-type(3) h5", "traffic");
         applyText("#bagInfoHeading", "bag_building_info");
+        applyText("#energyLabelHeading", "energy_label");
         applyText("#rivmInfoHeading", "official_sensor_data");
         applyText("#trafficStateHeading", "traffic_state");
         applyText("#trafficIncidentsHeading", "traffic_incidents");
@@ -285,6 +288,7 @@ window.udtI18n = (function () {
         const airContent = document.getElementById("locationAirContent");
         const trafficContent = document.getElementById("locationTrafficContent");
         const bagContent = document.getElementById("locationBagContent");
+        const energyContent = document.getElementById("locationEnergyContent");
         const rivmContent = document.getElementById("locationRivmContent");
         const trafficStateContent = document.getElementById("trafficStateContent");
         const trafficIncidentsContent = document.getElementById("trafficIncidentsContent");
@@ -292,6 +296,7 @@ window.udtI18n = (function () {
         if (airContent && !airContent.dataset.hasData) airContent.textContent = t("no_location_selected");
         if (trafficContent && !trafficContent.dataset.hasData) trafficContent.textContent = t("no_location_selected");
         if (bagContent && !bagContent.dataset.hasData) bagContent.textContent = t("no_location_selected");
+        if (energyContent && !energyContent.dataset.hasData) energyContent.textContent = t("no_location_selected");
         if (rivmContent && !rivmContent.dataset.hasData) rivmContent.textContent = t("no_location_selected");
         if (trafficStateContent && !trafficStateContent.dataset.hasData) trafficStateContent.textContent = t("no_location_selected");
         if (trafficIncidentsContent && !trafficIncidentsContent.dataset.hasData) trafficIncidentsContent.textContent = t("no_location_selected");

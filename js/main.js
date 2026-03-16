@@ -18,6 +18,7 @@ let sceneTimeSyncTimer = null;
 let TomTomAPI = "";
 let airQualityApiKey = "";
 let weatherApiKey = "";
+let energyLabelApiKey = "";
 
 let cityContextTileset = null;
 let osmBuildingsTileset = null;
@@ -179,6 +180,7 @@ async function startApp() {
     TomTomAPI = conf.TOMTOMAPI;
     airQualityApiKey = conf.AIRQUALITYAPI;
     weatherApiKey = conf.WEATHERAPI || conf.AIRQUALITYAPI;
+    energyLabelApiKey = conf.ENERGYLABELAPI || conf.EPONLINEAPI || conf.EPONLINE_API_KEY || "";
 
     console.log("Weather API Key:", weatherApiKey);
 
@@ -661,7 +663,8 @@ function setupMapClickHandler() {
             await fetchAndDisplayWeather(latitude, longitude);
             await fetchAndDisplayAirQuality(latitude, longitude);
             await fetchAndDisplayTraffic(latitude, longitude);
-            await fetchAndDisplayBagInfo(latitude, longitude);
+            const bagInfo = await fetchAndDisplayBagInfo(latitude, longitude);
+            await fetchAndDisplayEnergyLabel(bagInfo);
             await fetchAndDisplayRivmSensors(latitude, longitude);
             if (typeof updateCharts === "function") {
                 updateCharts(latitude, longitude);
@@ -1333,6 +1336,53 @@ async function fetchNearestBagBuildingInfo(latitude, longitude) {
     }
 }
 
+async function fetchEnergyLabelForAddress(bagInfo) {
+    if (!energyLabelApiKey) return { unavailableReason: "missingKey" };
+    if (!bagInfo || !bagInfo.postcode || !bagInfo.huisnummer) return { unavailableReason: "missingAddress" };
+
+    const postcode = String(bagInfo.postcode).replace(/\s+/g, "").toUpperCase();
+    const huisnummer = String(bagInfo.huisnummer);
+    const huisletter = bagInfo.huisletter || "";
+    const huisnummertoevoeging = bagInfo.toevoeging || "";
+    const cacheKey = `energy_label_${postcode}_${huisnummer}_${huisletter}_${huisnummertoevoeging}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const params = new URLSearchParams({
+        postcode,
+        huisnummer
+    });
+    if (huisletter) params.set("huisletter", huisletter);
+    if (huisnummertoevoeging) params.set("huisnummertoevoeging", huisnummertoevoeging);
+
+    try {
+        const response = await fetch(`https://public.ep-online.nl/api/v5/PandEnergielabel/Adres?${params.toString()}`, {
+            headers: {
+                Authorization: energyLabelApiKey,
+                Accept: "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                return { unavailableReason: "unauthorized" };
+            }
+            if (response.status === 404) {
+                return { unavailableReason: "notFound" };
+            }
+            throw new Error(`Failed to fetch energy label: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const energyLabel = Array.isArray(data) ? (data[0] || null) : data;
+        cacheSet(cacheKey, energyLabel, 12 * 60 * 60 * 1000);
+        return energyLabel;
+    } catch (error) {
+        console.error("Error fetching energy label data:", error);
+        return { unavailableReason: "fetchError" };
+    }
+}
+
 async function fetchAndDisplayBagInfo(latitude, longitude) {
     const bagTarget = $("locationBagContent");
     if (!bagTarget) return;
@@ -1341,7 +1391,7 @@ async function fetchAndDisplayBagInfo(latitude, longitude) {
     if (!bagInfo) {
         bagTarget.innerHTML = "Geen BAG gebouwinformatie gevonden voor deze locatie.";
         bagTarget.dataset.hasData = "false";
-        return;
+        return null;
     }
 
     const addressParts = [
@@ -1360,6 +1410,45 @@ async function fetchAndDisplayBagInfo(latitude, longitude) {
         Status: ${bagInfo.status || "Onbekend"}
     `;
     bagTarget.dataset.hasData = "true";
+    return bagInfo;
+}
+
+async function fetchAndDisplayEnergyLabel(bagInfo) {
+    const energyTarget = $("locationEnergyContent");
+    if (!energyTarget) return;
+
+    if (!bagInfo) {
+        energyTarget.textContent = "Geen adresgegevens beschikbaar voor een energielabelcheck.";
+        energyTarget.dataset.hasData = "false";
+        return;
+    }
+
+    const energyLabel = await fetchEnergyLabelForAddress(bagInfo);
+    if (!energyLabel || energyLabel.unavailableReason) {
+        const messages = {
+            missingKey: "EP-Online API-sleutel ontbreekt. Voeg ENERGYLABELAPI toe om echte energielabeldata te laden.",
+            missingAddress: "Adresgegevens zijn niet volledig genoeg voor een energielabelcheck.",
+            unauthorized: "EP-Online API-sleutel is ongeldig of heeft geen toegang.",
+            notFound: "Geen energielabel gevonden voor dit adres.",
+            fetchError: "Energielabeldata kon nu niet worden geladen."
+        };
+        energyTarget.textContent = messages[energyLabel?.unavailableReason] || "Energielabeldata is niet beschikbaar.";
+        energyTarget.dataset.hasData = "false";
+        return;
+    }
+
+    energyTarget.innerHTML = `
+        <strong>Label ${energyLabel.Energieklasse || "Onbekend"}</strong><br>
+        Status: ${energyLabel.Status || "Onbekend"}<br>
+        Gebouwtype: ${energyLabel.Gebouwtype || energyLabel.Gebouwklasse || "Onbekend"}<br>
+        Bouwjaar: ${energyLabel.Bouwjaar || "Onbekend"}<br>
+        Thermische zone: ${energyLabel.Gebruiksoppervlakte_thermische_zone != null ? `${Number(energyLabel.Gebruiksoppervlakte_thermische_zone).toLocaleString("nl-NL")} m²` : "Onbekend"}<br>
+        CO2-emissie: ${energyLabel.BerekendeCO2Emissie != null ? `${Number(energyLabel.BerekendeCO2Emissie).toLocaleString("nl-NL")} kg/jaar` : "Onbekend"}<br>
+        Energieverbruik: ${energyLabel.BerekendeEnergieverbruik != null ? `${Number(energyLabel.BerekendeEnergieverbruik).toLocaleString("nl-NL")} kWh/jaar` : "Onbekend"}<br>
+        Registratie: ${energyLabel.Registratiedatum || "Onbekend"}
+    `;
+    energyTarget.dataset.hasData = "true";
+    markOperationalUpdate("Energy label data updated", "Building performance");
 }
 
 async function fetchAndDisplayRivmSensors(latitude, longitude) {
@@ -1812,7 +1901,7 @@ async function toggleDutchHeritageLayer() {
         if (button) {
             button.textContent = "Erfgoedpunten (PDOK/RCE)";
         }
-        showNotification("event", "Erfgoedpunten verborgen. Dit zijn officiele monument- en erfgoedlocaties uit PDOK / RCE.");
+        showNotification("event", "Erfgoedpunten verborgen.");
         setLayerActive("heritage", false, "City core monitoring", "Dutch heritage layer hidden");
         return;
     }
@@ -1831,7 +1920,7 @@ async function toggleDutchHeritageLayer() {
             freshness: "PDOK feed loaded",
             focus: "Dutch Heritage Sites"
         });
-        showNotification("event", "Erfgoedpunten geladen uit PDOK / RCE. Dit toont officiele monument- en erfgoedlocaties.");
+        showNotification("event", "Erfgoedpunten geladen.");
         setLayerActive("heritage", true, "Dutch heritage sites", "PDOK heritage feed loaded");
     } catch (error) {
         console.error("Error loading Dutch heritage sites:", error);
@@ -1850,7 +1939,7 @@ function toggleCbsNeighborhoodOverlay() {
             button.textContent = "CBS buurtstatistiek";
             button.setAttribute("aria-pressed", "false");
         }
-        showNotification("event", "CBS buurtstatistiek verborgen. Dit is een gebiedslaag met inwoners, dichtheid en huishoudens per buurt.");
+        showNotification("event", "CBS buurtstatistiek verborgen.");
         setLayerActive("cbs", false, "City core monitoring", "CBS neighborhood layer hidden");
         return;
     }
@@ -1877,7 +1966,7 @@ function toggleCbsNeighborhoodOverlay() {
         button.setAttribute("aria-pressed", "true");
     }
 
-    showNotification("event", "CBS buurtstatistiek geladen vanuit PDOK / CBS. Dit geeft gebiedsprofielen zoals inwoners, dichtheid en huishoudens.");
+    showNotification("event", "CBS buurtstatistiek geladen.");
     setLayerActive("cbs", true, "CBS neighborhood profiles", "CBS neighborhood layer loaded");
     viewer.scene.requestRender();
 }

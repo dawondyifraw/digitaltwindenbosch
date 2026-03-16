@@ -328,6 +328,21 @@
             </article>
 
             <article class="panel info-panel">
+                <h2>Energielabel en gebouwprestatie</h2>
+                <div class="banner">Gebaseerd op RVO EP-Online voor het geselecteerde adres zodra een geldige API-sleutel beschikbaar is.</div>
+                <dl class="summary-list">
+                    <dt>Energieklasse</dt><dd id="summaryEnergyClass">-</dd>
+                    <dt>Status</dt><dd id="summaryEnergyStatus">-</dd>
+                    <dt>Gebouwtype</dt><dd id="summaryEnergyType">-</dd>
+                    <dt>Bouwjaar</dt><dd id="summaryEnergyYear">-</dd>
+                    <dt>Thermische zone</dt><dd id="summaryEnergyArea">-</dd>
+                    <dt>CO2-emissie</dt><dd id="summaryEnergyCo2">-</dd>
+                    <dt>Energieverbruik</dt><dd id="summaryEnergyUse">-</dd>
+                    <dt>Registratiedatum</dt><dd id="summaryEnergyDate">-</dd>
+                </dl>
+            </article>
+
+            <article class="panel info-panel">
                 <h2>Officiele RIVM meetpunten</h2>
                 <div class="banner">Dichtstbijzijnde actieve meetpunten uit het actuele RIVM/Luchtmeetnet-open-datapakket.</div>
                 <ul class="sensor-list" id="sensorList">
@@ -409,6 +424,10 @@
 
         function getTomTomKey() {
             return (config && config.TOMTOMAPI) || "";
+        }
+
+        function getEnergyLabelKey() {
+            return (config && (config.ENERGYLABELAPI || config.EPONLINEAPI || config.EPONLINE_API_KEY)) || "";
         }
 
         function setStatus(message, demoMode) {
@@ -538,6 +557,7 @@
                     leeftijd65plus: 16,
                     wmoClientenPer1000: null
                 },
+                energyLabel: null,
                 rivmSensors: [
                     { stationId: "NL10230", stationName: "Biest Houtakker-Biestsestraat", place: "Houtakker", source: "LML", distanceKm: 19.4, values: { PM25: 11.7, NO2: 14.2, O3: 52.1 } },
                     { stationId: "NL10248", stationName: "Nistelrode-Gagelstraat", place: "Nistelrode", source: "LML", distanceKm: 16.8, values: { PM25: 10.4, NO2: 8.1, O3: 49.6 } }
@@ -734,9 +754,77 @@
             };
         }
 
+        async function fetchNearestBagBuildingInfo(lat, lon) {
+            try {
+                const delta = 0.0012;
+                const params = new URLSearchParams({
+                    service: "WFS",
+                    version: "2.0.0",
+                    request: "GetFeature",
+                    typeNames: "bag:verblijfsobject",
+                    count: "1",
+                    outputFormat: "application/json",
+                    srsName: "EPSG:4326",
+                    bbox: `${lat - delta},${lon - delta},${lat + delta},${lon + delta},EPSG:4326`
+                });
+                const data = await fetchJson(`https://service.pdok.nl/lv/bag/wfs/v2_0?${params.toString()}`);
+                const feature = Array.isArray(data && data.features) ? data.features[0] : null;
+                return feature ? feature.properties || null : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function fetchEnergyLabelByAddress(bagInfo, apiKey) {
+            if (!apiKey) return { unavailableReason: "missingKey" };
+            if (!bagInfo || !bagInfo.postcode || !bagInfo.huisnummer) return { unavailableReason: "missingAddress" };
+
+            const postcode = String(bagInfo.postcode).replace(/\s+/g, "").toUpperCase();
+            const huisnummer = String(bagInfo.huisnummer);
+            const huisletter = bagInfo.huisletter || "";
+            const huisnummertoevoeging = bagInfo.toevoeging || "";
+            const cacheKey = `energy_${postcode}_${huisnummer}_${huisletter}_${huisnummertoevoeging}`;
+            const cached = cacheGet(cacheKey);
+            if (cached) return cached;
+
+            const params = new URLSearchParams({
+                postcode,
+                huisnummer
+            });
+            if (huisletter) params.set("huisletter", huisletter);
+            if (huisnummertoevoeging) params.set("huisnummertoevoeging", huisnummertoevoeging);
+
+            try {
+                const response = await fetch(`https://public.ep-online.nl/api/v5/PandEnergielabel/Adres?${params.toString()}`, {
+                    headers: {
+                        Authorization: apiKey,
+                        Accept: "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        return { unavailableReason: "unauthorized" };
+                    }
+                    if (response.status === 404) {
+                        return { unavailableReason: "notFound" };
+                    }
+                    throw new Error(`EP-Online HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const energyLabel = Array.isArray(data) ? (data[0] || null) : data;
+                cacheSet(cacheKey, energyLabel, 12 * 60 * 60 * 1000);
+                return energyLabel;
+            } catch (error) {
+                return { unavailableReason: "fetchError" };
+            }
+        }
+
         async function fetchDashboardData() {
             const weatherKey = getWeatherApiKey();
             const tomtomKey = getTomTomKey();
+            const energyLabelKey = getEnergyLabelKey();
             const lat = currentLocation.lat;
             const lon = currentLocation.lon;
 
@@ -765,7 +853,8 @@
                 reverse,
                 heritage,
                 cbs,
-                rivmSensors
+                rivmSensors,
+                bagInfo
             ] = await Promise.all([
                 fetchJson(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
                 fetchJson(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
@@ -776,8 +865,11 @@
                 fetchJson(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${tomtomKey}`),
                 fetchJson(`${HERITAGE_SERVICE_URL}?${heritageParams.toString()}`),
                 fetchCbsNeighborhoodStats(lat, lon),
-                fetchNearestRivmSensors(lat, lon)
+                fetchNearestRivmSensors(lat, lon),
+                fetchNearestBagBuildingInfo(lat, lon)
             ]);
+
+            const energyLabel = await fetchEnergyLabelByAddress(bagInfo, energyLabelKey);
 
             const liveUsable = weatherCurrent && weatherForecast && airCurrent && traffic;
             if (!liveUsable) {
@@ -792,8 +884,10 @@
                 traffic,
                 incidents,
                 cbs,
+                energyLabel,
                 rivmSensors,
                 heritage,
+                bagInfo,
                 address: reverse && reverse.addresses && reverse.addresses[0] ? reverse.addresses[0].address.freeformAddress : currentLocation.name,
                 demoMode: false
             };
@@ -805,6 +899,7 @@
             [
                 `OpenWeatherMap${demoMode ? " (fallback mogelijk)" : ""}`,
                 `TomTom Traffic${demoMode ? " (fallback mogelijk)" : ""}`,
+                `RVO EP-Online energielabels${demoMode ? " (sleutel of fallback nodig)" : ""}`,
                 "RIVM / Luchtmeetnet officiële meetpunten",
                 "PDOK / CBS buurtprofielen",
                 "PDOK / RCE erfgoed",
@@ -888,6 +983,43 @@
             });
         }
 
+        function renderEnergySummary(energyLabel) {
+            const unknown = "Niet beschikbaar";
+            const unavailableReason = energyLabel && energyLabel.unavailableReason;
+            if (unavailableReason) {
+                const messages = {
+                    missingKey: "EP-Online API-sleutel ontbreekt.",
+                    missingAddress: "Adresgegevens onvoldoende voor opvraging.",
+                    unauthorized: "EP-Online API-sleutel is ongeldig of heeft geen toegang.",
+                    notFound: "Geen energielabel gevonden voor dit adres.",
+                    fetchError: "Energielabeldata kon nu niet worden geladen."
+                };
+                const message = messages[unavailableReason] || unknown;
+                [
+                    "summaryEnergyClass",
+                    "summaryEnergyStatus",
+                    "summaryEnergyType",
+                    "summaryEnergyYear",
+                    "summaryEnergyArea",
+                    "summaryEnergyCo2",
+                    "summaryEnergyUse",
+                    "summaryEnergyDate"
+                ].forEach((id) => {
+                    document.getElementById(id).textContent = message;
+                });
+                return;
+            }
+
+            document.getElementById("summaryEnergyClass").textContent = energyLabel && energyLabel.Energieklasse ? energyLabel.Energieklasse : unknown;
+            document.getElementById("summaryEnergyStatus").textContent = energyLabel && energyLabel.Status ? energyLabel.Status : unknown;
+            document.getElementById("summaryEnergyType").textContent = energyLabel && (energyLabel.Gebouwtype || energyLabel.Gebouwklasse) ? (energyLabel.Gebouwtype || energyLabel.Gebouwklasse) : unknown;
+            document.getElementById("summaryEnergyYear").textContent = energyLabel && energyLabel.Bouwjaar ? energyLabel.Bouwjaar : unknown;
+            document.getElementById("summaryEnergyArea").textContent = energyLabel && energyLabel.Gebruiksoppervlakte_thermische_zone != null ? `${Number(energyLabel.Gebruiksoppervlakte_thermische_zone).toLocaleString("nl-NL")} m²` : unknown;
+            document.getElementById("summaryEnergyCo2").textContent = energyLabel && energyLabel.BerekendeCO2Emissie != null ? `${Number(energyLabel.BerekendeCO2Emissie).toLocaleString("nl-NL")} kg/jaar` : unknown;
+            document.getElementById("summaryEnergyUse").textContent = energyLabel && energyLabel.BerekendeEnergieverbruik != null ? `${Number(energyLabel.BerekendeEnergieverbruik).toLocaleString("nl-NL")} kWh/jaar` : unknown;
+            document.getElementById("summaryEnergyDate").textContent = energyLabel && energyLabel.Registratiedatum ? energyLabel.Registratiedatum : unknown;
+        }
+
         function renderSummary(data) {
             const weather = data.weatherCurrent;
             const air = data.airCurrent.list[0];
@@ -907,6 +1039,7 @@
             document.getElementById("summaryCarsPerHousehold").textContent = cbs.autosPerHuishouden != null ? cbs.autosPerHuishouden.toLocaleString("nl-NL") : "Onbekend";
             document.getElementById("summaryAddressDensity").textContent = cbs.adressendichtheid != null ? cbs.adressendichtheid.toLocaleString("nl-NL") : "Onbekend";
             document.getElementById("summaryWmo").textContent = cbs.wmoClientenPer1000 != null ? cbs.wmoClientenPer1000.toLocaleString("nl-NL") : "Onbekend";
+            renderEnergySummary(data.energyLabel);
 
             document.getElementById("kpiTemp").textContent = `${Math.round(weather.main.temp)} °C`;
             document.getElementById("kpiAqi").textContent = `AQI ${air.main.aqi}`;
