@@ -10,6 +10,7 @@ let trafficCorridorEntities = [];
 let trafficIncidentEntities = [];
 let trafficAnimationTimer = null;
 let trafficIncidentRefreshTimer = null;
+let currentTrafficIncidents = [];
 let mobilityOverlayState = [];
 let buildingThemeMode = "function";
 let sceneTimeSyncTimer = null;
@@ -1097,12 +1098,15 @@ async function fetchAndDisplayWeather(latitude, longitude) {
         const weatherData = await response.json();
         applyLiveWeatherEffects(weatherData);
         const weatherContent = `
-            <strong>Weather at ${name}</strong><br>
-            Temperature: ${weatherData.main.temp} °C<br>
-            Feels like: ${weatherData.main.feels_like} °C<br>
-            Weather: ${weatherData.weather[0].main} (${weatherData.weather[0].description})<br>
-            Humidity: ${weatherData.main.humidity}%<br>
-            Wind: ${weatherData.wind.speed} m/s, ${weatherData.wind.deg}
+            <div class="info-stack">
+                ${renderInfoBadge(`${weatherData.main.temp.toFixed(1)} °C`, "accent")}
+                ${renderInfoBadge(weatherData.weather[0].main || "Weather", "neutral")}
+            </div>
+            ${renderInfoRows([
+                { label: "Feels like", value: `${Math.round(weatherData.main.feels_like)} °C` },
+                { label: "Humidity", value: `${weatherData.main.humidity}%` },
+                { label: "Wind", value: `${weatherData.wind.speed} m/s` }
+            ])}
         `;
         showNotification("weather", weatherContent);
         markOperationalUpdate("Weather snapshot updated", "Weather and air quality");
@@ -1124,13 +1128,16 @@ async function fetchAndDisplayAirQuality(latitude, longitude) {
         const components = airQuality.components;
         const aqiDescription = ["Good", "Fair", "Moderate", "Poor", "Very Poor"][aqi - 1];
         const airQualityContent = `
-            <strong>Air Quality at ${name}</strong><br>
-            AQI: ${aqi} (${aqiDescription})<br>
-            PM2.5: ${components.pm2_5} µg/m³<br>
-            PM10: ${components.pm10} µg/m³<br>
-            NO2: ${components.no2} µg/m³<br>
-            O3: ${components.o3} µg/m³<br>
-            CO: ${components.co} µg/m³
+            <div class="info-stack">
+                ${renderInfoBadge(aqiDescription, aqi <= 2 ? "good" : aqi === 3 ? "warn" : "alert")}
+                ${renderInfoBadge(`AQI ${aqi}`, "neutral")}
+            </div>
+            ${renderInfoRows([
+                { label: "PM2.5", value: `${components.pm2_5} µg/m³` },
+                { label: "PM10", value: `${components.pm10} µg/m³` },
+                { label: "NO2", value: `${components.no2} µg/m³` },
+                { label: "O3", value: `${components.o3} µg/m³` }
+            ])}
         `;
         showNotification("air-quality", airQualityContent);
         markOperationalUpdate("Air quality snapshot updated", "Weather and air quality");
@@ -1162,21 +1169,28 @@ async function fetchAndDisplayTraffic(latitude, longitude) {
             const delaySeconds = Math.max((traffic.currentTravelTime || 0) - 60, 0);
             const confidencePercent = Math.round((traffic.confidence || 0) * 100);
             const trafficContent = `
-                <strong>Traffic Information at ${name}</strong><br>
-                Road: ${traffic.roadName || "N/A"}<br>
-                Speed: ${traffic.currentSpeed} km/h<br>
-                Free Flow Speed: ${traffic.freeFlowSpeed} km/h<br>
-                Travel Time: ${traffic.currentTravelTime} seconds<br>
-                Confidence: ${confidencePercent}%
+                <div class="info-stack">
+                    ${renderInfoBadge(`${traffic.currentSpeed} km/h`, "accent")}
+                    ${renderInfoBadge(traffic.roadName || "Local road", "neutral")}
+                </div>
+                ${renderInfoRows([
+                    { label: "Free flow", value: `${traffic.freeFlowSpeed} km/h` },
+                    { label: "Travel time", value: `${traffic.currentTravelTime}s` },
+                    { label: "Confidence", value: `${confidencePercent}%` }
+                ])}
             `;
             showNotification("traffic", trafficContent);
             const trafficStateTarget = $("trafficStateContent");
             if (trafficStateTarget) {
                 trafficStateTarget.innerHTML = `
-                    <strong>${congestionState}</strong><br>
-                    Vertraging: ${delaySeconds} seconden<br>
-                    Corridorbetrouwbaarheid: ${confidencePercent}%<br>
-                    Snelheidsverhouding: ${Math.round(congestionRatio * 100)}% van vrije doorstroming
+                    <div class="info-stack">
+                        ${renderInfoBadge(congestionState, congestionRatio >= 0.9 ? "good" : congestionRatio >= 0.7 ? "warn" : "alert")}
+                    </div>
+                    ${renderInfoRows([
+                        { label: "Delay", value: `${delaySeconds}s` },
+                        { label: "Confidence", value: `${confidencePercent}%` },
+                        { label: "Flow ratio", value: `${Math.round(congestionRatio * 100)}%` }
+                    ])}
                 `;
                 trafficStateTarget.dataset.hasData = "true";
             }
@@ -1200,28 +1214,34 @@ async function fetchAndDisplayTrafficIncidents(latitude, longitude) {
     if (!target) return;
 
     const incidents = await fetchTomTomTrafficIncidents(latitude, longitude);
+    currentTrafficIncidents = incidents;
     if (!incidents.length) {
-        target.textContent = window.udtI18n
-            ? window.udtI18n.t("no_traffic_incidents")
-            : "Geen actuele verkeersincidenten in de directe omgeving.";
+        target.innerHTML = `
+            <div class="info-stack">
+                ${renderInfoBadge("No active incidents", "good")}
+            </div>
+            ${renderInfoRows([
+                { label: "Status", value: "Traffic in this area is currently clear." }
+            ])}
+        `;
         target.dataset.hasData = "false";
+        renderTrafficIncidentPanel();
         return;
     }
 
-    target.innerHTML = incidents.slice(0, 4).map((incident) => {
-        const props = incident.properties || {};
-        const display = getIncidentDisplay(incident);
-        const road = Array.isArray(props.roadNumbers) && props.roadNumbers.length ? props.roadNumbers.join(", ") : "Lokale weg";
-        return `
-            <div class="location-inline-block">
-                <strong>${display.description}</strong><br>
-                ${road} • Ernst ${display.severity || "n/b"}<br>
-                ${props.from || "Start onbekend"} → ${props.to || "Einde onbekend"}<br>
-                ${props.length ? `Lengte: ${Math.round(props.length)} m` : ""}
-            </div>
-        `;
-    }).join("<hr>");
+    const severeCount = incidents.filter((incident) => (Number(incident?.properties?.magnitudeOfDelay) || 0) >= 3).length;
+    target.innerHTML = `
+        <div class="info-stack">
+            ${renderInfoBadge(`${incidents.length} incidents`, severeCount ? "warn" : "neutral")}
+            ${severeCount ? renderInfoBadge(`${severeCount} severe`, "alert") : ""}
+        </div>
+        ${renderInfoRows([
+            { label: "Top issue", value: getIncidentDisplay(incidents[0]).description },
+            { label: "Action", value: "Open incident window for full details" }
+        ])}
+    `;
     target.dataset.hasData = "true";
+    renderTrafficIncidentPanel();
 }
 
 function applyLiveWeatherEffects(weatherData) {
@@ -1418,12 +1438,15 @@ async function fetchAndDisplayBagInfo(latitude, longitude) {
     ].filter(Boolean).join(" ");
 
     bagTarget.innerHTML = `
-        <strong>${addressParts || "BAG verblijfsobject"}</strong><br>
-        Postcode: ${bagInfo.postcode || "Onbekend"} ${bagInfo.woonplaats || ""}<br>
-        Gebruiksdoel: ${bagInfo.gebruiksdoel || "Onbekend"}<br>
-        Oppervlakte: ${bagInfo.oppervlakte || "Onbekend"} m²<br>
-        Bouwjaar: ${bagInfo.bouwjaar || "Onbekend"}<br>
-        Status: ${bagInfo.status || "Onbekend"}
+        <div class="info-stack">
+            ${renderInfoBadge(addressParts || "BAG object", "accent")}
+        </div>
+        ${renderInfoRows([
+            { label: "Postcode", value: `${bagInfo.postcode || "Unknown"} ${bagInfo.woonplaats || ""}`.trim() },
+            { label: "Use", value: bagInfo.gebruiksdoel || "Unknown" },
+            { label: "Area", value: `${bagInfo.oppervlakte || "?"} m²` },
+            { label: "Year", value: bagInfo.bouwjaar || "?" }
+        ])}
     `;
     bagTarget.dataset.hasData = "true";
     return bagInfo;
@@ -1454,14 +1477,16 @@ async function fetchAndDisplayEnergyLabel(bagInfo) {
     }
 
     energyTarget.innerHTML = `
-        <strong>Label ${energyLabel.Energieklasse || "Onbekend"}</strong><br>
-        Status: ${energyLabel.Status || "Onbekend"}<br>
-        Gebouwtype: ${energyLabel.Gebouwtype || energyLabel.Gebouwklasse || "Onbekend"}<br>
-        Bouwjaar: ${energyLabel.Bouwjaar || "Onbekend"}<br>
-        Thermische zone: ${energyLabel.Gebruiksoppervlakte_thermische_zone != null ? `${Number(energyLabel.Gebruiksoppervlakte_thermische_zone).toLocaleString("nl-NL")} m²` : "Onbekend"}<br>
-        CO2-emissie: ${energyLabel.BerekendeCO2Emissie != null ? `${Number(energyLabel.BerekendeCO2Emissie).toLocaleString("nl-NL")} kg/jaar` : "Onbekend"}<br>
-        Energieverbruik: ${energyLabel.BerekendeEnergieverbruik != null ? `${Number(energyLabel.BerekendeEnergieverbruik).toLocaleString("nl-NL")} kWh/jaar` : "Onbekend"}<br>
-        Registratie: ${energyLabel.Registratiedatum || "Onbekend"}
+        <div class="info-stack">
+            ${renderInfoBadge(`Label ${energyLabel.Energieklasse || "Unknown"}`, "accent")}
+            ${renderInfoBadge(energyLabel.Status || "Unknown", "neutral")}
+        </div>
+        ${renderInfoRows([
+            { label: "Type", value: energyLabel.Gebouwtype || energyLabel.Gebouwklasse || "Unknown" },
+            { label: "Year", value: energyLabel.Bouwjaar || "?" },
+            { label: "CO2", value: energyLabel.BerekendeCO2Emissie != null ? `${Number(energyLabel.BerekendeCO2Emissie).toLocaleString("nl-NL")} kg/yr` : "Unknown" },
+            { label: "Use", value: energyLabel.BerekendeEnergieverbruik != null ? `${Number(energyLabel.BerekendeEnergieverbruik).toLocaleString("nl-NL")} kWh/yr` : "Unknown" }
+        ])}
     `;
     energyTarget.dataset.hasData = "true";
     markOperationalUpdate("Energy label data updated", "Building performance");
@@ -1483,12 +1508,15 @@ async function fetchAndDisplayRivmSensors(latitude, longitude) {
 
         rivmTarget.innerHTML = sensors.map((sensor) => `
             <div class="location-inline-block">
-                <strong>${sensor.stationName}</strong><br>
-                ${sensor.place || "Onbekende plaats"} • ${sensor.source || "RIVM"} • ${sensor.distanceKm.toFixed(1)} km<br>
-                PM2.5: ${sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/b"} µg/m³<br>
-                NO2: ${sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/b"} µg/m³<br>
-                O3: ${sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/b"} µg/m³
-                ${sensor.timestamp ? `<br>Laatst gemeten: ${sensor.timestamp}` : ""}
+                <div class="info-stack">
+                    ${renderInfoBadge(sensor.stationName, "neutral")}
+                </div>
+                ${renderInfoRows([
+                    { label: "Distance", value: `${sensor.distanceKm.toFixed(1)} km` },
+                    { label: "PM2.5", value: sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/a" },
+                    { label: "NO2", value: sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/a" },
+                    { label: "O3", value: sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/a" }
+                ])}
             </div>
         `).join("<hr>");
         rivmTarget.dataset.hasData = "true";
@@ -1630,6 +1658,49 @@ function showStatusToast(content) {
         toast.classList.add("is-hiding");
         window.setTimeout(() => toast.remove(), 220);
     }, 3200);
+}
+
+function renderInfoRows(rows = []) {
+    return `<div class="info-kv">${rows.map(({ label, value }) => `
+        <div class="info-kv__row">
+            <span class="info-kv__label">${label}</span>
+            <strong class="info-kv__value">${value}</strong>
+        </div>
+    `).join("")}</div>`;
+}
+
+function renderInfoBadge(value, tone = "neutral") {
+    return `<span class="info-badge info-badge--${tone}">${value}</span>`;
+}
+
+function renderTrafficIncidentPanel() {
+    const panelBody = $("trafficIncidentsPanelBody");
+    if (!panelBody) return;
+
+    if (!currentTrafficIncidents.length) {
+        panelBody.innerHTML = "<p>No current incidents available for this location.</p>";
+        return;
+    }
+
+    panelBody.innerHTML = currentTrafficIncidents.map((incident) => {
+        const props = incident.properties || {};
+        const display = getIncidentDisplay(incident);
+        const road = Array.isArray(props.roadNumbers) && props.roadNumbers.length ? props.roadNumbers.join(", ") : "Local road";
+        const route = props.from && props.to ? `${props.from} → ${props.to}` : (props.from || props.to || "Route details unavailable");
+        return `
+            <div class="location-inline-block">
+                <div class="info-stack">
+                    ${renderInfoBadge(display.description, display.severity >= 4 ? "alert" : display.severity >= 2 ? "warn" : "neutral")}
+                    ${renderInfoBadge(`Severity ${display.severity || "n/a"}`, "neutral")}
+                </div>
+                ${renderInfoRows([
+                    { label: "Road", value: road },
+                    { label: "Route", value: route },
+                    { label: "Length", value: props.length ? `${Math.round(props.length)} m` : "n/a" }
+                ])}
+            </div>
+        `;
+    }).join("<hr>");
 }
 
 function addPrototypeTrafficExperience() {

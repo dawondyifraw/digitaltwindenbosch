@@ -4,39 +4,31 @@
 
 Not yet pushed as a separate release tag.
 
-- Public wording refined from `prototype` to `limited version`.
-- Welcome and help/contact copy now point users to `DataTwinLabs.nl` for a real-time full-data demo, event scheduling, municipal deployment roadmap, and full multi-streaming setup with Daniel or Prof. Jos.
-- Chat assistant can now be reopened from a floating `Odin` button after closing.
-- Municipal tree layer was hardened by switching from the unstable local source to a working public `OpenStreetMap / Overpass` trees-and-green-objects source.
-- Map labels were strengthened with a dedicated labels overlay for clearer Dutch place and city names.
-- Open-data dashboard default location handling was corrected so it opens on Den Bosch instead of `0,0`.
-- Energy-label insights were added to both the clicked-location card and the dashboard, with graceful handling when the EP-Online key is missing.
+- Public-facing wording now presents the platform as a limited version.
+- Welcome, help, and contact text now direct visitors to `DataTwinLabs.nl` to schedule a full-data demo or municipal roadmap session with Daniel or Prof. Jos.
+- The chat assistant can now be reopened from a small floating `Odin` button after closing.
+- The tree layer now uses a more reliable public green-object source.
+- Place and city names are easier to read thanks to a stronger labels overlay.
+- The open-data dashboard now starts correctly in Den Bosch.
+- Energy insights are now shown in both the map info panel and the dashboard, with clear fallback text when no EP-Online key is available.
 
 ## Runner Blade V.4.1
 
 Release date: 2026-03-16
 
-This release focuses on turning the Den Bosch limited version into a stronger municipality-facing open-data showcase with a cleaner startup flow, better GIS structure, and more honest feature behavior.
+This release makes the limited version clearer, more usable, and more municipality-friendly, with stronger open-data views, a cleaner startup flow, and better map-driven insight.
 
 ### Highlights
 
-- New branded welcome screen with DataTwinLabs, Daniel Adenew Wonyifraw, and Prof. Jos van Hillegersberg credits.
-- Dutch-first UI with visible `NL / EN` switching foundation.
-- Cesium scene upgraded and stabilized with local-time sync, improved atmosphere handling, and cleaner weather-mode behavior.
-- Municipal-style sidebar structure with quick views, object catalog, and more compact panels.
-- Open-data dashboard path that works without the backend.
-- Official and public data integrations for:
-  - weather
-  - air quality
-  - traffic flow
-  - RIVM / Luchtmeetnet stations
-  - CBS neighborhood context
-  - BAG / Kadaster building info
-  - PDOK / RCE heritage points
-- Improved mobility presentation with corridor colors, bottleneck legend, and traffic status summaries.
-- Cleaner single location card instead of stacked notification boxes.
-- Condensed `Analyse hier` popup styling aligned with the rest of the interface.
-- Local admin/help/contact panels now show meaningful content instead of dead placeholders.
+- New branded welcome experience with credits and clearer access flow.
+- Dutch-first interface with visible `NL / EN` switching.
+- More stable 3D scene behavior with improved lighting, atmosphere, and weather states.
+- Cleaner municipal-style sidebar with quick views, object groups, and more compact panels.
+- Open-data dashboard that works without the backend.
+- Broader live and public data coverage for weather, air quality, traffic, RIVM stations, CBS neighborhood context, BAG/Kadaster building information, and heritage points.
+- Stronger mobility view with corridor colors, bottleneck states, and clearer traffic summaries.
+- Cleaner location analysis in a single compact info card.
+- Better help, contact, and platform information panels.
 
 ### Smoke-Test Status
 

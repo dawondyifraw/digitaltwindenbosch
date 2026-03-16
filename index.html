@@ -304,27 +304,56 @@
     </section>
   </nav>
 
-  <aside id="adminInfoPanel" class="admin-info-panel is-hidden" aria-live="polite" aria-label="Platform information">
-    <button id="adminInfoCloseBtn" class="admin-info-panel__close" type="button" aria-label="Sluiten">×</button>
-    <h3 id="adminInfoTitle">Platforminformatie</h3>
-    <div id="adminInfoBody" class="admin-info-panel__body"></div>
+  <aside id="adminInfoPanel" class="admin-info-panel is-hidden window-panel" aria-live="polite" aria-label="Platform information" data-window-panel>
+    <div class="panel-window__header" data-window-handle>
+      <h3 id="adminInfoTitle">Platforminformatie</h3>
+      <div class="panel-window__actions">
+        <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimaliseren">−</button>
+        <button id="adminInfoCloseBtn" class="panel-window__btn" type="button" aria-label="Sluiten">×</button>
+      </div>
+    </div>
+    <div id="adminInfoBody" class="admin-info-panel__body panel-window__body"></div>
+  </aside>
+
+  <aside id="trafficIncidentsPanel" class="admin-info-panel is-hidden window-panel" aria-live="polite" aria-label="Traffic incident details" data-window-panel>
+    <div class="panel-window__header" data-window-handle>
+      <h3 id="trafficIncidentsPanelTitle">Traffic incident details</h3>
+      <div class="panel-window__actions">
+        <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimize">−</button>
+        <button id="trafficIncidentsCloseBtn" class="panel-window__btn" type="button" aria-label="Close">×</button>
+      </div>
+    </div>
+    <div id="trafficIncidentsPanelBody" class="admin-info-panel__body panel-window__body"></div>
   </aside>
 
   <!-- Right analytics panel -->
-  <aside id="rightPanel" aria-label="Weather and air quality">
-    <button id="closePanelBtn" title="Close panel" aria-label="Close panel">&#x2715;</button>
-    <h2>Weather and Air Quality Forecast</h2>
-    <div class="chart-container"><canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas></div>
-    <div class="chart-container"><canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas></div>
-    <div class="chart-container"><canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas></div>
-    <div class="chart-container"><canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas></div>
+  <aside id="rightPanel" class="window-panel" aria-label="Weather and air quality" data-window-panel>
+    <div class="panel-window__header" data-window-handle>
+      <h2>Weather and Air Quality Forecast</h2>
+      <div class="panel-window__actions">
+        <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimaliseren">−</button>
+        <button id="closePanelBtn" class="panel-window__btn" title="Close panel" aria-label="Close panel">&#x2715;</button>
+      </div>
+    </div>
+    <div class="panel-window__body">
+      <div class="chart-container"><canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas></div>
+      <div class="chart-container"><canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas></div>
+      <div class="chart-container"><canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas></div>
+      <div class="chart-container"><canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas></div>
+    </div>
   </aside>
 
   <!-- Notifications -->
   <section id="notificationArea" aria-label="Live notifications">
-    <article id="locationInfoCard" class="location-info-card is-hidden" role="status" aria-live="polite">
-      <button class="location-info-card__close" id="locationInfoCloseBtn" aria-label="Close details">×</button>
-      <h4 id="locationInfoTitle">Locatiegegevens</h4>
+    <article id="locationInfoCard" class="location-info-card is-hidden window-panel" role="status" aria-live="polite" data-window-panel>
+      <div class="panel-window__header" data-window-handle>
+        <h4 id="locationInfoTitle">Locatiegegevens</h4>
+        <div class="panel-window__actions">
+          <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimaliseren">−</button>
+          <button class="panel-window__btn" id="locationInfoCloseBtn" aria-label="Close details">×</button>
+        </div>
+      </div>
+      <div class="panel-window__body">
       <div class="location-info-card__section">
         <h5>Weer</h5>
         <div id="locationWeatherContent">Nog geen locatie geselecteerd.</div>
@@ -356,52 +385,69 @@
       <div class="location-info-card__section">
         <h5 id="trafficIncidentsHeading">Incidenten gemeld</h5>
         <div id="trafficIncidentsContent">Nog geen locatie geselecteerd.</div>
+        <button id="openTrafficIncidentsBtn" class="location-info-card__action-btn location-info-card__action-btn--secondary" type="button">View incidents</button>
       </div>
       <div class="location-info-card__actions">
         <button id="openLocationDashboardBtn" class="location-info-card__action-btn" type="button">Open dashboard</button>
       </div>
+      </div>
     </article>
   </section>
 
-  <aside id="mobilityLegend" class="mobility-legend is-hidden" aria-label="Mobiliteitslegenda">
-    <h4>Mobiliteitslegenda</h4>
-    <ul>
-      <li><span class="mobility-legend__swatch mobility-legend__swatch--free"></span> Vrije doorstroming</li>
-      <li><span class="mobility-legend__swatch mobility-legend__swatch--pressure"></span> Druk netwerk</li>
-      <li><span class="mobility-legend__swatch mobility-legend__swatch--delay"></span> Vertraging</li>
-      <li><span class="mobility-legend__swatch mobility-legend__swatch--bottleneck"></span> Bottleneckzone</li>
-    </ul>
-    <p>Corridors tonen actuele verkeersdruk, bottlenecks en een CO2-indicatie voor presentatie van stedelijke mobiliteit.</p>
+  <aside id="mobilityLegend" class="mobility-legend is-hidden window-panel" aria-label="Mobiliteitslegenda" data-window-panel>
+    <div class="panel-window__header" data-window-handle>
+      <h4>Mobiliteitslegenda</h4>
+      <div class="panel-window__actions">
+        <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimaliseren">−</button>
+      </div>
+    </div>
+    <div class="panel-window__body">
+      <ul>
+        <li><span class="mobility-legend__swatch mobility-legend__swatch--free"></span> Vrije doorstroming</li>
+        <li><span class="mobility-legend__swatch mobility-legend__swatch--pressure"></span> Druk netwerk</li>
+        <li><span class="mobility-legend__swatch mobility-legend__swatch--delay"></span> Vertraging</li>
+        <li><span class="mobility-legend__swatch mobility-legend__swatch--bottleneck"></span> Bottleneckzone</li>
+      </ul>
+      <p>Corridors tonen actuele verkeersdruk, bottlenecks en een CO2-indicatie voor presentatie van stedelijke mobiliteit.</p>
+    </div>
   </aside>
 
-  <aside id="buildingThemeLegend" class="building-theme-legend" aria-label="Gebouwfuncties legenda">
-    <h4>Gebouwfunctie</h4>
-    <ul>
-      <li><span class="legend-color" style="background-color:#ffb703;"></span> Woonhuis</li>
-      <li><span class="legend-color" style="background-color:#38bdf8;"></span> Kantoor</li>
-      <li><span class="legend-color" style="background-color:#8b5cf6;"></span> Industrie</li>
-      <li><span class="legend-color" style="background-color:#ef4444;"></span> Winkel</li>
-      <li><span class="legend-color" style="background-color:#22c55e;"></span> Onderwijs</li>
-      <li><span class="legend-color" style="background-color:#eab308;"></span> Gezondheid</li>
-      <li><span class="legend-color" style="background-color:#14b8a6;"></span> Inrichting / voorzieningen</li>
-      <li><span class="legend-color" style="background-color:#a3a3a3;"></span> Onbekend</li>
-    </ul>
+  <aside id="buildingThemeLegend" class="building-theme-legend window-panel" aria-label="Gebouwfuncties legenda" data-window-panel>
+    <div class="panel-window__header" data-window-handle>
+      <h4>Gebouwfunctie</h4>
+      <div class="panel-window__actions">
+        <button class="panel-window__btn" type="button" data-window-minimize aria-label="Minimaliseren">−</button>
+      </div>
+    </div>
+    <div class="panel-window__body">
+      <ul>
+        <li><span class="legend-color" style="background-color:#ffb703;"></span> Woonhuis</li>
+        <li><span class="legend-color" style="background-color:#38bdf8;"></span> Kantoor</li>
+        <li><span class="legend-color" style="background-color:#8b5cf6;"></span> Industrie</li>
+        <li><span class="legend-color" style="background-color:#ef4444;"></span> Winkel</li>
+        <li><span class="legend-color" style="background-color:#22c55e;"></span> Onderwijs</li>
+        <li><span class="legend-color" style="background-color:#eab308;"></span> Gezondheid</li>
+        <li><span class="legend-color" style="background-color:#14b8a6;"></span> Inrichting / voorzieningen</li>
+        <li><span class="legend-color" style="background-color:#a3a3a3;"></span> Onbekend</li>
+      </ul>
+    </div>
   </aside>
 
   <!-- Minimap -->
 
   <!-- Chat -->
-  <section class="chat-container" aria-label="Assistant chat">
+  <section class="chat-container window-panel" aria-label="Assistant chat" data-window-panel>
     <div class="card">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center panel-window__header" data-window-handle>
         <span>City Assistant</span>
         <div>
+          <button class="btn btn-sm btn-light" id="minimize-chat-btn" aria-label="Minimize chat">−</button>
           <button id="clear-chat-btn" class="btn btn-sm btn-light clear-chat-btn">Clear</button>
           <button id="close-chat-btn" class="btn btn-sm btn-light" aria-label="Close chat">&#x2715;</button>
         </div>
       </div>
-      <div class="card-body chat-window" id="chat-window" aria-live="polite"></div>
-      <div class="card-footer">
+      <div class="card-body chat-window panel-window__body" id="chat-window" aria-live="polite"></div>
+      <div class="card-footer panel-window__body">
         <form class="input-group" id="chat-form" autocomplete="off">
           <label for="user-input" class="sr-only">Type your message</label>
           <input type="text" id="user-input" class="form-control" placeholder="Type your message..." />
@@ -675,6 +721,9 @@ const adminInfoPanel = document.getElementById('adminInfoPanel');
 const adminInfoTitle = document.getElementById('adminInfoTitle');
 const adminInfoBody = document.getElementById('adminInfoBody');
 const adminInfoCloseBtn = document.getElementById('adminInfoCloseBtn');
+const trafficIncidentsPanel = document.getElementById('trafficIncidentsPanel');
+const trafficIncidentsCloseBtn = document.getElementById('trafficIncidentsCloseBtn');
+const openTrafficIncidentsBtn = document.getElementById('openTrafficIncidentsBtn');
 
 closeChatBtn?.addEventListener('click', () => {
   if (window.syncChatVisibility) {
@@ -801,6 +850,65 @@ document.querySelectorAll('.admin-info-trigger').forEach((button) => {
 
 adminInfoCloseBtn?.addEventListener('click', () => {
   adminInfoPanel?.classList.add('is-hidden');
+});
+
+openTrafficIncidentsBtn?.addEventListener('click', () => {
+  trafficIncidentsPanel?.classList.remove('is-hidden');
+});
+
+trafficIncidentsCloseBtn?.addEventListener('click', () => {
+  trafficIncidentsPanel?.classList.add('is-hidden');
+});
+
+document.querySelectorAll('[data-window-panel]').forEach((panel) => {
+  const handle = panel.querySelector('[data-window-handle]');
+  const minimizeBtn = panel.querySelector('[data-window-minimize]');
+
+  if (handle) {
+    let startX = 0;
+    let startY = 0;
+    let panelX = 0;
+    let panelY = 0;
+    let dragging = false;
+
+    handle.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('button, input, textarea, a, label')) return;
+      dragging = true;
+      panel.classList.add('is-dragging');
+      const rect = panel.getBoundingClientRect();
+      startX = event.clientX;
+      startY = event.clientY;
+      panelX = rect.left;
+      panelY = rect.top;
+      panel.style.left = `${rect.left}px`;
+      panel.style.top = `${rect.top}px`;
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      panel.style.transform = 'none';
+    });
+
+    window.addEventListener('pointermove', (event) => {
+      if (!dragging) return;
+      const nextLeft = Math.max(8, Math.min(window.innerWidth - panel.offsetWidth - 8, panelX + (event.clientX - startX)));
+      const nextTop = Math.max(8, Math.min(window.innerHeight - 56, panelY + (event.clientY - startY)));
+      panel.style.left = `${nextLeft}px`;
+      panel.style.top = `${nextTop}px`;
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (!dragging) return;
+      dragging = false;
+      panel.classList.remove('is-dragging');
+    });
+  }
+
+  minimizeBtn?.addEventListener('click', () => {
+    panel.classList.toggle('is-minimized');
+  });
+});
+
+document.getElementById('minimize-chat-btn')?.addEventListener('click', () => {
+  chatContainer?.classList.toggle('is-minimized');
 });
 
       // Chat submit
