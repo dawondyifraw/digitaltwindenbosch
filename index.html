@@ -90,34 +90,34 @@
   <!-- Splash Screen -->
   <div id="splashScreen" role="alert" aria-live="polite" aria-busy="true">
     <div class="inner">
-      <p class="welcome-kicker">DataTwinLabs presents</p>
+      <p class="welcome-kicker">Welcome</p>
       <h1>Digital Twin • ’s‑Hertogenbosch</h1>
-      <p class="welcome-lead">A limited civic-intelligence edition for urban insight, planning, mobility, environment, and municipal storytelling.</p>
-      <p id="loadingText">Loading core modules and live data…</p>
+      <p class="welcome-lead">A focused 3D city view for exploring the centre of Den Bosch, with live public data for weather, mobility, environment, and local context.</p>
+      <p id="loadingText">Getting the city view ready…</p>
       <div class="logo-container" aria-hidden="true">
         <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="DataTwinLabs" class="logo" />
         <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Gemeente ’s‑Hertogenbosch" class="logo" />
       </div>
       <div class="loading-bar" aria-hidden="true"><div></div></div>
       <div class="welcome-verification" id="welcomeVerification" aria-live="polite">
-        <p class="welcome-verification__label">Security check</p>
-        <p class="welcome-verification__question" id="verificationQuestion">Enter the code shown below.</p>
+        <p class="welcome-verification__label">Quick check</p>
+        <p class="welcome-verification__question" id="verificationQuestion">Type the code below to continue.</p>
         <canvas id="verificationCanvas" class="welcome-verification__canvas" width="280" height="84" aria-label="Security verification code"></canvas>
         <div class="welcome-verification__row">
-          <input id="verificationAnswer" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" placeholder="Security code" aria-label="Verification answer" />
-          <button id="verificationCheckBtn" type="button">Verify</button>
+          <input id="verificationAnswer" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" placeholder="Type code" aria-label="Verification answer" />
+          <button id="verificationCheckBtn" type="button">Continue</button>
           <button id="verificationRefreshBtn" type="button" aria-label="New challenge">↻</button>
         </div>
-        <p class="welcome-verification__status" id="verificationStatus">Complete the security check to enter the twin.</p>
+        <p class="welcome-verification__status" id="verificationStatus">Complete the quick check to enter the viewer.</p>
       </div>
       <div class="welcome-actions">
-        <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter Digital Twin</button>
+        <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter viewer</button>
       </div>
       <div class="welcome-footer">
-        <strong>Developed by DataTwinLabs, 2026</strong>
-        <span>Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
-        <span>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a live full-data demo with Daniel or Prof. Jos and explore the full platform and municipal deployment roadmap.</span>
-        <span>Release note: Runner Blade V.4.2 adds condensed forecast panels, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, an open-data dashboard, and improved weather-reactive scene behavior.</span>
+        <strong>Built by DataTwinLabs, 2026</strong>
+        <span>Made by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
+        <span>Find out more at <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a>.</span>
+        <span>Runner Blade V.4.2 brings a tighter forecast view, clearer dashboard summaries, and stronger public-data context across the viewer.</span>
       </div>
     </div>
   </div>
@@ -553,8 +553,18 @@
       // Splash handling
       const splash = document.getElementById('splashScreen');
       const loadingText = document.getElementById('loadingText');
+      const verificationCanvas = document.getElementById('verificationCanvas');
+      const verificationAnswer = document.getElementById('verificationAnswer');
+      const verificationCheckBtn = document.getElementById('verificationCheckBtn');
+      const verificationRefreshBtn = document.getElementById('verificationRefreshBtn');
+      const verificationStatus = document.getElementById('verificationStatus');
+      const verificationQuestion = document.getElementById('verificationQuestion');
+      const enterTwinBtn = document.getElementById('enterTwinBtn');
       const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
       let visitorSessionId = null;
+      let splashReady = false;
+      let verificationPassed = false;
+      let verificationCode = '';
 
       const makeVisitorRecord = (eventName, extra = {}) => ({
         event: eventName,
@@ -613,21 +623,104 @@
         splash.style.opacity = '0';
         setTimeout(()=> splash.remove(), 260);
       };
+
+      const syncEnterState = () => {
+        if (!enterTwinBtn) return;
+        const canEnter = splashReady && verificationPassed;
+        enterTwinBtn.disabled = !canEnter;
+        enterTwinBtn.classList.toggle('is-hidden', !splashReady);
+      };
+
+      const drawVerificationCode = () => {
+        if (!verificationCanvas) return;
+        const ctx = verificationCanvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, verificationCanvas.width, verificationCanvas.height);
+        ctx.fillStyle = '#08131f';
+        ctx.fillRect(0, 0, verificationCanvas.width, verificationCanvas.height);
+
+        for (let i = 0; i < 18; i += 1) {
+          ctx.strokeStyle = `rgba(89, 217, 138, ${0.08 + Math.random() * 0.14})`;
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * verificationCanvas.width, Math.random() * verificationCanvas.height);
+          ctx.lineTo(Math.random() * verificationCanvas.width, Math.random() * verificationCanvas.height);
+          ctx.stroke();
+        }
+
+        ctx.font = '700 34px "Space Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < verificationCode.length; i += 1) {
+          const char = verificationCode[i];
+          const x = 52 + i * 34;
+          const y = verificationCanvas.height / 2 + (Math.random() * 8 - 4);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate((Math.random() * 0.24) - 0.12);
+          ctx.fillStyle = i % 2 === 0 ? '#edf7ef' : '#59d98a';
+          ctx.fillText(char, 0, 0);
+          ctx.restore();
+        }
+      };
+
+      const refreshVerificationChallenge = () => {
+        verificationCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+        verificationPassed = false;
+        if (verificationAnswer) verificationAnswer.value = '';
+        if (verificationStatus) verificationStatus.textContent = 'Complete the quick check to enter the viewer.';
+        if (verificationQuestion) verificationQuestion.textContent = 'Type the code below to continue.';
+        drawVerificationCode();
+        syncEnterState();
+      };
+
+      const completeVerification = () => {
+        verificationPassed = true;
+        if (verificationStatus) verificationStatus.textContent = 'Check complete. You can enter the viewer now.';
+        syncEnterState();
+      };
+
+      const validateVerification = () => {
+        if (!verificationAnswer) return;
+        const answer = verificationAnswer.value.trim().toUpperCase();
+        if (answer && answer === verificationCode) {
+          completeVerification();
+          return;
+        }
+        verificationPassed = false;
+        if (verificationStatus) verificationStatus.textContent = 'That code did not match. Please try again.';
+        syncEnterState();
+        refreshVerificationChallenge();
+      };
+
       const setWelcomeReady = (message) => {
         if (loadingText && message) loadingText.textContent = message;
         splash?.classList.add('is-ready');
-        setTimeout(safeHideSplash, 400);
+        splashReady = true;
+        syncEnterState();
       };
       initVisitorSession();
+      refreshVerificationChallenge();
+      verificationCheckBtn?.addEventListener('click', validateVerification);
+      verificationRefreshBtn?.addEventListener('click', refreshVerificationChallenge);
+      verificationAnswer?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          validateVerification();
+        }
+      });
+      enterTwinBtn?.addEventListener('click', () => {
+        if (!verificationPassed) return;
+        safeHideSplash();
+      });
       let waited = 0;
       const tick = setInterval(()=>{
         waited += 150;
         if (readyCheck()) {
           clearInterval(tick);
-          setWelcomeReady('System ready. Opening the Digital Twin…');
+          setWelcomeReady('The city view is ready. Complete the quick check to continue.');
         } else if (waited > 8000) {
           clearInterval(tick);
-          setWelcomeReady('Core modules loaded. Opening the Digital Twin…');
+          setWelcomeReady('The viewer is ready. Complete the quick check to continue.');
         }
       },150);
 
