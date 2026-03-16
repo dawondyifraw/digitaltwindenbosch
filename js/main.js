@@ -9,6 +9,8 @@ let trafficPulseEntities = [];
 let trafficCorridorEntities = [];
 let trafficAnimationTimer = null;
 let mobilityOverlayState = [];
+let buildingThemeMode = "function";
+let sceneTimeSyncTimer = null;
 
 // API keys filled from config.json
 let TomTomAPI = "";
@@ -46,7 +48,7 @@ const operationalState = {
 };
 
 const BIODIVERSITY_SERVICE_URL = "https://geoproxy.s-hertogenbosch.nl/ags_extern/rest/services/Externvrij/CO2/MapServer/11";
-const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/ps-ch/wfs/v1_0";
+const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
 const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
@@ -200,6 +202,11 @@ function wireUi() {
         trafficBtn.addEventListener("click", toggleTraffic);
     }
 
+    const quickTrafficBtn = $("toggleTrafficQuick");
+    if (quickTrafficBtn) {
+        quickTrafficBtn.addEventListener("click", toggleTraffic);
+    }
+
     const flyBtn = $("flytoIKDBButton");
     if (flyBtn) {
         flyBtn.addEventListener("click", flytoIKDB);
@@ -225,9 +232,32 @@ function wireUi() {
         cbsBtn.addEventListener("click", toggleCbsNeighborhoodOverlay);
     }
 
+    document.querySelectorAll('input[name="buildingTheme"]').forEach((input) => {
+        input.addEventListener("change", (event) => {
+            applyBuildingTheme(event.target.value);
+        });
+    });
+
     document.querySelectorAll("[data-scenario]").forEach((button) => {
         button.addEventListener("click", () => {
             activateScenario(button.getAttribute("data-scenario"));
+        });
+    });
+
+    document.querySelectorAll("[data-world-effect]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const effectName = button.getAttribute("data-world-effect");
+            setWorldEffectState(effectName);
+            flytoIKDB();
+            const statusText = effectName === "weather-night"
+                ? "Night view activated"
+                : effectName === "weather-water"
+                    ? "Flood and rainfall readiness view activated"
+                    : "Weather view activated";
+            updatePrototypeHud({
+                freshness: statusText,
+                focus: button.textContent.trim()
+            });
         });
     });
 }
@@ -452,9 +482,14 @@ async function initCesium() {
         viewer.scene.skyBox.show = false;
         viewer.scene.backgroundColor = Cesium.Color.BLACK;
         viewer.scene.globe.enableLighting = true;
+        viewer.scene.fog.enabled = true;
         viewer.shadows = true;
         viewer.camera.frustum.far = 10000000.0;
         window.viewer = viewer;
+
+        syncSceneToLocalTime();
+        startSceneTimeSync();
+        configureCesiumEnvironment();
 
         if (viewer.dataSources.length > 0) {
             viewer.dataSources.get(0).clustering.enabled = false;
@@ -496,27 +531,7 @@ async function loadTileset() {
             osmBuildingsTileset = null;
         }
 
-        if (osmBuildingsTileset) {
-            osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
-                color: {
-                    conditions: [
-                        ["${building} === 'school'", "color('rgba(70, 130, 180, 0.8)')"],
-                        ["${building} === 'university'", "color('rgba(34, 139, 34, 0.8)')"],
-                        ["${building} === 'hospital'", "color('rgba(255, 69, 0, 0.8)')"],
-                        ["${building} === 'parking'", "color('rgba(128, 128, 128, 0.7)')"],
-                        ["${building} === 'church'", "color('rgba(148, 0, 211, 0.8)')"],
-                        ["${building} === 'retail'", "color('rgba(255, 165, 0, 0.8)')"],
-                        ["${building} === 'industrial'", "color('rgba(160, 82, 45, 0.8)')"],
-                        ["${building} === 'commercial'", "color('rgba(0, 0, 139, 0.8)')"],
-                        ["${building} === 'hotel'", "color('rgba(255, 223, 0, 0.8)')"],
-                        ["${building} === 'house'", "color('rgba(255, 182, 193, 0.8)')"],
-                        ["${building} === 'apartments'", "color('rgba(135, 206, 235, 0.8)')"],
-                        ["${building} === 'office'", "color('rgba(105, 105, 105, 0.8)')"],
-                        ["true", "color('rgba(200, 200, 200, 0.6)')"]
-                    ]
-                }
-            });
-        }
+        applyBuildingTheme(buildingThemeMode);
 
         function addBuildingPin(buildingType, latitude, longitude) {
             const pinBuilder = new Cesium.PinBuilder();
@@ -806,6 +821,79 @@ async function fetchRivmComponentLatest(filename, stationId) {
     }
 }
 
+function syncSceneToLocalTime() {
+    if (!viewer || !Cesium || !Cesium.JulianDate) return;
+    viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
+    viewer.clock.shouldAnimate = false;
+    viewer.clock.multiplier = 1;
+    if (viewer.scene) {
+        viewer.scene.requestRender();
+    }
+}
+
+function startSceneTimeSync() {
+    if (sceneTimeSyncTimer) {
+        clearInterval(sceneTimeSyncTimer);
+    }
+    sceneTimeSyncTimer = window.setInterval(() => {
+        syncSceneToLocalTime();
+    }, 60 * 1000);
+}
+
+function configureCesiumEnvironment() {
+    if (!viewer || !viewer.scene) return;
+
+    if (viewer.scene.fog) {
+        viewer.scene.fog.enabled = true;
+        viewer.scene.fog.density = 0.00055;
+        viewer.scene.fog.minimumBrightness = 0.25;
+        viewer.scene.fog.screenSpaceErrorFactor = 1.7;
+    }
+
+    if (viewer.scene.skyAtmosphere) {
+        viewer.scene.skyAtmosphere.show = true;
+        viewer.scene.skyAtmosphere.brightnessShift = -0.04;
+        viewer.scene.skyAtmosphere.saturationShift = -0.02;
+    }
+
+    if (viewer.scene.atmosphere) {
+        if (typeof Cesium.DynamicAtmosphereLightingType !== "undefined") {
+            viewer.scene.atmosphere.dynamicLighting = Cesium.DynamicAtmosphereLightingType.SUNLIGHT;
+        }
+        viewer.scene.atmosphere.lightIntensity = 11.0;
+        viewer.scene.atmosphere.rayleighCoefficient = new Cesium.Cartesian3(5.5e-6, 13.0e-6, 28.4e-6);
+        viewer.scene.atmosphere.mieCoefficient = new Cesium.Cartesian3(21e-6, 21e-6, 21e-6);
+    }
+
+    if (viewer.scene.dynamicEnvironmentMapManager) {
+        viewer.scene.dynamicEnvironmentMapManager.enabled = true;
+    }
+}
+
+function applyCesiumAtmosphereProfile(profile = {}) {
+    if (!viewer || !viewer.scene) return;
+
+    if (viewer.scene.fog) {
+        viewer.scene.fog.enabled = true;
+        if (typeof profile.fogDensity === "number") viewer.scene.fog.density = profile.fogDensity;
+        if (typeof profile.fogBrightness === "number") viewer.scene.fog.minimumBrightness = profile.fogBrightness;
+    }
+
+    if (viewer.scene.skyAtmosphere) {
+        if (typeof profile.skyBrightnessShift === "number") viewer.scene.skyAtmosphere.brightnessShift = profile.skyBrightnessShift;
+        if (typeof profile.skySaturationShift === "number") viewer.scene.skyAtmosphere.saturationShift = profile.skySaturationShift;
+        if (typeof profile.skyHueShift === "number") viewer.scene.skyAtmosphere.hueShift = profile.skyHueShift;
+    }
+
+    if (viewer.scene.atmosphere) {
+        if (typeof profile.lightIntensity === "number") viewer.scene.atmosphere.lightIntensity = profile.lightIntensity;
+    }
+
+    if (viewer.scene) {
+        viewer.scene.requestRender();
+    }
+}
+
 async function fetchNearestRivmSensors(latitude, longitude) {
     const cacheKey = `rivm_nearest_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
     const cached = cacheGet(cacheKey);
@@ -986,6 +1074,7 @@ async function fetchAndDisplayWeather(latitude, longitude) {
         if (!response.ok) throw new Error("Failed to fetch weather data");
 
         const weatherData = await response.json();
+        applyLiveWeatherEffects(weatherData);
         const weatherContent = `
             <strong>Weather at ${name}</strong><br>
             Temperature: ${weatherData.main.temp} °C<br>
@@ -1081,6 +1170,36 @@ async function fetchAndDisplayTraffic(latitude, longitude) {
             trafficStateTarget.dataset.hasData = "false";
         }
     }
+}
+
+function applyLiveWeatherEffects(weatherData) {
+    if (!weatherData || !weatherData.weather || !weatherData.weather.length) return;
+
+    const weatherMain = String(weatherData.weather[0].main || "").toLowerCase();
+    const weatherDescription = String(weatherData.weather[0].description || "").toLowerCase();
+    const cloudiness = Number(weatherData.clouds && weatherData.clouds.all) || 0;
+    const sunrise = Number(weatherData.sys && weatherData.sys.sunrise) || 0;
+    const sunset = Number(weatherData.sys && weatherData.sys.sunset) || 0;
+    const observedAt = Number(weatherData.dt) || Math.floor(Date.now() / 1000);
+
+    let effectName = "weather-clear";
+
+    if (weatherMain.includes("snow") || weatherDescription.includes("sneeuw")) {
+        effectName = "weather-snow";
+    } else if (
+        weatherMain.includes("rain")
+        || weatherMain.includes("drizzle")
+        || weatherMain.includes("thunderstorm")
+        || weatherDescription.includes("regen")
+    ) {
+        effectName = "weather-rain";
+    } else if (weatherMain.includes("mist") || weatherMain.includes("fog") || weatherMain.includes("haze") || cloudiness >= 85) {
+        effectName = "weather-water";
+    } else if (sunrise && sunset && (observedAt < sunrise || observedAt > sunset)) {
+        effectName = "weather-night";
+    }
+
+    setWorldEffectState(effectName);
 }
 
 async function fetchTrafficSnapshot(latitude, longitude) {
@@ -1596,7 +1715,7 @@ async function toggleDutchHeritageLayer() {
         setLayerActive("heritage", true, "Dutch heritage sites", "PDOK heritage feed loaded");
     } catch (error) {
         console.error("Error loading Dutch heritage sites:", error);
-        showNotification("event", "Unable to load Dutch heritage open data right now.");
+        showNotification("event", "Erfgoedpunten konden nu niet worden geladen.");
     }
 }
 
@@ -1619,7 +1738,7 @@ function toggleCbsNeighborhoodOverlay() {
     cbsNeighborhoodLayer = viewer.imageryLayers.addImageryProvider(
         new Cesium.WebMapServiceImageryProvider({
             url: CBS_WIJKBUURT_WMS_URL,
-            layers: "wijkenbuurten_thema_buurten_buurt_aantal_inwoners",
+            layers: "buurten",
             parameters: {
                 service: "WMS",
                 version: "1.3.0",
@@ -1629,9 +1748,9 @@ function toggleCbsNeighborhoodOverlay() {
             }
         })
     );
-    cbsNeighborhoodLayer.alpha = 0.68;
-    cbsNeighborhoodLayer.brightness = 1.14;
-    cbsNeighborhoodLayer.contrast = 1.22;
+    cbsNeighborhoodLayer.alpha = 0.42;
+    cbsNeighborhoodLayer.brightness = 1.05;
+    cbsNeighborhoodLayer.contrast = 1.15;
 
     if (button) {
         button.textContent = "CBS buurtstatistiek AAN";
@@ -1640,7 +1759,6 @@ function toggleCbsNeighborhoodOverlay() {
 
     showNotification("event", "CBS buurtstatistiek geladen vanuit PDOK / CBS. Dit geeft gebiedsprofielen zoals inwoners, dichtheid en huishoudens.");
     setLayerActive("cbs", true, "CBS neighborhood profiles", "CBS neighborhood layer loaded");
-    flytoIKDB();
     viewer.scene.requestRender();
 }
 
@@ -1653,6 +1771,7 @@ async function loadDutchHeritageSites() {
         count: "120",
         outputFormat: "application/json",
         srsName: "EPSG:4326",
+        // PDOK WFS expects EPSG:4326 bbox in lat,lon axis order here.
         bbox: "51.62,5.20,51.78,5.45,EPSG:4326"
     });
 
@@ -1665,7 +1784,7 @@ async function loadDutchHeritageSites() {
     const data = await response.json();
     const features = Array.isArray(data.features) ? data.features : [];
     if (!features.length) {
-        throw new Error("No heritage features returned");
+        throw new Error("No heritage features returned for current area");
     }
 
     if (!heritageState.dataSource) {
@@ -1716,7 +1835,14 @@ async function loadDutchHeritageSites() {
         });
     });
 
-    flytoIKDB();
+    viewer.flyTo(heritageState.dataSource, {
+        duration: 2.2,
+        offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(18),
+            Cesium.Math.toRadians(-40),
+            5000
+        )
+    });
 }
 
 async function toggleBiodiversityStream() {
@@ -1752,7 +1878,6 @@ async function toggleBiodiversityStream() {
     showNotification("event", "Gemeentelijke bomenlaag geladen. Dit toont biodiversiteits- en boompunten uit de Den Bosch geo service.");
     biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
     setLayerActive("biodiversity", true, "Biodiversity stream", "Biodiversity stream activated");
-    flytoIKDB();
 }
 
 async function loadBiodiversityTrees() {
@@ -1780,14 +1905,17 @@ async function loadBiodiversityTrees() {
     const requestUrl = `${BIODIVERSITY_SERVICE_URL}/query?${params.toString()}`;
 
     try {
-        const response = await fetch(requestUrl);
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(requestUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!response.ok) {
             throw new Error(`Biodiversity fetch failed: ${response.status}`);
         }
         const data = await response.json();
         const features = Array.isArray(data.features) ? data.features : [];
         if (!features.length) {
-            showNotification("event", "No biodiversity tree points found in the current area.");
+            showNotification("event", "Geen boompunten gevonden in het huidige kaartgebied.");
             return;
         }
 
@@ -1830,7 +1958,7 @@ async function loadBiodiversityTrees() {
         });
     } catch (error) {
         console.error("Biodiversity stream error:", error);
-        showNotification("event", "Biodiversity stream unavailable (API blocked or offline).");
+        showNotification("event", "Gemeentelijke bomenlaag niet beschikbaar (bron offline of geblokkeerd).");
     }
 }
 
@@ -1869,17 +1997,33 @@ function setWorldEffectState(effectName) {
 
     const rootStyle = document.documentElement.style;
     const presets = {
-        "weather-clear": { rain: "0", snow: "0", fog: "0.08", glow: "0.05" },
-        "weather-rain": { rain: "0.45", snow: "0", fog: "0.24", glow: "0.02" },
-        "weather-snow": { rain: "0", snow: "0.55", fog: "0.28", glow: "0.04" },
-        "weather-night": { rain: "0", snow: "0", fog: "0.12", glow: "0.6" },
-        "weather-water": { rain: "0.18", snow: "0", fog: "0.18", glow: "0.08" }
+        "weather-clear": {
+            rain: "0", snow: "0", fog: "0.08", glow: "0.05",
+            fogDensity: 0.00045, fogBrightness: 0.34, skyBrightnessShift: -0.03, skySaturationShift: -0.02, skyHueShift: 0.0, lightIntensity: 11.0
+        },
+        "weather-rain": {
+            rain: "0.45", snow: "0", fog: "0.24", glow: "0.02",
+            fogDensity: 0.00145, fogBrightness: 0.18, skyBrightnessShift: -0.18, skySaturationShift: -0.18, skyHueShift: -0.02, lightIntensity: 8.4
+        },
+        "weather-snow": {
+            rain: "0", snow: "0.55", fog: "0.28", glow: "0.04",
+            fogDensity: 0.0011, fogBrightness: 0.32, skyBrightnessShift: -0.09, skySaturationShift: -0.12, skyHueShift: -0.01, lightIntensity: 9.2
+        },
+        "weather-night": {
+            rain: "0", snow: "0", fog: "0.12", glow: "0.6",
+            fogDensity: 0.00072, fogBrightness: 0.07, skyBrightnessShift: -0.42, skySaturationShift: -0.22, skyHueShift: 0.01, lightIntensity: 3.2
+        },
+        "weather-water": {
+            rain: "0.18", snow: "0", fog: "0.18", glow: "0.08",
+            fogDensity: 0.001, fogBrightness: 0.2, skyBrightnessShift: -0.12, skySaturationShift: -0.1, skyHueShift: -0.015, lightIntensity: 8.8
+        }
     };
     const preset = presets[effectName] || presets["weather-clear"];
     rootStyle.setProperty("--weather-rain-opacity", preset.rain);
     rootStyle.setProperty("--weather-snow-opacity", preset.snow);
     rootStyle.setProperty("--weather-fog-opacity", preset.fog);
     rootStyle.setProperty("--night-glow-opacity", preset.glow);
+    applyCesiumAtmosphereProfile(preset);
 
     if (viewer) {
         if (effectName === "weather-night") {
@@ -1893,35 +2037,88 @@ function setWorldEffectState(effectName) {
     }
 }
 
-function activateScenario(scenarioName) {
+async function activateScenario(scenarioName) {
     if (!viewer) return;
 
     const scenarios = {
         mobility: {
+            lon: 5.3043,
+            lat: 51.6863,
             destination: Cesium.Cartesian3.fromDegrees(5.3043, 51.6863, 1200),
             heading: 10,
             pitch: -38,
             hud: {
                 freshness: "Scenario mobility camera activated",
                 focus: "Mobility corridor focus"
+            },
+            afterFly: async () => {
+                name = "Mobiliteitsfocus Binnenstad";
+                try {
+                    localStorage.setItem("udt_last_location", JSON.stringify({
+                        lat: 51.6863,
+                        lon: 5.3043,
+                        name
+                    }));
+                } catch (error) {}
+                if (!tomTomTrafficLayer) {
+                    toggleTraffic();
+                }
+                await fetchAndDisplayTraffic(51.6863, 5.3043);
+                const card = $("locationInfoCard");
+                card?.classList.remove("is-hidden");
             }
         },
         environment: {
+            lon: 5.291,
+            lat: 51.6905,
             destination: Cesium.Cartesian3.fromDegrees(5.291, 51.6905, 1800),
             heading: -20,
             pitch: -50,
             hud: {
                 freshness: "Scenario environmental camera activated",
                 focus: "Environmental watch"
+            },
+            afterFly: async () => {
+                name = "Milieu- en gezondheidsfocus";
+                try {
+                    localStorage.setItem("udt_last_location", JSON.stringify({
+                        lat: 51.6905,
+                        lon: 5.291,
+                        name
+                    }));
+                } catch (error) {}
+                $("rightPanel")?.classList.remove("is-closed");
+                await Promise.allSettled([
+                    fetchAndDisplayWeather(51.6905, 5.291),
+                    fetchAndDisplayAirQuality(51.6905, 5.291),
+                    fetchAndDisplayRivmSensors(51.6905, 5.291)
+                ]);
+                const card = $("locationInfoCard");
+                card?.classList.remove("is-hidden");
             }
         },
         culture: {
+            lon: 5.3038,
+            lat: 51.6872,
             destination: Cesium.Cartesian3.fromDegrees(5.3038, 51.6872, 900),
             heading: 35,
             pitch: -32,
             hud: {
                 freshness: "Scenario heritage camera activated",
                 focus: "Heritage and visitor flow"
+            },
+            afterFly: async () => {
+                name = "Museumkwartier en erfgoed";
+                try {
+                    localStorage.setItem("udt_last_location", JSON.stringify({
+                        lat: 51.6872,
+                        lon: 5.3038,
+                        name
+                    }));
+                } catch (error) {}
+                if (!heritageState.active) {
+                    await toggleDutchHeritageLayer();
+                }
             }
         }
     };
@@ -1937,7 +2134,12 @@ function activateScenario(scenarioName) {
             pitch: Cesium.Math.toRadians(scenario.pitch),
             roll: 0.0
         },
-        duration: 2.4
+        duration: 2.4,
+        complete: () => {
+            if (typeof scenario.afterFly === "function") {
+                scenario.afterFly().catch((error) => console.warn("Scenario follow-up failed:", error));
+            }
+        }
     });
 }
 
@@ -2079,6 +2281,58 @@ function highlightAllResidentialBuildings() {
             ]
         }
     });
+}
+
+function applyBuildingTheme(mode = "function") {
+    buildingThemeMode = mode;
+    const legend = $("buildingThemeLegend");
+
+    if (cityContextTileset) {
+        // In thematic mode, let the colorized OSM layer read clearly above the cinematic city context.
+        cityContextTileset.show = mode === "neutral";
+    }
+
+    if (legend) {
+        legend.classList.toggle("is-hidden", mode !== "function");
+    }
+
+    if (!osmBuildingsTileset) {
+        if (mode === "function") {
+            showNotification("event", "Gebouwfunctie is pas zichtbaar zodra de OSM-gebouwenlaag is geladen.");
+        }
+        return;
+    }
+
+    osmBuildingsTileset.show = true;
+
+    if (mode === "neutral") {
+        osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
+            color: "color('rgba(196, 190, 182, 0.82)')"
+        });
+        if (viewer?.scene) {
+            viewer.scene.requestRender();
+        }
+        return;
+    }
+
+    osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
+        color: {
+            conditions: [
+                ["${building} === 'house' || ${building} === 'residential' || ${building} === 'apartments'", "color('#ffb703', 0.86)"],
+                ["${building} === 'office' || ${building} === 'commercial'", "color('#38bdf8', 0.86)"],
+                ["${building} === 'industrial' || ${building} === 'warehouse'", "color('#8b5cf6', 0.86)"],
+                ["${building} === 'retail' || ${building} === 'shop' || ${building} === 'supermarket' || ${building} === 'kiosk'", "color('#ef4444', 0.88)"],
+                ["${building} === 'school' || ${building} === 'university' || ${building} === 'college' || ${building} === 'kindergarten'", "color('#22c55e', 0.88)"],
+                ["${building} === 'hospital' || ${building} === 'clinic'", "color('#eab308', 0.88)"],
+                ["${building} === 'church' || ${building} === 'civic' || ${building} === 'public' || ${building} === 'parking' || ${building} === 'hotel'", "color('#14b8a6', 0.84)"],
+                ["true", "color('#a3a3a3', 0.72)"]
+            ]
+        }
+    });
+
+    if (viewer?.scene) {
+        viewer.scene.requestRender();
+    }
 }
 
 function showSimplifiedPopup(latitude, longitude) {
@@ -2264,7 +2518,7 @@ function addCombinedContextMenu(viewer) {
     if (showInfo) {
         showInfo.addEventListener("click", () => {
             displayDiv.style.display = "block";
-            displayDiv.innerHTML = `<h2>Info</h2><p>Digital Twins Den Bosch v.2.0 in collaboration with DataTwinLabs, 2025. All Rights Reserved.</p><button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>`;
+            displayDiv.innerHTML = `<h2>Info</h2><p>Runner Blade V.4.1 for the Digital Twin Den Bosch initiative, developed by DataTwinLabs in 2026. Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg.</p><button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>`;
             hideContextMenu();
         });
     }
@@ -2280,7 +2534,14 @@ function addCombinedContextMenu(viewer) {
     if (showHelp) {
         showHelp.addEventListener("click", () => {
             displayDiv.style.display = "block";
-            displayDiv.innerHTML = `<h2>Help</h2><p>This is the help section with guidance and FAQs.</p><button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>`;
+            displayDiv.innerHTML = `
+                <h2>Help & Contact</h2>
+                <p>Runner Blade V.4.1 is a public digital twin prototype for Den Bosch.</p>
+                <p><strong>Project contact</strong><br>Daniel Adenew Wonyifraw<br><a href="mailto:info@datatwinlabs.nl">info@datatwinlabs.nl</a></p>
+                <p><strong>Platform partner</strong><br>DataTwinLabs<br>For the full multi-streaming platform, backend integration, and municipality deployment path, please get in touch by email.</p>
+                <p><strong>Academic collaboration</strong><br>Prof. Jos van Hillegersberg</p>
+                <button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>
+            `;
             hideContextMenu();
         });
     }
@@ -2296,27 +2557,26 @@ function addCombinedContextMenu(viewer) {
             if (!popup) {
                 popup = document.createElement('div');
                 popup.id = 'analyzePopup';
-                popup.style.position = 'absolute';
-                popup.style.minWidth = '260px';
-                popup.style.maxWidth = '420px';
-                popup.style.padding = '10px';
-                popup.style.border = '1px solid #ccc';
-                popup.style.borderRadius = '8px';
-                // use the app's right-panel/display background where available for visibility
-                popup.style.background = (displayDiv && displayDiv.style && displayDiv.style.background) ? displayDiv.style.background : contextMenu.style.background || 'rgba(12,89,119,0.95)';
-                popup.style.color = '#e6f7ff';
-                popup.style.zIndex = 10002;
-                popup.style.boxShadow = '0 6px 18px rgba(0,0,0,0.3)';
-                    popup.innerHTML = `
-                        <div id="analyzeHeader" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;cursor:move">
-                            <div style="display:flex;gap:8px;align-items:center"><strong>Analyse hier</strong><span id="analyzeSpinner" style="display:none;width:16px;height:16px"><svg viewBox="0 0 50 50" width="16" height="16"><circle cx="25" cy="25" r="20" fill="none" stroke="#007bff" stroke-width="4" stroke-dasharray="31.4 31.4"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/></circle></svg></span></div>
-                            <div style="display:flex;gap:6px;align-items:center"><button id="pinAnalyzePopup" title="Analysevenster vastzetten" type="button" style="background:transparent;border:none;cursor:pointer;font-size:16px">📌</button><button id="closeAnalyzePopup" type="button" aria-label="Sluit analysevenster" style="background:transparent;border:none;font-size:16px;cursor:pointer">×</button></div>
+                popup.className = 'analyze-popup';
+                popup.innerHTML = `
+                    <div id="analyzeHeader" class="analyze-popup__header">
+                        <div class="analyze-popup__title">
+                            <strong>Analyse hier</strong>
+                            <span id="analyzeSpinner" style="display:none;width:16px;height:16px">
+                                <svg viewBox="0 0 50 50" width="16" height="16" aria-hidden="true">
+                                    <circle cx="25" cy="25" r="20" fill="none" stroke="#3dd6c6" stroke-width="4" stroke-dasharray="31.4 31.4">
+                                        <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/>
+                                    </circle>
+                                </svg>
+                            </span>
                         </div>
-                        <div id="analyzeContent">Analyse wordt geladen…</div>`;
+                        <div class="analyze-popup__actions">
+                            <button id="pinAnalyzePopup" class="analyze-popup__icon-btn" title="Analysevenster vastzetten" type="button">📌</button>
+                            <button id="closeAnalyzePopup" class="analyze-popup__icon-btn" type="button" aria-label="Sluit analysevenster">×</button>
+                        </div>
+                    </div>
+                    <div id="analyzeContent" class="analyze-popup__content">Analyse wordt geladen…</div>`;
                 document.body.appendChild(popup);
-                // ensure popup receives pointer events and sits above other UI
-                popup.style.pointerEvents = 'auto';
-                popup.style.zIndex = 12001;
                 // close handler (both click and pointerdown for reliability)
                 const closeBtnEl = document.getElementById('closeAnalyzePopup');
                 if (closeBtnEl) {
@@ -2331,8 +2591,6 @@ function addCombinedContextMenu(viewer) {
                     };
                     closeBtnEl.addEventListener('click', doClose);
                     closeBtnEl.addEventListener('pointerdown', doClose);
-                    closeBtnEl.style.cursor = 'pointer';
-                    closeBtnEl.style.zIndex = 12002;
                 }
 
                 // pin handler
@@ -2391,12 +2649,6 @@ function addCombinedContextMenu(viewer) {
             } catch (e) { /* ignore */ }
 
             const contentEl = popup.querySelector('#analyzeContent');
-            if (contentEl) {
-                contentEl.style.background = 'rgb(6 58 78 / 61%)';
-                contentEl.style.padding = '8px';
-                contentEl.style.borderRadius = '6px';
-                contentEl.style.color = '#e6f7ff';
-            }
 
             const lat = lastContextLat;
             const lon = lastContextLon;

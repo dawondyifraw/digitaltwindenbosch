@@ -105,6 +105,7 @@
       <div class="welcome-footer">
         <strong>Developed by DataTwinLabs, 2026</strong>
         <span>Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
+        <span>Release note: Runner Blade V.4.1 adds a municipal object catalog, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, a static open-data dashboard, condensed analysis panels, and improved weather-reactive scene behavior.</span>
       </div>
     </div>
   </div>
@@ -149,7 +150,7 @@
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
       <div class="brand">UDT Console</div>
-      <div class="version">Runner Blade V.4.0</div>
+      <div class="version">Runner Blade V.4.1</div>
     </div>
 
     <section class="sidebar-tools" aria-label="Prototype controls">
@@ -170,37 +171,101 @@
       <button class="menu-toggle" aria-expanded="true" aria-controls="ops-submenu"><span class="icon" aria-hidden="true">▸</span>City Operations</button>
       <ul id="ops-submenu" class="submenu open" role="menu">
         <li role="none"><button id="flytoIKDBButton" class="menu-item" role="menuitem">City Command View</button></li>
-        <li role="none"><button id="toggleTraffic" class="menu-item" role="menuitem">Traffic Flow & CO2</button></li>
       </ul>
     </section>
 
     <section class="menu-group">
-      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Urban Intelligence</button>
-      <ul id="layers-submenu" class="submenu open" role="menu">
-        <li role="none"><button id="BAGButton" class="menu-item" role="menuitem">Kadaster Buildings</button></li>
-        <li role="none"><button id="toggleMuseumsBtn" class="menu-item" role="menuitem">Dutch Heritage Sites</button></li>
-        <li role="none"><button id="toggleBiodiversityBtn" class="menu-item" role="menuitem">Biodiversity Stream</button></li>
-        <li role="none"><button id="toggleCbsNeighborhoodsBtn" class="menu-item" role="menuitem">CBS Buurtprofielen</button></li>
+      <button class="menu-toggle" aria-expanded="true" aria-controls="quick-submenu"><span class="icon" aria-hidden="true">▸</span>Snelle weergaven</button>
+      <ul id="quick-submenu" class="submenu open" role="menu">
+        <li role="none"><button id="toggleTrafficQuick" class="menu-item" role="menuitem">Verkeersstroom & CO2</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="mobility">Event & Crowd Mobility</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="environment">Air Quality & Health View</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-scenario="culture">Tourism & Cultural Districts</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-world-effect="weather-water">Flood & Rainfall Readiness</button></li>
+        <li role="none"><button class="menu-item" role="menuitem" data-world-effect="weather-night">Night View</button></li>
       </ul>
+    </section>
 
-      <div id="legend" class="legend" aria-label="Building type legend">
-        <h4>Building Type Legend</h4>
-        <ul>
-          <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
-          <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> University</li>
-          <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Hospital</li>
-          <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parking</li>
-          <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Church</li>
-          <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
-          <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrial</li>
-          <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Greenhouse</li>
-          <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercial</li>
-          <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Construction</li>
-          <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
-          <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> House</li>
-          <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Apartments</li>
-          <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Office</li>
-        </ul>
+    <section class="menu-group">
+      <button class="menu-toggle" aria-expanded="true" aria-controls="layers-submenu"><span class="icon" aria-hidden="true">▸</span>Gemeentelijke objecten</button>
+      <div id="layers-submenu" class="submenu open catalog-shell" role="group" aria-label="Gemeentelijke objectcatalogus">
+        <details class="catalog-group" open>
+          <summary>Panden</summary>
+          <div class="catalog-items">
+            <button id="BAGButton" class="menu-item catalog-item" type="button">Kadastergebouwen</button>
+            <details class="catalog-subgroup" open>
+              <summary>Themaweergave</summary>
+              <div class="catalog-items">
+                <label class="catalog-check">
+                  <input type="radio" name="buildingTheme" value="neutral">
+                  <span>Neutraal</span>
+                </label>
+                <label class="catalog-check">
+                  <input type="radio" name="buildingTheme" value="function" checked>
+                  <span>Gebouwfunctie</span>
+                </label>
+              </div>
+            </details>
+            <details class="catalog-subgroup">
+              <summary>Bouwtypen</summary>
+              <div id="legend" class="legend catalog-legend" aria-label="Legenda gebouwtypes">
+                <ul>
+                  <li><span class="legend-color" style="background-color: rgba(70, 130, 180, 0.8);"></span> School</li>
+                  <li><span class="legend-color" style="background-color: rgba(34, 139, 34, 0.8);"></span> Universiteit</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 69, 0, 0.8);"></span> Ziekenhuis</li>
+                  <li><span class="legend-color" style="background-color: rgba(128, 128, 128, 0.7);"></span> Parkeren</li>
+                  <li><span class="legend-color" style="background-color: rgba(148, 0, 211, 0.8);"></span> Kerk</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 165, 0, 0.8);"></span> Retail</li>
+                  <li><span class="legend-color" style="background-color: rgba(160, 82, 45, 0.8);"></span> Industrie</li>
+                  <li><span class="legend-color" style="background-color: rgba(144, 238, 144, 0.8);"></span> Kas</li>
+                  <li><span class="legend-color" style="background-color: rgba(0, 0, 139, 0.8);"></span> Commercieel</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 215, 0, 0.8);"></span> Bouwplaats</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 223, 0, 0.8);"></span> Hotel</li>
+                  <li><span class="legend-color" style="background-color: rgba(255, 182, 193, 0.8);"></span> Woning</li>
+                  <li><span class="legend-color" style="background-color: rgba(135, 206, 235, 0.8);"></span> Appartementen</li>
+                  <li><span class="legend-color" style="background-color: rgba(105, 105, 105, 0.8);"></span> Kantoor</li>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </details>
+
+        <details class="catalog-group" open>
+          <summary>Omgeving</summary>
+          <div class="catalog-items">
+            <button id="toggleMuseumsBtn" class="menu-item catalog-item" type="button">Erfgoedpunten (PDOK/RCE)</button>
+            <button id="toggleCbsNeighborhoodsBtn" class="menu-item catalog-item" type="button">CBS buurtstatistiek</button>
+          </div>
+        </details>
+
+        <details class="catalog-group" open>
+          <summary>Inrichting</summary>
+          <div class="catalog-items">
+            <button id="toggleBiodiversityBtn" class="menu-item catalog-item" type="button">Gemeentelijke bomenlaag</button>
+          </div>
+        </details>
+
+        <details class="catalog-group" open>
+          <summary>Mobiliteit</summary>
+          <div class="catalog-items">
+            <button id="toggleTraffic" class="menu-item catalog-item" type="button">Verkeersstroom & CO2</button>
+            <div class="catalog-note">Inclusief bottleneckzones, corridorstatus en mobiliteitslegenda.</div>
+          </div>
+        </details>
+
+        <details class="catalog-group">
+          <summary>Ecologisch / milieu</summary>
+          <div class="catalog-items">
+            <div class="catalog-note">RIVM meetpunten, luchtkwaliteit en weeranalyse worden via locatieklik en open data-dashboard getoond.</div>
+          </div>
+        </details>
+
+        <details class="catalog-group">
+          <summary>Veiligheid</summary>
+          <div class="catalog-items">
+            <div class="catalog-note">Publieke waarschuwingen en scenario’s worden in de volgende stap verder uitgebreid.</div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -217,12 +282,18 @@
     <section class="menu-group">
       <button class="menu-toggle" aria-expanded="false" aria-controls="admin-submenu"><span class="icon" aria-hidden="true">▸</span>Platform & Partnerships</button>
       <ul id="admin-submenu" class="submenu" role="menu">
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/health">Operational Readiness</a></li>
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/logs">Data Governance & Audit</a></li>
-        <li role="none"><a class="menu-link" role="menuitem" href="#" data-route="/settings">Municipality Deployment Model</a></li>
+        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="readiness">Operational readiness</button></li>
+        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="governance">Data governance and audit</button></li>
+        <li role="none"><button class="menu-item admin-info-trigger" role="menuitem" type="button" data-admin-panel="deployment">Municipality deployment model</button></li>
       </ul>
     </section>
   </nav>
+
+  <aside id="adminInfoPanel" class="admin-info-panel is-hidden" aria-live="polite" aria-label="Platform information">
+    <button id="adminInfoCloseBtn" class="admin-info-panel__close" type="button" aria-label="Sluiten">×</button>
+    <h3 id="adminInfoTitle">Platforminformatie</h3>
+    <div id="adminInfoBody" class="admin-info-panel__body"></div>
+  </aside>
 
   <!-- Right analytics panel -->
   <aside id="rightPanel" aria-label="Weather and air quality">
@@ -278,6 +349,20 @@
       <li><span class="mobility-legend__swatch mobility-legend__swatch--bottleneck"></span> Bottleneckzone</li>
     </ul>
     <p>Corridors tonen actuele verkeersdruk, bottlenecks en een CO2-indicatie voor presentatie van stedelijke mobiliteit.</p>
+  </aside>
+
+  <aside id="buildingThemeLegend" class="building-theme-legend" aria-label="Gebouwfuncties legenda">
+    <h4>Gebouwfunctie</h4>
+    <ul>
+      <li><span class="legend-color" style="background-color:#ffb703;"></span> Woonhuis</li>
+      <li><span class="legend-color" style="background-color:#38bdf8;"></span> Kantoor</li>
+      <li><span class="legend-color" style="background-color:#8b5cf6;"></span> Industrie</li>
+      <li><span class="legend-color" style="background-color:#ef4444;"></span> Winkel</li>
+      <li><span class="legend-color" style="background-color:#22c55e;"></span> Onderwijs</li>
+      <li><span class="legend-color" style="background-color:#eab308;"></span> Gezondheid</li>
+      <li><span class="legend-color" style="background-color:#14b8a6;"></span> Inrichting / voorzieningen</li>
+      <li><span class="legend-color" style="background-color:#a3a3a3;"></span> Onbekend</li>
+    </ul>
   </aside>
 
   <!-- Minimap -->
@@ -401,6 +486,10 @@ const sidebarBriefingPanel = document.getElementById('sidebarBriefingPanel');
 const localeNlBtn = document.getElementById('localeNlBtn');
 const localeEnBtn = document.getElementById('localeEnBtn');
 const openDataDashboardBtn = document.getElementById('openDataDashboardBtn');
+const adminInfoPanel = document.getElementById('adminInfoPanel');
+const adminInfoTitle = document.getElementById('adminInfoTitle');
+const adminInfoBody = document.getElementById('adminInfoBody');
+const adminInfoCloseBtn = document.getElementById('adminInfoCloseBtn');
 
 closeChatBtn?.addEventListener('click', () => {
   chatContainer?.classList.add('is-closed');
@@ -465,6 +554,60 @@ openLocationDashboardBtn?.addEventListener('click', () => {
     }
   } catch (error) {}
   window.open(targetUrl, '_blank');
+});
+
+const adminPanelContent = {
+  readiness: {
+    title: 'Operational readiness',
+    body: `
+      <p><strong>Current prototype state</strong></p>
+      <ul>
+        <li>Static frontend ready for GitHub Pages or simple web hosting</li>
+        <li>Open data feeds active for weather, traffic, CBS, RIVM, BAG and heritage</li>
+        <li>Backend-dependent modules remain optional for this public prototype</li>
+      </ul>
+      <p>This view explains what is already deployable today versus what belongs to the full platform version.</p>
+    `
+  },
+  governance: {
+    title: 'Data governance and audit',
+    body: `
+      <p><strong>Current data posture</strong></p>
+      <ul>
+        <li>Public sources are shown with source labels and timestamps where available</li>
+        <li>The prototype still mixes open data with presentation-oriented visual layers</li>
+        <li>Full audit logging and lineage belong to the backend platform phase</li>
+      </ul>
+      <p>For the production twin, this section should later expose source lineage, freshness, permissions and audit trails.</p>
+    `
+  },
+  deployment: {
+    title: 'Municipality deployment model',
+    body: `
+      <p><strong>Prototype deployment path</strong></p>
+      <ul>
+        <li>Current version: static public showcase with optional open-data integrations</li>
+        <li>Next phase: connect to the Digital Twin Den Bosch backend services</li>
+        <li>Production phase: municipality-grade hosting, secured APIs, identity, audit and orchestration</li>
+      </ul>
+      <p>Contact DataTwinLabs for the full multi-streaming platform setup and municipal deployment roadmap.</p>
+    `
+  }
+};
+
+document.querySelectorAll('.admin-info-trigger').forEach((button) => {
+  button.addEventListener('click', () => {
+    const key = button.getAttribute('data-admin-panel');
+    const content = adminPanelContent[key];
+    if (!content || !adminInfoPanel || !adminInfoTitle || !adminInfoBody) return;
+    adminInfoTitle.textContent = content.title;
+    adminInfoBody.innerHTML = content.body;
+    adminInfoPanel.classList.remove('is-hidden');
+  });
+});
+
+adminInfoCloseBtn?.addEventListener('click', () => {
+  adminInfoPanel?.classList.add('is-hidden');
 });
 
       // Chat submit
