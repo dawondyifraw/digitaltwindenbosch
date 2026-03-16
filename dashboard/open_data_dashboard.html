@@ -249,7 +249,7 @@
         <section class="hero">
             <article class="panel hero-card">
                 <p class="eyebrow">Runner Blade V.4.1</p>
-                <h1 id="dashboardTitle">Open data dashboard voor Den Bosch</h1>
+                <h1 id="dashboardTitle">Digital Twin Den Bosch</h1>
                 <p id="dashboardIntro">Realtime prototypeanalyse voor weer, luchtkwaliteit, verkeersdruk en nabij erfgoed op basis van browservriendelijke publieke databronnen.</p>
                 <div class="toolbar">
                     <button class="button-primary" id="refreshDashboardBtn">Data vernieuwen</button>
@@ -331,6 +331,14 @@
                 <h2>Officiele RIVM meetpunten</h2>
                 <div class="banner">Dichtstbijzijnde actieve meetpunten uit het actuele RIVM/Luchtmeetnet-open-datapakket.</div>
                 <ul class="sensor-list" id="sensorList">
+                    <li>Bezig met laden…</li>
+                </ul>
+            </article>
+
+            <article class="panel info-panel">
+                <h2>TomTom incidenten</h2>
+                <div class="banner">Actuele verkeersincidenten, afsluitingen en verstoringen in de buurt van de gekozen locatie.</div>
+                <ul class="sensor-list" id="incidentList">
                     <li>Bezig met laden…</li>
                 </ul>
             </article>
@@ -511,6 +519,10 @@
                     }))
                 },
                 traffic: { flowSegmentData: { currentSpeed: 31, freeFlowSpeed: 39, currentTravelTime: 84, confidence: 0.83, roadName: "Binnenstad-corridor" } },
+                incidents: [
+                    { properties: { iconCategory: 8, magnitudeOfDelay: 4, from: "Binnenstad", to: "Stationsweg", length: 420, events: [{ description: "Afgesloten" }], roadNumbers: ["Lokale corridor"] } },
+                    { properties: { iconCategory: 1, magnitudeOfDelay: 2, from: "Zuid Willemsvaart", to: "Citadellaan", length: 260, events: [{ description: "Vertraging" }], roadNumbers: ["N279"] } }
+                ],
                 cbs: {
                     buurtnaam: "Binnenstad centrum",
                     gemeentenaam: "'s-Hertogenbosch",
@@ -644,6 +656,22 @@
             }
         }
 
+        async function fetchTomTomIncidents(lat, lon, key) {
+            try {
+                const params = new URLSearchParams({
+                    bbox: `${lon - 0.02},${lat - 0.02},${lon + 0.02},${lat + 0.02}`,
+                    fields: "{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,delay,events{description},roadNumbers,startTime,endTime,from,to,length}}}",
+                    language: "nl-NL",
+                    timeValidityFilter: "present",
+                    key
+                });
+                const data = await fetchJson(`https://api.tomtom.com/traffic/services/5/incidentDetails?${params.toString()}`, { incidents: [] });
+                return Array.isArray(data.incidents) ? data.incidents : [];
+            } catch (error) {
+                return fallbackData().incidents;
+            }
+        }
+
         function normalizeCbsValue(value) {
             if (value === null || value === undefined || value === "" || Number.isNaN(value)) return null;
             if (typeof value === "number" && value <= -99995) return null;
@@ -733,6 +761,7 @@
                 airCurrent,
                 airForecast,
                 traffic,
+                incidents,
                 reverse,
                 heritage,
                 cbs,
@@ -743,6 +772,7 @@
                 fetchJson(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${weatherKey}`),
                 fetchJson(`https://api.openweathermap.org/data/2.5/air_pollution/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}`),
                 fetchJson(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?key=${tomtomKey}&point=${lat},${lon}`),
+                fetchTomTomIncidents(lat, lon, tomtomKey),
                 fetchJson(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${tomtomKey}`),
                 fetchJson(`${HERITAGE_SERVICE_URL}?${heritageParams.toString()}`),
                 fetchCbsNeighborhoodStats(lat, lon),
@@ -760,6 +790,7 @@
                 airCurrent,
                 airForecast,
                 traffic,
+                incidents,
                 cbs,
                 rivmSensors,
                 heritage,
@@ -826,6 +857,32 @@
                     PM2.5: ${sensor.values && sensor.values.PM25 != null ? sensor.values.PM25.toFixed(1) : "n/b"} µg/m³<br>
                     NO2: ${sensor.values && sensor.values.NO2 != null ? sensor.values.NO2.toFixed(1) : "n/b"} µg/m³<br>
                     O3: ${sensor.values && sensor.values.O3 != null ? sensor.values.O3.toFixed(1) : "n/b"} µg/m³
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function renderIncidents(incidentData) {
+            const list = document.getElementById("incidentList");
+            list.innerHTML = "";
+            const incidents = Array.isArray(incidentData) ? incidentData.slice(0, 6) : [];
+
+            if (!incidents.length) {
+                const item = document.createElement("li");
+                item.textContent = "Geen actuele TomTom incidenten in de directe omgeving.";
+                list.appendChild(item);
+                return;
+            }
+
+            incidents.forEach((incident) => {
+                const props = incident.properties || {};
+                const eventText = Array.isArray(props.events) && props.events[0] ? props.events[0].description : "Verkeersincident";
+                const road = Array.isArray(props.roadNumbers) && props.roadNumbers.length ? props.roadNumbers.join(", ") : "Lokale weg";
+                const item = document.createElement("li");
+                item.innerHTML = `
+                    <strong>${eventText}</strong><br>
+                    <span class="muted">${road} • Ernst ${props.magnitudeOfDelay ?? "n/b"}</span><br>
+                    ${props.from || "Start onbekend"} → ${props.to || "Einde onbekend"}
                 `;
                 list.appendChild(item);
             });
@@ -914,6 +971,7 @@
             renderCharts(data);
             renderHeritage(data.heritage);
             renderRivmSensors(data.rivmSensors);
+            renderIncidents(data.incidents);
             renderSources(data.demoMode);
             document.getElementById("lastUpdated").textContent = formatTime(new Date());
             setStatus(

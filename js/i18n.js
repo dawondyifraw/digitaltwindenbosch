@@ -72,8 +72,10 @@ window.udtI18n = (function () {
             bag_building_info: "BAG gebouwinfo",
             official_sensor_data: "Officiele RIVM meetpunten",
             traffic_state: "Verkeersstatus",
+            traffic_incidents: "TomTom incidenten",
             no_location_selected: "Nog geen locatie geselecteerd.",
             no_official_sensor_data: "Geen actuele officiele meetpunten gevonden voor deze locatie.",
+            no_traffic_incidents: "Geen actuele TomTom incidenten in de directe omgeving.",
             open_dashboard: "Open dashboard",
             briefing_open: "Briefing openen",
             briefing_close: "Briefing sluiten",
@@ -154,8 +156,10 @@ window.udtI18n = (function () {
             bag_building_info: "BAG building info",
             official_sensor_data: "Official RIVM stations",
             traffic_state: "Traffic state",
+            traffic_incidents: "TomTom incidents",
             no_location_selected: "No location selected yet.",
             no_official_sensor_data: "No current official stations found for this location.",
+            no_traffic_incidents: "No current TomTom incidents in the immediate area.",
             open_dashboard: "Open dashboard",
             briefing_open: "Open briefing",
             briefing_close: "Close briefing",
@@ -274,6 +278,7 @@ window.udtI18n = (function () {
         applyText("#bagInfoHeading", "bag_building_info");
         applyText("#rivmInfoHeading", "official_sensor_data");
         applyText("#trafficStateHeading", "traffic_state");
+        applyText("#trafficIncidentsHeading", "traffic_incidents");
         applyText("#openLocationDashboardBtn", "open_dashboard");
 
         const weatherContent = document.getElementById("locationWeatherContent");
@@ -282,12 +287,14 @@ window.udtI18n = (function () {
         const bagContent = document.getElementById("locationBagContent");
         const rivmContent = document.getElementById("locationRivmContent");
         const trafficStateContent = document.getElementById("trafficStateContent");
+        const trafficIncidentsContent = document.getElementById("trafficIncidentsContent");
         if (weatherContent && !weatherContent.dataset.hasData) weatherContent.textContent = t("no_location_selected");
         if (airContent && !airContent.dataset.hasData) airContent.textContent = t("no_location_selected");
         if (trafficContent && !trafficContent.dataset.hasData) trafficContent.textContent = t("no_location_selected");
         if (bagContent && !bagContent.dataset.hasData) bagContent.textContent = t("no_location_selected");
         if (rivmContent && !rivmContent.dataset.hasData) rivmContent.textContent = t("no_location_selected");
         if (trafficStateContent && !trafficStateContent.dataset.hasData) trafficStateContent.textContent = t("no_location_selected");
+        if (trafficIncidentsContent && !trafficIncidentsContent.dataset.hasData) trafficIncidentsContent.textContent = t("no_location_selected");
 
         applyText("#sidebarBriefingTitle", "briefing_title");
         applyText("#sidebarBriefingText", "briefing_text");

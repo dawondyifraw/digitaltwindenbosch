@@ -7,7 +7,9 @@ let name = "";
 let trafficFlowEntities = [];
 let trafficPulseEntities = [];
 let trafficCorridorEntities = [];
+let trafficIncidentEntities = [];
 let trafficAnimationTimer = null;
+let trafficIncidentRefreshTimer = null;
 let mobilityOverlayState = [];
 let buildingThemeMode = "function";
 let sceneTimeSyncTimer = null;
@@ -1170,6 +1172,37 @@ async function fetchAndDisplayTraffic(latitude, longitude) {
             trafficStateTarget.dataset.hasData = "false";
         }
     }
+
+    await fetchAndDisplayTrafficIncidents(latitude, longitude);
+}
+
+async function fetchAndDisplayTrafficIncidents(latitude, longitude) {
+    const target = $("trafficIncidentsContent");
+    if (!target) return;
+
+    const incidents = await fetchTomTomTrafficIncidents(latitude, longitude);
+    if (!incidents.length) {
+        target.textContent = window.udtI18n
+            ? window.udtI18n.t("no_traffic_incidents")
+            : "Geen actuele TomTom incidenten in de directe omgeving.";
+        target.dataset.hasData = "false";
+        return;
+    }
+
+    target.innerHTML = incidents.slice(0, 4).map((incident) => {
+        const props = incident.properties || {};
+        const display = getIncidentDisplay(incident);
+        const road = Array.isArray(props.roadNumbers) && props.roadNumbers.length ? props.roadNumbers.join(", ") : "Lokale weg";
+        return `
+            <div class="location-inline-block">
+                <strong>${display.description}</strong><br>
+                ${road} • Ernst ${display.severity || "n/b"}<br>
+                ${props.from || "Start onbekend"} → ${props.to || "Einde onbekend"}<br>
+                ${props.length ? `Lengte: ${Math.round(props.length)} m` : ""}
+            </div>
+        `;
+    }).join("<hr>");
+    target.dataset.hasData = "true";
 }
 
 function applyLiveWeatherEffects(weatherData) {
@@ -1212,6 +1245,37 @@ async function fetchTrafficSnapshot(latitude, longitude) {
     } catch (error) {
         return null;
     }
+}
+
+async function fetchTomTomTrafficIncidents(latitude, longitude, delta = 0.018) {
+    try {
+        const params = new URLSearchParams({
+            bbox: `${longitude - delta},${latitude - delta},${longitude + delta},${latitude + delta}`,
+            fields: "{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,delay,events{description},roadNumbers,startTime,endTime,from,to,length}}}",
+            language: "nl-NL",
+            timeValidityFilter: "present",
+            key: TomTomAPI
+        });
+        const response = await fetch(`https://api.tomtom.com/traffic/services/5/incidentDetails?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch TomTom incidents");
+        const data = await response.json();
+        return Array.isArray(data.incidents) ? data.incidents : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function getIncidentDisplay(incident) {
+    const props = incident?.properties || {};
+    const firstEvent = Array.isArray(props.events) && props.events[0] ? props.events[0].description : null;
+    const description = firstEvent || "Verkeersincident";
+    const severity = Number(props.magnitudeOfDelay) || 0;
+    let color = "#facc15";
+    if (severity >= 4) color = "#f43f5e";
+    else if (severity >= 3) color = "#fb923c";
+    else if (severity >= 2) color = "#facc15";
+    else color = "#38d6c5";
+    return { description, severity, color };
 }
 
 async function fetchWeatherSnapshot(latitude, longitude) {
@@ -1608,13 +1672,67 @@ function removePrototypeTrafficExperience() {
         clearInterval(trafficAnimationTimer);
         trafficAnimationTimer = null;
     }
+    if (trafficIncidentRefreshTimer) {
+        clearInterval(trafficIncidentRefreshTimer);
+        trafficIncidentRefreshTimer = null;
+    }
     trafficFlowEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
     trafficPulseEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
     trafficCorridorEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
+    trafficIncidentEntities.forEach((entity) => viewer && viewer.entities.remove(entity));
     trafficFlowEntities = [];
     trafficPulseEntities = [];
     trafficCorridorEntities = [];
+    trafficIncidentEntities = [];
     mobilityOverlayState = [];
+}
+
+async function refreshTrafficIncidentOverlay(latitude = 51.686, longitude = 5.291) {
+    if (!viewer) return;
+    const incidents = await fetchTomTomTrafficIncidents(latitude, longitude, 0.03);
+
+    trafficIncidentEntities.forEach((entity) => viewer.entities.remove(entity));
+    trafficIncidentEntities = [];
+
+    incidents.slice(0, 18).forEach((incident) => {
+        const geometry = incident.geometry || {};
+        const coords = Array.isArray(geometry.coordinates) ? geometry.coordinates : [];
+        if (!coords.length) return;
+        const coord = Array.isArray(coords[0]) ? coords[0] : coords;
+        if (!Array.isArray(coord) || coord.length < 2) return;
+        const [lon, lat] = coord;
+        const display = getIncidentDisplay(incident);
+        const props = incident.properties || {};
+        trafficIncidentEntities.push(viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(lon, lat, 8),
+            point: {
+                pixelSize: 13,
+                color: Cesium.Color.fromCssColorString(display.color),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2
+            },
+            label: {
+                text: display.description,
+                font: "bold 12px sans-serif",
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 3,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                pixelOffset: new Cesium.Cartesian2(0, -22),
+                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000)
+            },
+            description: `
+                <h2>TomTom incident</h2>
+                <p><strong>Status:</strong> ${display.description}</p>
+                <p><strong>Ernst:</strong> ${display.severity || "Onbekend"}</p>
+                <p><strong>Van:</strong> ${props.from || "Onbekend"}</p>
+                <p><strong>Naar:</strong> ${props.to || "Onbekend"}</p>
+                <p><strong>Weglengte:</strong> ${props.length ? `${Math.round(props.length)} m` : "n/b"}</p>
+            `
+        }));
+    });
+
+    if (viewer.scene) viewer.scene.requestRender();
 }
 
 function toggleTraffic() {
@@ -1631,6 +1749,8 @@ function toggleTraffic() {
         tomTomTrafficLayer.contrast = 1.18;
         tomTomTrafficLayer.saturation = 1.1;
         addPrototypeTrafficExperience();
+        refreshTrafficIncidentOverlay();
+        trafficIncidentRefreshTimer = window.setInterval(() => refreshTrafficIncidentOverlay(), 5 * 60 * 1000);
         $("mobilityLegend")?.classList.remove("is-hidden");
         setLayerActive("traffic", true, "Traffic and CO2 corridors", "Traffic flow layer activated");
         if (viewer && viewer.scene) {
