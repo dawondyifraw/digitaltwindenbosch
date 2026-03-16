@@ -8,6 +8,7 @@ let trafficFlowEntities = [];
 let trafficPulseEntities = [];
 let trafficCorridorEntities = [];
 let trafficAnimationTimer = null;
+let mobilityOverlayState = [];
 
 // API keys filled from config.json
 let TomTomAPI = "";
@@ -1347,25 +1348,37 @@ function addPrototypeTrafficExperience() {
     if (!viewer || trafficFlowEntities.length > 0) return;
 
     const corridors = [
-        { lon: 5.3035, lat: 51.6873, co2: 420, flow: "High", radius: 140 },
-        { lon: 5.3125, lat: 51.6835, co2: 455, flow: "Medium", radius: 120 },
-        { lon: 5.2925, lat: 51.6892, co2: 398, flow: "Elevated", radius: 110 },
-        { lon: 5.3215, lat: 51.6922, co2: 440, flow: "High", radius: 135 }
+        { id: "A2-Centrum", lon: 5.3035, lat: 51.6873, co2: 420, ratio: 0.94, radius: 125 },
+        { id: "Station-Corridor", lon: 5.3125, lat: 51.6835, co2: 455, ratio: 0.71, radius: 145 },
+        { id: "Museumkwartier", lon: 5.2925, lat: 51.6892, co2: 398, ratio: 0.62, radius: 160 },
+        { id: "Brabantlaan", lon: 5.3215, lat: 51.6922, co2: 440, ratio: 0.48, radius: 175 }
     ];
 
-    trafficPulseEntities = corridors.map((corridor) => viewer.entities.add({
+    function getCorridorState(ratio) {
+        if (ratio >= 0.9) return { label: "Vrije doorstroming", color: "#34d399", pulse: "#86efac" };
+        if (ratio >= 0.7) return { label: "Druk netwerk", color: "#facc15", pulse: "#fde68a" };
+        if (ratio >= 0.55) return { label: "Vertraging", color: "#fb923c", pulse: "#fdba74" };
+        return { label: "Bottleneck", color: "#f43f5e", pulse: "#fda4af" };
+    }
+
+    mobilityOverlayState = corridors.map((corridor) => {
+        const state = getCorridorState(corridor.ratio);
+        return { ...corridor, ...state };
+    });
+
+    trafficPulseEntities = mobilityOverlayState.map((corridor) => viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(corridor.lon, corridor.lat, 0),
         ellipse: {
             semiMinorAxis: corridor.radius,
             semiMajorAxis: corridor.radius,
-            material: Cesium.Color.fromCssColorString("#f97316").withAlpha(0.26),
+            material: Cesium.Color.fromCssColorString(corridor.color).withAlpha(corridor.label === "Bottleneck" ? 0.26 : 0.18),
             outline: true,
             outlineWidth: 2,
-            outlineColor: Cesium.Color.fromCssColorString("#fde047").withAlpha(0.78),
+            outlineColor: Cesium.Color.fromCssColorString(corridor.pulse).withAlpha(0.82),
             height: 2
         },
         label: {
-            text: `${corridor.flow} flow | CO2 ${corridor.co2} ppm`,
+            text: `${corridor.id} | ${corridor.label}`,
             font: "bold 13px sans-serif",
             fillColor: Cesium.Color.WHITE,
             outlineColor: Cesium.Color.BLACK,
@@ -1376,9 +1389,10 @@ function addPrototypeTrafficExperience() {
         },
         description: `
             <h2>Mobility & CO2 Corridor</h2>
-            <p><strong>Traffic flow:</strong> ${corridor.flow}</p>
+            <p><strong>Status:</strong> ${corridor.label}</p>
+            <p><strong>Doorstroming:</strong> ${Math.round(corridor.ratio * 100)}% van vrije snelheid</p>
             <p><strong>Estimated CO2 load:</strong> ${corridor.co2} ppm</p>
-            <p><strong>Mode:</strong> Prototype mobility storytelling layer</p>
+            <p><strong>Mode:</strong> Netwerkprestatie en bottleneckoverlay</p>
         `
     }));
 
@@ -1405,34 +1419,31 @@ function addPrototypeTrafficExperience() {
 
     trafficCorridorEntities = vehiclePaths.map((path, index) => {
         const flatPositions = path.flat();
-        const corridorColor = index === 0
-            ? Cesium.Color.fromCssColorString("#3dd6c6")
-            : index === 1
-                ? Cesium.Color.fromCssColorString("#f59e0b")
-                : Cesium.Color.fromCssColorString("#fb7185");
+        const corridorState = mobilityOverlayState[index] || mobilityOverlayState[0];
+        const corridorColor = Cesium.Color.fromCssColorString(corridorState ? corridorState.color : "#3dd6c6");
 
         return viewer.entities.add({
             polyline: {
                 positions: Cesium.Cartesian3.fromDegreesArray(flatPositions),
-                width: 10,
+                width: corridorState && corridorState.label === "Bottleneck" ? 14 : 11,
                 clampToGround: false,
                 material: new Cesium.PolylineGlowMaterialProperty({
-                    glowPower: 0.28,
+                    glowPower: corridorState && corridorState.label === "Bottleneck" ? 0.38 : 0.28,
                     taperPower: 0.7,
                     color: corridorColor.withAlpha(0.92)
                 })
             },
             description: `
                 <h2>Traffic Corridor ${index + 1}</h2>
-                <p><strong>Status:</strong> Active prototype mobility flow</p>
-                <p><strong>Visual:</strong> Glow line indicates heavy movement corridor</p>
+                <p><strong>Status:</strong> ${corridorState ? corridorState.label : "Mobiliteitscorridor"}</p>
+                <p><strong>Visual:</strong> Kleur geeft netwerkprestatie en bottleneckdruk weer</p>
             `
         });
     });
 
     trafficFlowEntities = vehiclePaths.map((path, index) => {
         const [startLon, startLat] = path[0];
-        const markerColor = index === 0 ? "#3dd6c6" : index === 1 ? "#f59e0b" : "#fb7185";
+        const markerColor = mobilityOverlayState[index] ? mobilityOverlayState[index].color : "#3dd6c6";
         return viewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(startLon, startLat, 18),
             point: {
@@ -1443,7 +1454,7 @@ function addPrototypeTrafficExperience() {
                 heightReference: Cesium.HeightReference.NONE
             },
             label: {
-                text: index === 0 ? "Mobility flow A" : index === 1 ? "Mobility flow B" : "Mobility flow C",
+                text: mobilityOverlayState[index] ? mobilityOverlayState[index].label : `Mobiliteitscorridor ${index + 1}`,
                 font: "bold 13px sans-serif",
                 fillColor: Cesium.Color.WHITE,
                 outlineColor: Cesium.Color.BLACK,
@@ -1484,6 +1495,7 @@ function removePrototypeTrafficExperience() {
     trafficFlowEntities = [];
     trafficPulseEntities = [];
     trafficCorridorEntities = [];
+    mobilityOverlayState = [];
 }
 
 function toggleTraffic() {
@@ -1500,6 +1512,7 @@ function toggleTraffic() {
         tomTomTrafficLayer.contrast = 1.18;
         tomTomTrafficLayer.saturation = 1.1;
         addPrototypeTrafficExperience();
+        $("mobilityLegend")?.classList.remove("is-hidden");
         setLayerActive("traffic", true, "Traffic and CO2 corridors", "Traffic flow layer activated");
         if (viewer && viewer.scene) {
             viewer.scene.requestRender();
@@ -1510,6 +1523,7 @@ function toggleTraffic() {
         viewer.imageryLayers.remove(tomTomTrafficLayer, false);
         tomTomTrafficLayer = null;
         removePrototypeTrafficExperience();
+        $("mobilityLegend")?.classList.add("is-hidden");
         setLayerActive("traffic", false, "City core monitoring", "Traffic flow layer hidden");
         if (viewer && viewer.scene) {
             viewer.scene.requestRender();
@@ -2436,7 +2450,9 @@ function addCombinedContextMenu(viewer) {
 
                 if (traffic) {
                     const ratio = traffic.freeFlowSpeed > 0 ? Math.round((traffic.currentSpeed / traffic.freeFlowSpeed) * 100) : 100;
-                    html += `<div style="margin-bottom:6px"><strong>Verkeersstatus:</strong> ${traffic.currentSpeed} / ${traffic.freeFlowSpeed} km/h<br><strong>Weg:</strong> ${traffic.roadName || "n/b"}<br><strong>Doorstroming:</strong> ${ratio}% van vrije doorstroming</div>`;
+                    const stateLabel = ratio >= 90 ? "Vrije doorstroming" : ratio >= 70 ? "Druk netwerk" : ratio >= 55 ? "Vertraging" : "Bottleneck";
+                    const bottleneckLabel = ratio < 55 ? "Ja, corridor met hoge druk" : "Nee, geen harde bottleneck";
+                    html += `<div style="margin-bottom:6px"><strong>Verkeersstatus:</strong> ${traffic.currentSpeed} / ${traffic.freeFlowSpeed} km/h<br><strong>Weg:</strong> ${traffic.roadName || "n/b"}<br><strong>Doorstroming:</strong> ${ratio}% van vrije doorstroming<br><strong>Netwerkstatus:</strong> ${stateLabel}<br><strong>Bottleneck:</strong> ${bottleneckLabel}</div>`;
                 } else {
                     html += `<div style="margin-bottom:6px"><strong>Verkeersstatus:</strong> Niet beschikbaar</div>`;
                 }
