@@ -324,18 +324,34 @@
       <div class="chart-container">
         <div class="chart-container__header">
           <span id="temperatureChartEyebrow" class="chart-container__eyebrow">Weather</span>
-          <strong id="temperatureChartTitle" class="chart-container__title">Temperature and humidity</strong>
+          <strong id="temperatureChartTitle" class="chart-container__title">Temperature forecast</strong>
           <span id="temperatureChartMeta" class="chart-container__meta">Next 21 hours</span>
         </div>
         <canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas>
       </div>
       <div class="chart-container">
         <div class="chart-container__header">
+          <span id="humidityChartEyebrow" class="chart-container__eyebrow">Weather</span>
+          <strong id="humidityChartTitle" class="chart-container__title">Humidity trend</strong>
+          <span id="humidityChartMeta" class="chart-container__meta">Relative humidity</span>
+        </div>
+        <canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
           <span id="aqiChartEyebrow" class="chart-container__eyebrow">Air</span>
-          <strong id="aqiChartTitle" class="chart-container__title">PM2.5 and NO₂</strong>
+          <strong id="aqiChartTitle" class="chart-container__title">PM2.5 estimate</strong>
           <span id="aqiChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
         </div>
         <canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
+          <span id="no2ChartEyebrow" class="chart-container__eyebrow">Air</span>
+          <strong id="no2ChartTitle" class="chart-container__title">NO₂ concentration</strong>
+          <span id="no2ChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
+        </div>
+        <canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas>
       </div>
     </div>
   </aside>

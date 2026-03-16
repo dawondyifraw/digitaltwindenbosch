@@ -1,5 +1,7 @@
-let weatherComboChart;
-let airComboChart;
+let temperatureChart;
+let humidityChart;
+let aqiChart;
+let no2Chart;
 
 const demoChartData = {
     labels: ["Now", "+3h", "+6h", "+9h", "+12h", "+15h", "+18h"],
@@ -135,59 +137,50 @@ function createLineChart(id, label, palette, unitSuffix, beginAtZero = false) {
 
 function initCharts() {
     const colors = getChartColors();
-    weatherComboChart = createLineChart(
+    temperatureChart = createLineChart(
         "temperatureChart",
         getLabel("temp_label", "Temperature (°C)"),
         colors.temperature,
         "°C",
         false
     );
-    if (weatherComboChart) {
-        weatherComboChart.data.datasets.push({
-            label: getLabel("humidity_label", "Humidity (%)"),
-            data: [],
-            borderColor: colors.humidity.line,
-            backgroundColor: colors.humidity.fill,
-            fill: false
-        });
-    }
-
-    airComboChart = createLineChart(
+    humidityChart = createLineChart(
+        "humidityChart",
+        getLabel("humidity_label", "Humidity (%)"),
+        colors.humidity,
+        "%",
+        true
+    );
+    aqiChart = createLineChart(
         "aqiChart",
         getLabel("aqi_label", "PM2.5 (µg/m³)"),
         colors.pm25,
         "µg/m³",
         true
     );
-    if (airComboChart) {
-        airComboChart.data.datasets.push({
-            label: getLabel("no2_label", "NO₂ (µg/m³)"),
-            data: [],
-            borderColor: colors.no2.line,
-            backgroundColor: colors.no2.fill,
-            fill: false
-        });
-    }
+    no2Chart = createLineChart(
+        "no2Chart",
+        getLabel("no2_label", "NO₂ (µg/m³)"),
+        colors.no2,
+        "µg/m³",
+        true
+    );
 }
 
 function applyChartData(labels, tempData, humidityData, pm25Data, no2Data) {
-    if (weatherComboChart) {
-        weatherComboChart.data.labels = labels;
-        weatherComboChart.data.datasets[0].data = tempData;
-        if (weatherComboChart.data.datasets[1]) {
-            weatherComboChart.data.datasets[1].data = humidityData;
-        }
-        weatherComboChart.update();
-    }
+    const charts = [
+        { chart: temperatureChart, data: tempData },
+        { chart: humidityChart, data: humidityData },
+        { chart: aqiChart, data: pm25Data },
+        { chart: no2Chart, data: no2Data }
+    ];
 
-    if (airComboChart) {
-        airComboChart.data.labels = labels;
-        airComboChart.data.datasets[0].data = pm25Data;
-        if (airComboChart.data.datasets[1]) {
-            airComboChart.data.datasets[1].data = no2Data;
-        }
-        airComboChart.update();
-    }
+    charts.forEach(({ chart, data }) => {
+        if (!chart) return;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+    });
 }
 
 function renderDemoCharts() {
