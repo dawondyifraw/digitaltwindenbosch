@@ -99,6 +99,16 @@
         <img src="https://ros-tvkrant.nl/wp-content/uploads/2023/10/logo-s-hertogenbosch.jpg" alt="Gemeente ’s‑Hertogenbosch" class="logo" />
       </div>
       <div class="loading-bar" aria-hidden="true"><div></div></div>
+      <div class="welcome-verification" id="welcomeVerification" aria-live="polite">
+        <p class="welcome-verification__label">Human verification</p>
+        <p class="welcome-verification__question" id="verificationQuestion">Loading challenge…</p>
+        <div class="welcome-verification__row">
+          <input id="verificationAnswer" type="text" inputmode="numeric" autocomplete="off" placeholder="Answer" aria-label="Verification answer" />
+          <button id="verificationCheckBtn" type="button">Verify</button>
+          <button id="verificationRefreshBtn" type="button" aria-label="New challenge">↻</button>
+        </div>
+        <p class="welcome-verification__status" id="verificationStatus">Please solve the check to enter the twin.</p>
+      </div>
       <div class="welcome-actions">
         <button id="enterTwinBtn" class="enter-twin-btn" type="button" disabled>Enter Digital Twin</button>
       </div>
@@ -421,9 +431,98 @@
       const splash = document.getElementById('splashScreen');
       const loadingText = document.getElementById('loadingText');
       const enterTwinBtn = document.getElementById('enterTwinBtn');
+      const verificationQuestion = document.getElementById('verificationQuestion');
+      const verificationAnswer = document.getElementById('verificationAnswer');
+      const verificationStatus = document.getElementById('verificationStatus');
+      const verificationCheckBtn = document.getElementById('verificationCheckBtn');
+      const verificationRefreshBtn = document.getElementById('verificationRefreshBtn');
       const readyCheck = () => (window.Cesium && window.OSMBuildings && window.io && window.Chart);
+      let verificationReady = false;
+      let verificationExpected = null;
+      let visitorSessionId = null;
+
+      const makeVisitorRecord = (eventName, extra = {}) => ({
+        event: eventName,
+        sessionId: visitorSessionId,
+        timestamp: new Date().toISOString(),
+        href: window.location.href,
+        referrer: document.referrer || '',
+        language: navigator.language || '',
+        languages: Array.isArray(navigator.languages) ? navigator.languages.join(', ') : '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+        userAgent: navigator.userAgent || '',
+        platform: navigator.platform || '',
+        screen: `${window.screen.width}x${window.screen.height}`,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        ...extra
+      });
+
+      const storeVisitorRecord = (record) => {
+        try {
+          const key = 'udt_visitor_log';
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          existing.unshift(record);
+          localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+        } catch (error) {}
+      };
+
+      const sendVisitorRecord = (record) => {
+        storeVisitorRecord(record);
+        const endpoint = window.config?.conf?.SERVICES?.visitorLogUrl;
+        if (!endpoint) return;
+        const payload = JSON.stringify(record);
+        try {
+          if (navigator.sendBeacon) {
+            const blob = new Blob([payload], { type: 'application/json' });
+            navigator.sendBeacon(endpoint, blob);
+            return;
+          }
+        } catch (error) {}
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      };
+
+      const initVisitorSession = () => {
+        visitorSessionId = `visitor_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        sendVisitorRecord(makeVisitorRecord('landing_view'));
+      };
+
+      const refreshVerification = () => {
+        const a = Math.floor(Math.random() * 8) + 2;
+        const b = Math.floor(Math.random() * 7) + 3;
+        verificationExpected = a + b;
+        if (verificationQuestion) verificationQuestion.textContent = `What is ${a} + ${b}?`;
+        if (verificationAnswer) verificationAnswer.value = '';
+        if (verificationStatus) verificationStatus.textContent = 'Please solve the check to enter the twin.';
+        verificationReady = false;
+        if (enterTwinBtn) enterTwinBtn.disabled = true;
+      };
+
+      const validateVerification = () => {
+        const answer = Number((verificationAnswer?.value || '').trim());
+        if (answer === verificationExpected) {
+          verificationReady = true;
+          if (verificationStatus) verificationStatus.textContent = 'Verification complete. You can enter once the core modules are ready.';
+          if (splash?.classList.contains('is-ready') && enterTwinBtn) {
+            enterTwinBtn.disabled = false;
+          }
+          sendVisitorRecord(makeVisitorRecord('verification_passed'));
+        } else {
+          verificationReady = false;
+          if (verificationStatus) verificationStatus.textContent = 'Verification failed. Please try again.';
+          if (enterTwinBtn) enterTwinBtn.disabled = true;
+          sendVisitorRecord(makeVisitorRecord('verification_failed'));
+          refreshVerification();
+        }
+      };
+
       const safeHideSplash = () => {
         if (!splash) return;
+        sendVisitorRecord(makeVisitorRecord('app_entered'));
         splash.setAttribute('aria-busy', 'false');
         splash.style.opacity = '0';
         setTimeout(()=> splash.remove(), 260);
@@ -431,8 +530,10 @@
       const setWelcomeReady = (message) => {
         if (loadingText && message) loadingText.textContent = message;
         splash?.classList.add('is-ready');
-        enterTwinBtn && (enterTwinBtn.disabled = false);
+        if (enterTwinBtn) enterTwinBtn.disabled = !verificationReady;
       };
+      initVisitorSession();
+      refreshVerification();
       let waited = 0;
       const tick = setInterval(()=>{
         waited += 150;
@@ -444,6 +545,17 @@
           setWelcomeReady('Core modules loaded. You can enter the prototype now.');
         }
       },150);
+      verificationCheckBtn?.addEventListener('click', validateVerification);
+      verificationRefreshBtn?.addEventListener('click', () => {
+        refreshVerification();
+        sendVisitorRecord(makeVisitorRecord('verification_refreshed'));
+      });
+      verificationAnswer?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          validateVerification();
+        }
+      });
       enterTwinBtn?.addEventListener('click', safeHideSplash);
 
       // Sidebar dropdowns
