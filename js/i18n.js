@@ -10,11 +10,31 @@ window.udtI18n = (function () {
             prototype_live: "Prototype actief",
             city_core_monitoring: "Monitoring binnenstad",
             city_operations: "Stadsoperaties",
-            urban_intelligence: "Stedelijke intelligentie",
+            quick_views: "Snelle weergaven",
+            municipal_objects: "Gemeentelijke objecten",
             citizen_policy: "Burger- en beleidsinzichten",
             platform_partnerships: "Platform & partnerschappen",
             city_command_view: "Stedelijk commandobeeld",
             traffic_flow_co2: "Verkeersstroom & CO2",
+            event_crowd_mobility: "Mobiliteitsfocus",
+            air_quality_health_view: "Luchtkwaliteit & gezondheid",
+            tourism_cultural_districts: "Toerisme & cultuurgebieden",
+            flood_rainfall_readiness: "Water- en neerslaggereedheid",
+            night_view: "Nachtweergave",
+            object_catalog: "Gemeentelijke objectcatalogus",
+            buildings_group: "Panden",
+            context_group: "Omgeving",
+            inrichting_group: "Inrichting",
+            mobility_group: "Mobiliteit",
+            ecology_group: "Ecologisch / milieu",
+            safety_group: "Veiligheid",
+            thematic_view: "Themaweergave",
+            neutral_view: "Neutraal",
+            building_function: "Gebouwfunctie",
+            building_types: "Bouwtypen",
+            mobility_note: "Inclusief bottleneckzones, corridorstatus en mobiliteitslegenda.",
+            ecology_note: "RIVM meetpunten, luchtkwaliteit en weeranalyse worden via locatieklik en open data-dashboard getoond.",
+            safety_note: "Publieke waarschuwingen en scenario’s worden in de volgende stap verder uitgebreid.",
             kadaster_buildings: "Kadastergebouwen",
             dutch_heritage_sites: "Erfgoedpunten (PDOK/RCE)",
             biodiversity_stream: "Gemeentelijke bomenlaag",
@@ -72,11 +92,31 @@ window.udtI18n = (function () {
             prototype_live: "Prototype live",
             city_core_monitoring: "City core monitoring",
             city_operations: "City operations",
-            urban_intelligence: "Urban intelligence",
+            quick_views: "Quick views",
+            municipal_objects: "Municipal objects",
             citizen_policy: "Citizen and policy insights",
             platform_partnerships: "Platform and partnerships",
             city_command_view: "City command view",
             traffic_flow_co2: "Traffic flow and CO2",
+            event_crowd_mobility: "Mobility focus",
+            air_quality_health_view: "Air quality and health",
+            tourism_cultural_districts: "Tourism and cultural districts",
+            flood_rainfall_readiness: "Flood and rainfall readiness",
+            night_view: "Night view",
+            object_catalog: "Municipal object catalog",
+            buildings_group: "Buildings",
+            context_group: "Context",
+            inrichting_group: "Street furniture",
+            mobility_group: "Mobility",
+            ecology_group: "Ecology / environment",
+            safety_group: "Safety",
+            thematic_view: "Thematic view",
+            neutral_view: "Neutral",
+            building_function: "Building function",
+            building_types: "Building types",
+            mobility_note: "Includes bottleneck zones, corridor status, and the mobility legend.",
+            ecology_note: "RIVM stations, air quality, and weather analysis are shown through map clicks and the open data dashboard.",
+            safety_note: "Public alerts and scenarios will be expanded further in the next step.",
             kadaster_buildings: "Kadaster buildings",
             dutch_heritage_sites: "Heritage points (PDOK/RCE)",
             biodiversity_stream: "Municipal tree layer",
@@ -149,6 +189,19 @@ window.udtI18n = (function () {
         });
     }
 
+    function setButtonLabel(selector, label) {
+        const button = document.querySelector(selector);
+        if (!button) return;
+        const icon = button.querySelector(".icon");
+        button.textContent = "";
+        if (icon) {
+            button.appendChild(icon);
+            button.appendChild(document.createTextNode(label));
+        } else {
+            button.textContent = label;
+        }
+    }
+
     function apply() {
         const locale = getLocale();
         document.documentElement.lang = locale;
@@ -162,25 +215,47 @@ window.udtI18n = (function () {
         applyText(".status-chip:nth-of-type(3) .status-chip__label", "active_focus");
         applyText("#statusFocusArea", "city_core_monitoring");
 
-        const sectionTitles = document.querySelectorAll(".menu-toggle");
-        if (sectionTitles[0]) sectionTitles[0].childNodes[1].textContent = t("city_operations");
-        if (sectionTitles[1]) sectionTitles[1].childNodes[1].textContent = t("urban_intelligence");
-        if (sectionTitles[2]) sectionTitles[2].childNodes[1].textContent = t("citizen_policy");
-        if (sectionTitles[3]) sectionTitles[3].childNodes[1].textContent = t("platform_partnerships");
+        setButtonLabel('.menu-toggle[aria-controls="ops-submenu"]', t("city_operations"));
+        setButtonLabel('.menu-toggle[aria-controls="quick-submenu"]', t("quick_views"));
+        setButtonLabel('.menu-toggle[aria-controls="layers-submenu"]', t("municipal_objects"));
+        setButtonLabel('.menu-toggle[aria-controls="analytics-submenu"]', t("citizen_policy"));
+        setButtonLabel('.menu-toggle[aria-controls="admin-submenu"]', t("platform_partnerships"));
 
         applyText("#ops-submenu li:nth-of-type(1) .menu-item", "city_command_view");
-        applyText("#ops-submenu li:nth-of-type(2) .menu-item", "traffic_flow_co2");
-        applyText("#layers-submenu li:nth-of-type(1) .menu-item", "kadaster_buildings");
-        applyText("#layers-submenu li:nth-of-type(2) .menu-item", "dutch_heritage_sites");
-        applyText("#layers-submenu li:nth-of-type(3) .menu-item", "biodiversity_stream");
-        applyText("#layers-submenu li:nth-of-type(4) .menu-item", "cbs_neighborhood_profiles");
+        applyText("#quick-submenu li:nth-of-type(1) .menu-item", "traffic_flow_co2");
+        applyText('#quick-submenu [data-scenario="mobility"]', "event_crowd_mobility");
+        applyText('#quick-submenu [data-scenario="environment"]', "air_quality_health_view");
+        applyText('#quick-submenu [data-scenario="culture"]', "tourism_cultural_districts");
+        applyText('#quick-submenu [data-world-effect="weather-water"]', "flood_rainfall_readiness");
+        applyText('#quick-submenu [data-world-effect="weather-night"]', "night_view");
+
+        document.querySelector("#layers-submenu")?.setAttribute("aria-label", t("object_catalog"));
+        applyText("#layers-submenu > .catalog-group:nth-of-type(1) > summary", "buildings_group");
+        applyText("#layers-submenu > .catalog-group:nth-of-type(2) > summary", "context_group");
+        applyText("#layers-submenu > .catalog-group:nth-of-type(3) > summary", "inrichting_group");
+        applyText("#layers-submenu > .catalog-group:nth-of-type(4) > summary", "mobility_group");
+        applyText("#layers-submenu > .catalog-group:nth-of-type(5) > summary", "ecology_group");
+        applyText("#layers-submenu > .catalog-group:nth-of-type(6) > summary", "safety_group");
+        applyText("#BAGButton", "kadaster_buildings");
+        applyText("#layers-submenu .catalog-subgroup:nth-of-type(1) > summary", "thematic_view");
+        applyText('input[name="buildingTheme"][value="neutral"] + span', "neutral_view");
+        applyText('input[name="buildingTheme"][value="function"] + span', "building_function");
+        applyText("#layers-submenu .catalog-subgroup:nth-of-type(2) > summary", "building_types");
+        applyText("#toggleMuseumsBtn", "dutch_heritage_sites");
+        applyText("#toggleCbsNeighborhoodsBtn", "cbs_neighborhood_profiles");
+        applyText("#toggleBiodiversityBtn", "biodiversity_stream");
+        applyText("#toggleTraffic", "traffic_flow_co2");
+        applyText("#layers-submenu .catalog-group:nth-of-type(4) .catalog-note", "mobility_note");
+        applyText("#layers-submenu .catalog-group:nth-of-type(5) .catalog-note", "ecology_note");
+        applyText("#layers-submenu .catalog-group:nth-of-type(6) .catalog-note", "safety_note");
+
         applyText("#analytics-submenu li:nth-of-type(1) .menu-item", "forecast_climate");
         applyText("#analytics-submenu li:nth-of-type(2) .menu-item", "open_data_dashboard");
         applyText("#analytics-submenu li:nth-of-type(3) .menu-item", "live_sensor_storytelling");
         applyText("#analytics-submenu li:nth-of-type(4) .menu-item", "public_alert_feed");
-        applyText("#admin-submenu li:nth-of-type(1) .menu-link", "operational_readiness");
-        applyText("#admin-submenu li:nth-of-type(2) .menu-link", "data_governance");
-        applyText("#admin-submenu li:nth-of-type(3) .menu-link", "municipality_deployment");
+        applyText("#admin-submenu li:nth-of-type(1) .menu-item", "operational_readiness");
+        applyText("#admin-submenu li:nth-of-type(2) .menu-item", "data_governance");
+        applyText("#admin-submenu li:nth-of-type(3) .menu-item", "municipality_deployment");
 
         applyText("#rightPanel h2", "weather_air_quality");
         applyText(".card-header span", "city_assistant");
@@ -188,6 +263,7 @@ window.udtI18n = (function () {
         applyText("#send-btn", "send");
         document.getElementById("user-input")?.setAttribute("placeholder", t("type_message"));
         applyText("#legend h4", "building_legend");
+        applyText("#buildingThemeLegend h4", "building_function");
         applyText("#layerLoadingLabel", "loading_kadaster");
 
         document.getElementById("locationInfoCloseBtn")?.setAttribute("aria-label", t("close_details"));
@@ -233,7 +309,7 @@ window.udtI18n = (function () {
         document.dispatchEvent(new CustomEvent("localeChanged", { detail: { locale } }));
     }
 
-    return { t, apply, setLocale, locale: getLocale };
+    return { t, apply, setLocale, locale: getLocale() };
 })();
 
 document.addEventListener("configLoaded", () => {
