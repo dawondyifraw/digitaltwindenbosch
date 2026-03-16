@@ -15,6 +15,34 @@
     } catch (error) { }
   }
 
+  function resetPanelPosition(panel, defaults = {}) {
+    if (!panel) return;
+    panel.classList.remove('is-minimized');
+    panel.style.left = '';
+    panel.style.top = '';
+    panel.style.bottom = defaults.bottom || '';
+    panel.style.right = defaults.right || '';
+    panel.style.transform = '';
+    if (defaults.width) {
+      panel.style.width = defaults.width;
+    }
+
+    const panelState = loadPanelState();
+    const panelId = panel.id || panel.getAttribute('aria-label');
+    if (panelId) {
+      panelState[panelId] = {
+        ...(panelState[panelId] || {}),
+        minimized: false,
+        left: '',
+        top: '',
+        right: defaults.right || '',
+        bottom: defaults.bottom || '',
+        transform: ''
+      };
+      savePanelState(panelState);
+    }
+  }
+
   function getDashboardUrl() {
     let targetUrl = 'dashboard/open_data_dashboard.html';
     try {
@@ -145,6 +173,7 @@
     const trafficIncidentsPanel = document.getElementById('trafficIncidentsPanel');
     const trafficIncidentsCloseBtn = document.getElementById('trafficIncidentsCloseBtn');
     const openTrafficIncidentsBtn = document.getElementById('openTrafficIncidentsBtn');
+    const locationInfoSectionToggles = document.querySelectorAll('.location-info-card__section-toggle');
 
     const adminPanelContent = {
       readiness: {
@@ -185,6 +214,14 @@
       }
     };
 
+    function openAdminPanel(key = 'readiness') {
+      const content = adminPanelContent[key];
+      if (!content || !adminInfoPanel || !adminInfoTitle || !adminInfoBody) return;
+      adminInfoTitle.textContent = content.title;
+      adminInfoBody.innerHTML = content.body;
+      adminInfoPanel.classList.remove('is-hidden');
+    }
+
     document.querySelector('[data-action="openRightPanel"]')
       ?.addEventListener('click', () => {
         rightPanel?.classList.remove('is-closed');
@@ -212,6 +249,16 @@
 
     locationInfoCloseBtn?.addEventListener('click', () => {
       document.getElementById('locationInfoCard')?.classList.add('is-hidden');
+    });
+
+    locationInfoSectionToggles.forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        const section = toggle.closest('.location-info-card__section');
+        if (!section) return;
+        const nextExpanded = toggle.getAttribute('aria-expanded') !== 'true';
+        toggle.setAttribute('aria-expanded', String(nextExpanded));
+        section.classList.toggle('is-collapsed', !nextExpanded);
+      });
     });
 
     sidebarBriefingToggle?.addEventListener('click', () => {
@@ -244,15 +291,19 @@
     });
 
     topHomeBtn?.addEventListener('click', () => {
+      if (typeof window.flytoIKDB === 'function') {
+        window.flytoIKDB();
+        return;
+      }
       document.getElementById('flytoIKDBButton')?.click();
     });
 
     topInfoBtn?.addEventListener('click', () => {
-      const infoButton = document.querySelector('.admin-info-trigger[data-admin-panel="readiness"]');
-      infoButton?.click();
+      openAdminPanel('readiness');
     });
 
     topWeatherBtn?.addEventListener('click', () => {
+      resetPanelPosition(rightPanel, { right: '14px', bottom: '14px' });
       rightPanel?.classList.remove('is-closed');
     });
 
@@ -288,11 +339,7 @@
     document.querySelectorAll('.admin-info-trigger').forEach((button) => {
       button.addEventListener('click', () => {
         const key = button.getAttribute('data-admin-panel');
-        const content = adminPanelContent[key];
-        if (!content || !adminInfoPanel || !adminInfoTitle || !adminInfoBody) return;
-        adminInfoTitle.textContent = content.title;
-        adminInfoBody.innerHTML = content.body;
-        adminInfoPanel.classList.remove('is-hidden');
+        openAdminPanel(key);
       });
     });
 

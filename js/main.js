@@ -530,7 +530,9 @@ async function initCesium() {
             timeline: false,
             sceneMode: Cesium.SceneMode.SCENE3D,
             baseLayerPicker: false,
-            shouldAnimate: false
+            shouldAnimate: false,
+            infoBox: false,
+            selectionIndicator: false
         });
 
         if (viewer.imageryLayers.length === 0) {
@@ -1616,8 +1618,7 @@ async function activateScenario(scenarioName) {
                     toggleTraffic();
                 }
                 await fetchAndDisplayTraffic(51.6863, 5.3043);
-                const card = $("locationInfoCard");
-                card?.classList.remove("is-hidden");
+                $("locationInfoCard")?.classList.remove("is-hidden");
             }
         },
         environment: {
@@ -1639,14 +1640,13 @@ async function activateScenario(scenarioName) {
                         name
                     }));
                 } catch (error) {}
-                $("rightPanel")?.classList.remove("is-closed");
+                $("locationInfoCard")?.classList.remove("is-hidden");
                 await Promise.allSettled([
                     fetchAndDisplayWeather(51.6905, 5.291),
                     fetchAndDisplayAirQuality(51.6905, 5.291),
                     fetchAndDisplayRivmSensors(51.6905, 5.291)
                 ]);
-                const card = $("locationInfoCard");
-                card?.classList.remove("is-hidden");
+                $("rightPanel")?.classList.remove("is-closed");
             }
         },
         culture: {
@@ -1696,7 +1696,27 @@ async function activateScenario(scenarioName) {
 }
 
 function buildAttributesTable(attributes) {
-    const entries = Object.entries(attributes || {}).slice(0, 8);
+    const labels = {
+        building: "Gebouw",
+        ref: "Referentie",
+        "ref:bag": "BAG ID",
+        source: "Bron",
+        "source:date": "Brondatum",
+        start_date: "Startjaar",
+        cesiumEstimatedHeight: "Hoogte",
+        estimatedHeight: "Hoogte"
+    };
+
+    const entries = Object.entries(attributes || {})
+        .filter(([key, value]) => value !== null && value !== undefined && value !== "")
+        .filter(([key]) => !key.startsWith("cesium#") && key !== "elementType" && key !== "elementId")
+        .map(([key, value]) => {
+            const normalizedKey = key.replace("#", "").replace(/_/g, " ");
+            const label = labels[key] || normalizedKey.charAt(0).toUpperCase() + normalizedKey.slice(1);
+            return [label, value];
+        })
+        .slice(0, 8);
+
     if (!entries.length) return "No attributes available.";
 
     const rows = entries

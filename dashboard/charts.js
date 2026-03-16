@@ -1,91 +1,207 @@
-﻿
-    // Define global chart variables
-    let temperatureChart, humidityChart, aqiChart, no2Chart;
-    const demoChartData = {
-        labels: ["Now", "+3h", "+6h", "+9h", "+12h", "+15h", "+18h"],
-        temperature: [10, 11, 12, 13, 12, 11, 10],
-        humidity: [72, 69, 67, 65, 70, 75, 78],
-        aqi: [18, 20, 19, 21, 23, 20, 18],
-        no2: [14, 16, 15, 18, 17, 15, 13]
+let temperatureChart;
+let humidityChart;
+let aqiChart;
+let no2Chart;
+
+const demoChartData = {
+    labels: ["Now", "+3h", "+6h", "+9h", "+12h", "+15h", "+18h"],
+    temperature: [10, 11, 12, 13, 12, 11, 10],
+    humidity: [72, 69, 67, 65, 70, 75, 78],
+    pm25: [18, 20, 19, 21, 23, 20, 18],
+    no2: [14, 16, 15, 18, 17, 15, 13]
+};
+
+function isPrototypeMode() {
+    return !window.config || !window.config.conf || window.config.conf.APP_MODE !== "production";
+}
+
+function getChartColors() {
+    return {
+        temperature: { line: "#59d98a", fill: "rgba(89, 217, 138, 0.18)" },
+        humidity: { line: "#7dd3fc", fill: "rgba(125, 211, 252, 0.18)" },
+        pm25: { line: "#facc15", fill: "rgba(250, 204, 21, 0.18)" },
+        no2: { line: "#fb923c", fill: "rgba(251, 146, 60, 0.18)" },
+        grid: "rgba(255, 255, 255, 0.08)",
+        ticks: "#a7c6b2"
     };
+}
 
-    function isPrototypeMode() {
-        return !window.config || !window.config.conf || window.config.conf.APP_MODE !== "production";
+function getLabel(key, fallback) {
+    return window.udtI18n ? window.udtI18n.t(key, fallback) : fallback;
+}
+
+function updateForecastSummary(label, meta) {
+    const locationEl = document.getElementById("forecastPanelLocation");
+    const metaEl = document.getElementById("forecastPanelMeta");
+    if (locationEl && label) {
+        locationEl.textContent = label;
     }
-
-    // Function to initialize empty charts
-    function initCharts() {
-        console.log('Initializing Charts');  // Debugging log
-        const ui = window.udtI18n;
-
-        // Temperature Chart
-        temperatureChart = new Chart(document.getElementById('temperatureChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: ui ? ui.t('temp_label') : 'Temperatuur (°C)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
-            options: { responsive: true, scales: { y: { beginAtZero: false } } }
-        });
-
-        // Humidity Chart
-        humidityChart = new Chart(document.getElementById('humidityChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: ui ? ui.t('humidity_label') : 'Luchtvochtigheid (%)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
-
-        // AQI Chart
-        aqiChart = new Chart(document.getElementById('aqiChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: ui ? ui.t('aqi_label') : 'Luchtkwaliteitsindex', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
-
-        // NO2 Chart
-        no2Chart = new Chart(document.getElementById('no2Chart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: ui ? ui.t('no2_label') : 'NO2 (µg/m³)', data: [], backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: '#00ffff', borderWidth: 2 }] },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
+    if (metaEl && meta) {
+        metaEl.textContent = meta;
     }
+}
 
-    // Function to fetch real-time data based on coordinates
+function buildChartOptions(unitSuffix) {
+    const colors = getChartColors();
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: "index",
+            intersect: false
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: "rgba(7, 18, 13, 0.96)",
+                borderColor: "rgba(255, 255, 255, 0.12)",
+                borderWidth: 1,
+                titleColor: "#edf7ef",
+                bodyColor: "#edf7ef",
+                displayColors: false,
+                callbacks: {
+                    label(context) {
+                        const value = context.parsed.y;
+                        return `${value}${unitSuffix ? ` ${unitSuffix}` : ""}`;
+                    }
+                }
+            }
+        },
+        elements: {
+            line: {
+                borderWidth: 2.2,
+                tension: 0.34
+            },
+            point: {
+                radius: 0,
+                hoverRadius: 4,
+                hitRadius: 10
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    color: colors.ticks,
+                    maxRotation: 0,
+                    autoSkip: false,
+                    font: {
+                        size: 10
+                    }
+                }
+            },
+            y: {
+                grid: {
+                    color: colors.grid
+                },
+                ticks: {
+                    color: colors.ticks,
+                    font: {
+                        size: 10
+                    },
+                    callback(value) {
+                        return unitSuffix ? `${value} ${unitSuffix}` : value;
+                    }
+                }
+            }
+        }
+    };
+}
 
+function createLineChart(id, label, palette, unitSuffix, beginAtZero = false) {
+    const context = document.getElementById(id)?.getContext("2d");
+    if (!context) return null;
 
-    function applyChartData(labels, tempData, humidityData, aqiData, no2Data) {
-        temperatureChart.data.labels = labels;
-        temperatureChart.data.datasets[0].data = tempData;
-        temperatureChart.update();
+    const options = buildChartOptions(unitSuffix);
+    options.scales.y.beginAtZero = beginAtZero;
 
-        humidityChart.data.labels = labels;
-        humidityChart.data.datasets[0].data = humidityData;
-        humidityChart.update();
+    return new Chart(context, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label,
+                data: [],
+                borderColor: palette.line,
+                backgroundColor: palette.fill,
+                fill: true
+            }]
+        },
+        options
+    });
+}
 
-        aqiChart.data.labels = labels;
-        aqiChart.data.datasets[0].data = aqiData;
-        aqiChart.update();
+function initCharts() {
+    const colors = getChartColors();
+    temperatureChart = createLineChart(
+        "temperatureChart",
+        getLabel("temp_label", "Temperature (°C)"),
+        colors.temperature,
+        "°C",
+        false
+    );
+    humidityChart = createLineChart(
+        "humidityChart",
+        getLabel("humidity_label", "Humidity (%)"),
+        colors.humidity,
+        "%",
+        true
+    );
+    aqiChart = createLineChart(
+        "aqiChart",
+        getLabel("aqi_label", "PM2.5 (µg/m³)"),
+        colors.pm25,
+        "µg/m³",
+        true
+    );
+    no2Chart = createLineChart(
+        "no2Chart",
+        getLabel("no2_label", "NO₂ (µg/m³)"),
+        colors.no2,
+        "µg/m³",
+        true
+    );
+}
 
-        no2Chart.data.labels = labels;
-        no2Chart.data.datasets[0].data = no2Data;
-        no2Chart.update();
-    }
+function applyChartData(labels, tempData, humidityData, pm25Data, no2Data) {
+    const charts = [
+        { chart: temperatureChart, data: tempData },
+        { chart: humidityChart, data: humidityData },
+        { chart: aqiChart, data: pm25Data },
+        { chart: no2Chart, data: no2Data }
+    ];
 
-    function renderDemoCharts() {
-        applyChartData(
-            demoChartData.labels,
-            demoChartData.temperature,
-            demoChartData.humidity,
-            demoChartData.aqi,
-            demoChartData.no2
-        );
-    }
+    charts.forEach(({ chart, data }) => {
+        if (!chart) return;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+    });
+}
 
-    async function fetchWeatherAndPollutionData(lat, lon) {
+function renderDemoCharts() {
+    updateForecastSummary("Den Bosch city center", "Prototype forecast window");
+    applyChartData(
+        demoChartData.labels,
+        demoChartData.temperature,
+        demoChartData.humidity,
+        demoChartData.pm25,
+        demoChartData.no2
+    );
+}
+
+async function fetchWeatherAndPollutionData(lat, lon) {
     if (isPrototypeMode()) {
         return {
             forecastData: {
                 list: demoChartData.labels.map((label, index) => ({
                     dt_txt: new Date(Date.now() + index * 3 * 60 * 60 * 1000).toISOString(),
                     main: {
-                        temp: demoChartData.temperature[index] + 273.15,
+                        temp: demoChartData.temperature[index],
                         humidity: demoChartData.humidity[index]
                     }
                 }))
@@ -93,7 +209,7 @@
             airQualityData: {
                 list: [{
                     components: {
-                        pm2_5: demoChartData.aqi[0],
+                        pm2_5: demoChartData.pm25[0],
                         no2: demoChartData.no2[0]
                     }
                 }]
@@ -102,47 +218,73 @@
     }
 
     try {
-        // Fetch weather forecast data
-        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherApiKey}`);
-        if (!forecastResponse.ok) throw new Error(`Forecast API request failed with status ${forecastResponse.status}`);
+        const weatherKey = window.weatherApiKey || window.config?.conf?.WEATHERAPI || window.config?.conf?.AIRQUALITYAPI;
+        const [forecastResponse, airQualityResponse] = await Promise.all([
+            fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
+            fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${weatherKey}`)
+        ]);
+
+        if (!forecastResponse.ok) {
+            throw new Error(`Forecast API request failed with status ${forecastResponse.status}`);
+        }
+        if (!airQualityResponse.ok) {
+            throw new Error(`Air Quality API request failed with status ${airQualityResponse.status}`);
+        }
+
         const forecastData = await forecastResponse.json();
-
-        // Fetch air quality data (only for the current moment, as this endpoint doesn�t support forecasting)
-        const airQualityResponse = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${weatherApiKey}`);
-        if (!airQualityResponse.ok) throw new Error(`Air Quality API request failed with status ${airQualityResponse.status}`);
         const airQualityData = await airQualityResponse.json();
-
         return { forecastData, airQualityData };
     } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch chart data:", error);
         return null;
     }
 }
 
-    // Function to update charts with new data
-    async function updateCharts(lat, lon) {
+function formatForecastLabel(raw) {
+    const date = new Date(raw);
+    return new Intl.DateTimeFormat(document.documentElement.lang || "en", {
+        hour: "2-digit",
+        day: "2-digit",
+        month: "short"
+    }).format(date);
+}
+
+async function updateCharts(lat, lon) {
     const data = await fetchWeatherAndPollutionData(lat, lon);
-    console.error("Forecast data or data.list is undefined");
-    if (!data || !data.forecastData || !data.forecastData.list) {
-        console.error("Forecast data or data.list is undefined", data);
+    if (!data || !data.forecastData || !Array.isArray(data.forecastData.list)) {
         return;
     }
 
-    // Parse forecast data
-    const labels = data.forecastData.list.slice(0, 7).map(item => new Date(item.dt_txt).toLocaleDateString());
-    const tempData = data.forecastData.list.slice(0, 7).map(item => item.main?.temp ? item.main.temp - 273.15 : 0);
-    const humidityData = data.forecastData.list.slice(0, 7).map(item => item.main?.humidity || 0);
+    const forecastSlice = data.forecastData.list.slice(0, 7);
+    const labels = forecastSlice.map((item) => formatForecastLabel(item.dt_txt));
+    const tempData = forecastSlice.map((item) => Math.round((item.main?.temp ?? 0) * 10) / 10);
+    const humidityData = forecastSlice.map((item) => item.main?.humidity || 0);
+    const pm25Value = data.airQualityData?.list?.[0]?.components?.pm2_5 || 0;
+    const no2Value = data.airQualityData?.list?.[0]?.components?.no2 || 0;
+    const pm25Data = Array(labels.length).fill(Math.round(pm25Value * 10) / 10);
+    const no2Data = Array(labels.length).fill(Math.round(no2Value * 10) / 10);
 
-    // Parse air quality data (current data used across forecast times as an approximation)
-    const aqiData = Array(7).fill(data.airQualityData.list[0].components.pm2_5 || 0);
-    const no2Data = Array(7).fill(data.airQualityData.list[0].components.no2 || 0);
+    const locationName = (() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem("udt_last_location") || "null");
+            return saved?.name || null;
+        } catch (error) {
+            return null;
+        }
+    })();
+    const summaryLabel = locationName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    const summaryMeta = `Updated ${new Intl.DateTimeFormat(document.documentElement.lang || "en", {
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(new Date())}`;
+    updateForecastSummary(summaryLabel, summaryMeta);
 
-    // Update charts
-    applyChartData(labels, tempData, humidityData, aqiData, no2Data);
+    applyChartData(labels, tempData, humidityData, pm25Data, no2Data);
 }
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded chart js loaded');  // Debugging log
-    // Initialize charts when DOM is fully loaded
+
+window.updateCharts = updateCharts;
+
+document.addEventListener("DOMContentLoaded", () => {
     initCharts();
     if (isPrototypeMode()) {
         renderDemoCharts();

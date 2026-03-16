@@ -1,166 +1,125 @@
-# Urban Digital Twin — Den Bosch (demoUIv3.o)
+# Digital Twin Den Bosch
 
-A production‑grade, static web console for the Den Bosch Urban Digital Twin. The application renders CesiumJS 3D content, overlays live data streams, and provides operational controls for traffic, air quality, weather, alerts, and analytics. This release is Runner Blade V.4.1 with a stronger municipality-facing open-data workflow, upgraded GIS structure, and improved UI stability.
+Digital Twin Den Bosch is a Cesium-based web app for exploring municipal data in a 3D city view. It combines map layers, building data, weather, air quality, traffic, incidents, and location-based lookups in a single frontend.
 
-Actively maintained for demo and research follow‑up (best‑effort maintenance, no production SLA).
+This repository is the client application. It is mainly a static site with optional realtime/backend integrations.
 
-## Start Here
+## What This Repo Contains
 
-1. Fill `config.json` with your API keys (keep secrets out of this repo).
-2. Serve the repo as static files (example: `python -m http.server`).
-3. If using a backend, set the Socket.IO URL in `realtimestream/kafka.js` (default: `http://localhost:5000`).
-4. Open `http://localhost:8000` in your browser.
+- A Cesium 3D scene for Den Bosch
+- A sidebar-driven UI for layers, scenarios, and municipal datasets
+- Feature-specific frontend modules under `js/features/`
+- Optional realtime hooks through `realtimestream/kafka.js`
+- A simple smoke test for key UI elements
 
-## Demo UI Runner Blade V.4.1
+## Frontend Structure
 
-![demo v3 UI](architecture/demo_v3_UI.png)
+The codebase is being separated feature-wise so behavior is easier to maintain.
 
-## Architecture Overview
+- `js/main.js` handles app startup, Cesium setup, shared state, and high-level coordination
+- `js/features/weather.js` handles weather fetching and scene weather effects
+- `js/features/air-quality.js` handles air-quality requests and display updates
+- `js/features/traffic.js` handles traffic flow fetching and traffic status updates
+- `js/features/incidents.js` handles traffic incident fetching and rendering
+- `js/features/ui-windows.js` handles draggable panels, open/close behavior, and utility windows
 
+## Main Capabilities
+
+- 3D city viewing with CesiumJS
+- Building and municipal layer exploration
+- Click-based location analysis
+- Traffic, incident, weather, and air-quality lookups
+- Open-data dashboard links and supporting dataset views
+- Chat, alerts, notifications, and floating panels
+
+## Requirements
+
+- A static file server such as `python -m http.server`
+- A modern desktop browser
+- API keys in `config.json` for the external services you want to use
+
+## Quick Start
+
+1. Add your keys to `config.json`.
+2. Start a local static server from the repo root.
+3. Open the app in your browser.
+
+Example:
+
+```bash
+python -m http.server 8000
 ```
-[Data Sources]
-  - Kafka topics (traffic, sensors, environment)
-  - External APIs (TomTom, OpenWeatherMap)
-        |
-        v
-[Streaming Gateway]
-  - Socket.IO backend (default: http://localhost:5000)
-        |
-        v
-[Client Web App]
-  - CesiumJS viewer
-  - Real‑time stream handlers
-  - UI controls (menus, panels, alerts)
-```
 
-## Architecture Visual
-
-![Architecture diagram](architecture/architecture-diagram.jpg)
-
-## Key Capabilities
-
-- CesiumJS 3D city visualization
-- Real‑time telemetry overlays (traffic, air quality, noise)
-- Analytics side panel with charts
-- Alerts and notification system (sound + UI)
-- Chat assistant UI
-- Minimap overview
-- Museumkwartier fly‑to preset (Runner Blade V.4.1)
-- Biodiversity stream overlay (tree points)
-
-## Setup
-
-### Requirements
-
-- Any static file server (example: `python -m http.server`)
-- Modern browser (Chrome/Edge)
-
-### Backend Integration (Optional)
-
-- Socket.IO backend default: `http://localhost:5000` (see `realtimestream/kafka.js`).
-- Kafka is upstream of the backend. This repo contains client‑side code only.
+Then visit `http://localhost:8000`.
 
 ## Configuration
 
-- `config.json` is loaded by `js/config.js`.
-- External API keys are referenced in `js/main.js`.
-- Store keys in `config.json` and read them after `configLoaded`. Keep `config.json` free of real secrets in this repo.
+`config.json` is loaded by `js/config.js` and used during app startup.
 
-### Config Fields
+Common fields:
 
-| Field | Required | Description |
+| Field | Required | Purpose |
 | --- | --- | --- |
-| `CESIUM_TOKEN` | Yes | Cesium Ion access token. |
-| `TOMTOMAPI` | Yes | TomTom traffic API key. |
-| `AIRQUALITYAPI` | Yes | Air quality API key (also used as fallback for weather). |
-| `WEATHERAPI` | No | Weather API key. If omitted, `AIRQUALITYAPI` is used. |
-| `othersconf` | No | Optional placeholder for future settings. |
+| `CESIUM_TOKEN` | Yes | Cesium Ion token |
+| `TOMTOMAPI` | Yes for traffic | TomTom traffic API key |
+| `AIRQUALITYAPI` | Yes for air quality | OpenWeather air quality key |
+| `WEATHERAPI` | Optional | Weather API key, falls back to `AIRQUALITYAPI` |
+| `ENERGYLABELAPI` | Optional | Energy label / EP-online integration |
 
-## Biodiversity Data Source (Trees)
+Keep real secrets out of version control.
 
-ArcGIS REST service (Den Bosch geoportal):
+## Optional Backend
 
-```
-https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11
-```
+The frontend can work as a static app, but some integrations expect a backend or stream source.
 
-Example query (Den Bosch envelope, WGS84):
+- `realtimestream/kafka.js` defaults to `http://localhost:5000`
+- Kafka is not included in this repo
+- Socket.IO integration is optional for local frontend work
 
-```
-https://geo.s-hertogenbosch.nl/geoproxy/rest/services/Externvrij/CO2/MapServer/11/query?where=1%3D1&outFields=*&f=json&geometryType=esriGeometryEnvelope&geometry=5.20,51.62,5.45,51.78&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&resultRecordCount=800
-```
+## Project Layout
 
-## Museum Fly‑To Target
-
-Museumkwartier center (Noordbrabants Museum + Design Museum):
-
-```
-51.6863, 5.3043
-```
-
-## Tests
-
-Run the UI smoke test:
-
-```
-python scripts/ui_smoke_test.py
+```text
+config.json
+index.html
+README.md
+css/
+dashboard/
+js/
+js/features/
+notificationservice/
+chatbotservice/
+realtimestream/
+scripts/
+architecture/
+3DModels/
 ```
 
-## Deployment Guidelines
+## Key Files
 
-![Deployment guidance](architecture/deployment-guidance.png)
+- `index.html`: app shell and UI markup
+- `js/main.js`: app bootstrap, Cesium wiring, shared logic
+- `js/config.js`: runtime config loader
+- `js/i18n.js`: locale and translation handling
+- `js/features/`: feature-specific frontend modules
+- `css/main.css`: primary styling
+- `scripts/ui_smoke_test.py`: basic UI smoke test
 
-### Static Hosting (Recommended)
+## Testing
 
-1. Upload the repository to a static host (Nginx/IIS/object storage).
-2. Serve the repo root and preserve relative paths.
-3. Ensure correct MIME types for `.json`, `.js`, and `.css`.
-4. Use HTTPS if external APIs require it.
+Run the smoke test:
 
-### On‑Premises / Air‑Gapped
-
-1. Host CesiumJS and CDN assets locally.
-2. Replace external CDN links in `index.html` with local copies.
-3. Update `config.json` to internal API endpoints and tokens.
-
-### Backend Integration
-
-1. Start the Socket.IO backend at `http://localhost:5000` or update the URL in `realtimestream/kafka.js`.
-2. Confirm Kafka topics are available and mapped to the backend stream.
-3. Validate the biodiversity endpoint and CORS access (or proxy it).
-
-## Project Structure
-
-```
-[FILE] config.json
-[FILE] index.html
-[FILE] README.md
-[DIR ] 3DModels/
-[DIR ] architecture/
-[DIR ] archive/
-[DIR ] chatbotservice/
-[DIR ] css/
-[DIR ] dashboard/
-[DIR ] js/
-[DIR ] minimap/
-[DIR ] notificationservice/
-[DIR ] realtimestream/
-[DIR ] scripts/
+```bash
+python3 scripts/ui_smoke_test.py
 ```
 
-## File Map (Linked)
+This checks for required files and important UI elements in `index.html`.
 
-- [FILE] [index.html](index.html) — primary UI entry (Runner Blade V.4.1)
-- [FILE] [config.json](config.json) — runtime configuration
-- [FILE] [js/main.js](js/main.js) — Cesium initialization + UI wiring
-- [FILE] [js/config.js](js/config.js) — config loader (dispatches `configLoaded`)
-- [FILE] [realtimestream/kafka.js](realtimestream/kafka.js) — Socket.IO stream client
-- [FILE] [css/main.css](css/main.css) — main UI theme
-- [DIR ] [notificationservice/](notificationservice) — alerts + notifications
-- [DIR ] [chatbotservice/](chatbotservice) — assistant UI
-- [DIR ] [architecture/](architecture) — UI/architecture images
-- [FILE] [scripts/ui_smoke_test.py](scripts/ui_smoke_test.py) — smoke test
+## Notes
+
+- The UI and README are both in active cleanup.
+- Some older naming and prototype-era wording may still exist in the app until the frontend refactor is fully finished.
+- If you continue the separation work, prefer adding new behavior to `js/features/` instead of expanding `js/main.js`.
 
 ## License
 
-[Apache 2.0 License](LICENSE)
+[Apache 2.0](LICENSE)

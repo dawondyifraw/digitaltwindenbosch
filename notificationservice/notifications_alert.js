@@ -3,6 +3,22 @@ let isClicked = false;
 let notificationInterval;
 const demoContactMessage = "Demoversie. Voor het volledige multi-streaming platform neem contact op met Daniel via info@datatwinlabs.nl.";
 
+function getAlertsButton() {
+    return document.getElementById('topAlertsBtn');
+}
+
+function setAlertsButtonState(button, enabled) {
+    if (!button) return;
+    const label = button.querySelector('.status-ribbon__btn-label');
+    if (label) {
+        label.textContent = enabled
+            ? (window.udtI18n ? window.udtI18n.t('alert_feed_demo_on') : 'Demo-waarschuwingen aan')
+            : (window.udtI18n ? window.udtI18n.t('public_alert_feed') : 'Alerts');
+    }
+    button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    button.classList.toggle('status-ribbon__btn--active', enabled);
+}
+
 // Notification Data for Simulated Alerts
 const notificationData = [
     // Traffic Alerts
@@ -65,16 +81,20 @@ function playNotificationSound() {
 
 function startDemoAlerts(button) {
     if (!button) return;
-    button.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_on') : 'Demo-waarschuwingen aan';
-    button.style.backgroundColor = 'lightblue';
+    clearInterval(notificationInterval);
+    setAlertsButtonState(button, true);
     isClicked = true;
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const buffer = audioContext.createBuffer(1, 1, 22050);
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start(0);
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = audioContext.createBuffer(1, 1, 22050);
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+    } catch (error) {
+        console.warn('Audio context unavailable for alerts:', error);
+    }
 
     notificationInterval = setInterval(generateRandomNotification, 10000);
     updateAlertBox('event', demoContactMessage);
@@ -83,15 +103,14 @@ function startDemoAlerts(button) {
 
 function stopDemoAlerts(button) {
     if (!button) return;
-    button.innerHTML = window.udtI18n ? window.udtI18n.t('alert_feed_demo_off') : 'Publieke waarschuwingen';
-    button.style.backgroundColor = '';
+    setAlertsButtonState(button, false);
     isClicked = false;
     clearInterval(notificationInterval);
     hideAllAlertBoxes();
 }
 
 window.toggleDemoAlerts = function toggleDemoAlerts(forceState) {
-    const button = document.getElementById('startNotifications');
+    const button = getAlertsButton();
     if (!button) return;
 
     const shouldEnable = typeof forceState === 'boolean' ? forceState : !isClicked;
@@ -102,12 +121,14 @@ window.toggleDemoAlerts = function toggleDemoAlerts(forceState) {
     }
 };
 
-document.getElementById('startNotifications').addEventListener('click', (event) => {
-    if (!isClicked) {
-        startDemoAlerts(event.target);
-    } else {
-        stopDemoAlerts(event.target);
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const button = getAlertsButton();
+    setAlertsButtonState(button, false);
+});
+
+document.addEventListener('localeChanged', () => {
+    const button = getAlertsButton();
+    setAlertsButtonState(button, isClicked);
 });
 
 function hideAllAlertBoxes() {

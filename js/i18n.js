@@ -43,10 +43,22 @@ window.udtI18n = (function () {
             open_data_dashboard: "Open dashboard",
             live_sensor_storytelling: "Livesensoren",
             public_alert_feed: "Waarschuwingen",
+            alert_feed_demo_on: "Demo-waarschuwingen aan",
+            alert_feed_demo_off: "Demo-waarschuwingen uit",
             operational_readiness: "Viewerstatus",
             data_governance: "Datagovernance",
             municipality_deployment: "Uitrolmodel",
             weather_air_quality: "Weer- en luchtkwaliteitsverwachting",
+            temp_chart_title: "Temperatuurverwachting",
+            temp_chart_meta: "Komende 21 uur",
+            humidity_chart_title: "Luchtvochtigheidstrend",
+            humidity_chart_meta: "Relatieve luchtvochtigheid",
+            air_chart_eyebrow: "Lucht",
+            weather_chart_eyebrow: "Weer",
+            pm25_chart_title: "PM2.5-schatting",
+            pm25_chart_meta: "Huidige waarde over de tijdshorizon",
+            no2_chart_title: "NO₂-concentratie",
+            no2_chart_meta: "Huidige waarde over de tijdshorizon",
             city_assistant: "Stadsassistent",
             clear: "Wissen",
             send: "Versturen",
@@ -128,10 +140,22 @@ window.udtI18n = (function () {
             open_data_dashboard: "Open Dashboard",
             live_sensor_storytelling: "Live Sensors",
             public_alert_feed: "Alerts",
+            alert_feed_demo_on: "Demo alerts on",
+            alert_feed_demo_off: "Demo alerts off",
             operational_readiness: "Viewer Status",
             data_governance: "Data Governance",
             municipality_deployment: "Deployment Model",
             weather_air_quality: "Weather and air quality forecast",
+            temp_chart_title: "Temperature forecast",
+            temp_chart_meta: "Next 21 hours",
+            humidity_chart_title: "Humidity trend",
+            humidity_chart_meta: "Relative humidity",
+            air_chart_eyebrow: "Air",
+            weather_chart_eyebrow: "Weather",
+            pm25_chart_title: "PM2.5 estimate",
+            pm25_chart_meta: "Current proxy across the horizon",
+            no2_chart_title: "NO₂ concentration",
+            no2_chart_meta: "Current proxy across the horizon",
             city_assistant: "City assistant",
             clear: "Clear",
             send: "Send",
@@ -270,6 +294,18 @@ window.udtI18n = (function () {
         applyText("#admin-submenu li:nth-of-type(3) .menu-item", "municipality_deployment");
 
         applyText("#rightPanel h2", "weather_air_quality");
+        applyText("#temperatureChartEyebrow", "weather_chart_eyebrow");
+        applyText("#temperatureChartTitle", "temp_chart_title");
+        applyText("#temperatureChartMeta", "temp_chart_meta");
+        applyText("#humidityChartEyebrow", "weather_chart_eyebrow");
+        applyText("#humidityChartTitle", "humidity_chart_title");
+        applyText("#humidityChartMeta", "humidity_chart_meta");
+        applyText("#aqiChartEyebrow", "air_chart_eyebrow");
+        applyText("#aqiChartTitle", "pm25_chart_title");
+        applyText("#aqiChartMeta", "pm25_chart_meta");
+        applyText("#no2ChartEyebrow", "air_chart_eyebrow");
+        applyText("#no2ChartTitle", "no2_chart_title");
+        applyText("#no2ChartMeta", "no2_chart_meta");
         applyText(".card-header span", "city_assistant");
         applyText("#clear-chat-btn", "clear");
         applyText("#send-btn", "send");
@@ -280,9 +316,9 @@ window.udtI18n = (function () {
 
         document.getElementById("locationInfoCloseBtn")?.setAttribute("aria-label", t("close_details"));
         applyText("#locationInfoTitle", "location_details");
-        applyText(".location-info-card__section:nth-of-type(1) h5", "weather");
-        applyText(".location-info-card__section:nth-of-type(2) h5", "air_quality");
-        applyText(".location-info-card__section:nth-of-type(3) h5", "traffic");
+        applyText("#weatherInfoHeading", "weather");
+        applyText("#airQualityInfoHeading", "air_quality");
+        applyText("#trafficInfoHeading", "traffic");
         applyText("#bagInfoHeading", "bag_building_info");
         applyText("#energyLabelHeading", "energy_label");
         applyText("#rivmInfoHeading", "official_sensor_data");

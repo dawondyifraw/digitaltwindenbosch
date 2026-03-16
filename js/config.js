@@ -5,6 +5,7 @@ window.config = {
 
 const defaultConfig = {
     APP_MODE: "prototype",
+    LOCALE: "nl",
     SERVICES: {
         streamUrl: "",
         chatApi: "",

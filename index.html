@@ -316,10 +316,43 @@
       </div>
     </div>
     <div class="panel-window__body">
-      <div class="chart-container"><canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas></div>
-      <div class="chart-container"><canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas></div>
-      <div class="chart-container"><canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas></div>
-      <div class="chart-container"><canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas></div>
+      <div class="forecast-panel__summary">
+        <span id="forecastPanelEyebrow" class="chart-container__eyebrow">Forecast focus</span>
+        <strong id="forecastPanelLocation" class="forecast-panel__location">Den Bosch city center</strong>
+        <span id="forecastPanelMeta" class="forecast-panel__meta">Click the map to refresh this forecast</span>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
+          <span id="temperatureChartEyebrow" class="chart-container__eyebrow">Weather</span>
+          <strong id="temperatureChartTitle" class="chart-container__title">Temperature forecast</strong>
+          <span id="temperatureChartMeta" class="chart-container__meta">Next 21 hours</span>
+        </div>
+        <canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
+          <span id="humidityChartEyebrow" class="chart-container__eyebrow">Weather</span>
+          <strong id="humidityChartTitle" class="chart-container__title">Humidity trend</strong>
+          <span id="humidityChartMeta" class="chart-container__meta">Relative humidity</span>
+        </div>
+        <canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
+          <span id="aqiChartEyebrow" class="chart-container__eyebrow">Air</span>
+          <strong id="aqiChartTitle" class="chart-container__title">PM2.5 estimate</strong>
+          <span id="aqiChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
+        </div>
+        <canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-container__header">
+          <span id="no2ChartEyebrow" class="chart-container__eyebrow">Air</span>
+          <strong id="no2ChartTitle" class="chart-container__title">NO₂ concentration</strong>
+          <span id="no2ChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
+        </div>
+        <canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas>
+      </div>
     </div>
   </aside>
 
@@ -346,38 +379,91 @@
         </div>
       </div>
       <div class="panel-window__body">
-      <div class="location-info-card__section">
-        <h5>Weer</h5>
-        <div id="locationWeatherContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__summary">
+        <span id="locationInfoMeta" class="location-info-card__eyebrow">Building selection</span>
+        <strong id="locationInfoName" class="location-info-card__name">Waiting for location</strong>
+        <span id="locationInfoCoords" class="location-info-card__coords">Click a building or point on the map</span>
       </div>
-      <div class="location-info-card__section">
-        <h5>Luchtkwaliteit</h5>
-        <div id="locationAirContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section" data-section-key="bag">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="true">
+          <span class="location-info-card__section-icon" aria-hidden="true">▦</span>
+          <h5 id="bagInfoHeading">BAG gebouwinfo</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationBagContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5>Verkeer</h5>
-        <div id="locationTrafficContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section" data-section-key="energy">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="true">
+          <span class="location-info-card__section-icon" aria-hidden="true">E</span>
+          <h5 id="energyLabelHeading">Energielabel</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationEnergyContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5 id="bagInfoHeading">BAG gebouwinfo</h5>
-        <div id="locationBagContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section" data-section-key="traffic">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="true">
+          <span class="location-info-card__section-icon" aria-hidden="true">↔</span>
+          <h5 id="trafficInfoHeading">Verkeer</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationTrafficContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5 id="energyLabelHeading">Energielabel</h5>
-        <div id="locationEnergyContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section" data-section-key="traffic-state">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="true">
+          <span class="location-info-card__section-icon" aria-hidden="true">≋</span>
+          <h5 id="trafficStateHeading">Verkeersstatus</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="trafficStateContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5 id="rivmInfoHeading">Officiële RIVM meetpunten</h5>
-        <div id="locationRivmContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section is-collapsed" data-section-key="weather">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="false">
+          <span class="location-info-card__section-icon" aria-hidden="true">◌</span>
+          <h5 id="weatherInfoHeading">Weer</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationWeatherContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5 id="trafficStateHeading">Verkeersstatus</h5>
-        <div id="trafficStateContent">Nog geen locatie geselecteerd.</div>
+      <div class="location-info-card__section is-collapsed" data-section-key="air">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="false">
+          <span class="location-info-card__section-icon" aria-hidden="true">AQ</span>
+          <h5 id="airQualityInfoHeading">Luchtkwaliteit</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationAirContent">Nog geen locatie geselecteerd.</div>
+        </div>
       </div>
-      <div class="location-info-card__section">
-        <h5 id="trafficIncidentsHeading">Incidenten gemeld</h5>
-        <div id="trafficIncidentsContent">Nog geen locatie geselecteerd.</div>
-        <button id="openTrafficIncidentsBtn" class="location-info-card__action-btn location-info-card__action-btn--secondary" type="button">View incidents</button>
+      <div class="location-info-card__section is-collapsed" data-section-key="rivm">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="false">
+          <span class="location-info-card__section-icon" aria-hidden="true">R</span>
+          <h5 id="rivmInfoHeading">Officiële RIVM meetpunten</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="locationRivmContent">Nog geen locatie geselecteerd.</div>
+        </div>
+      </div>
+      <div class="location-info-card__section is-collapsed" data-section-key="incidents">
+        <button class="location-info-card__section-toggle" type="button" aria-expanded="false">
+          <span class="location-info-card__section-icon" aria-hidden="true">!</span>
+          <h5 id="trafficIncidentsHeading">Incidenten gemeld</h5>
+          <span class="location-info-card__section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="location-info-card__section-body">
+          <div id="trafficIncidentsContent">Nog geen locatie geselecteerd.</div>
+          <button id="openTrafficIncidentsBtn" class="location-info-card__action-btn location-info-card__action-btn--secondary" type="button">View incidents</button>
+        </div>
       </div>
       <div class="location-info-card__actions">
         <button id="openLocationDashboardBtn" class="location-info-card__action-btn" type="button">Open dashboard</button>
@@ -464,13 +550,13 @@
   <script defer src="https://cdn.osmbuildings.org/4.1.1/OSMBuildings.js"></script>
   <script defer src="js/config.js?v=20260316a"></script>
   <script defer src="js/i18n.js?v=20260316b"></script>
-  <script defer src="js/features/ui-windows.js?v=20260316d"></script>
+  <script defer src="js/features/ui-windows.js?v=20260316f"></script>
   <script defer src="js/features/weather.js?v=20260316c"></script>
   <script defer src="js/features/air-quality.js?v=20260316c"></script>
   <script defer src="js/features/incidents.js?v=20260316c"></script>
   <script defer src="js/features/traffic.js?v=20260316c"></script>
   <script defer src="js/features/location-analysis.js?v=20260316d"></script>
-  <script defer src="dashboard/charts.js?v=20260316a"></script>
+  <script defer src="dashboard/charts.js?v=20260316c"></script>
   <script defer src="js/main.js?v=20260316b"></script>
   <script defer src="notificationservice/notifications_alert.js?v=20260316a"></script>
 <script defer src="realtimestream/kafka.js?v=20260316a"></script>
@@ -588,7 +674,6 @@
       // A11y pressed states wiring
       const togglePressed = (btn) => btn && btn.setAttribute('aria-pressed', String(!(btn.getAttribute('aria-pressed') === 'true')));
       document.getElementById('toggleStreamBtn')?.addEventListener('click', function(){ togglePressed(this); });
-      document.getElementById('startNotifications')?.addEventListener('click', function(){ togglePressed(this); });
 
       document.addEventListener('configLoaded', function () {
         const conf = window.config && window.config.conf ? window.config.conf : {};
