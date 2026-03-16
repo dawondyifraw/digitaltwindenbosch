@@ -2851,7 +2851,7 @@ function addCombinedContextMenu(viewer) {
                 <h2>Help & Contact</h2>
                 <p>Runner Blade V.4.1 is the limited version of the Digital Twin Den Bosch experience.</p>
                 <p><strong>Project contact</strong><br>Daniel Adenew Wonyifraw<br><a href="mailto:info@datatwinlabs.nl">info@datatwinlabs.nl</a></p>
-                <p><strong>Platform partner</strong><br>DataTwinLabs<br>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a real-time full-data demo and event with Daniel or Prof. Jos for the full multi-streaming platform setup and municipal deployment roadmap.</p>
+                <p><strong>Platform partner</strong><br>DataTwinLabs<br>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a live full-data demo with Daniel or Prof. Jos and explore the full platform and municipal deployment roadmap.</p>
                 <p><strong>Academic collaboration</strong><br>Prof. Jos van Hillegersberg</p>
                 <button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>
             `;

@@ -64,6 +64,36 @@
             padding: 22px;
         }
 
+        .brand-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .brand-owner {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .brand-owner strong {
+            color: var(--text);
+        }
+
+        .brand-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .brand-link:hover {
+            text-decoration: underline;
+        }
+
         .eyebrow {
             margin: 0 0 10px;
             color: var(--accent);
@@ -235,6 +265,24 @@
             color: var(--muted);
         }
 
+        .dashboard-footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 18px 20px;
+            font-size: 0.95rem;
+        }
+
+        .dashboard-footer p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .dashboard-footer strong {
+            color: var(--text);
+        }
+
         @media (max-width: 1180px) {
             .hero,
             .dashboard-grid,
@@ -248,6 +296,13 @@
     <main class="shell">
         <section class="hero">
             <article class="panel hero-card">
+                <div class="brand-strip">
+                    <div class="brand-owner">
+                        <span class="eyebrow" style="margin: 0;">DataTwinLabs</span>
+                        <span>This dashboard belongs to <strong>DataTwinLabs</strong></span>
+                    </div>
+                    <a class="brand-link" href="https://datatwinlabs.nl" target="_blank" rel="noopener noreferrer">DataTwinLabs.nl</a>
+                </div>
                 <p class="eyebrow">Runner Blade V.4.1</p>
                 <h1 id="dashboardTitle">Digital Twin Den Bosch</h1>
                 <p id="dashboardIntro">Realtime analyse voor weer, luchtkwaliteit, verkeersdruk en nabij erfgoed op basis van browservriendelijke publieke databronnen.</p>
@@ -366,6 +421,10 @@
                 </ul>
             </article>
         </section>
+        <footer class="panel dashboard-footer">
+            <p><strong>Digital Twin Den Bosch</strong> dashboard by <strong>DataTwinLabs</strong>.</p>
+            <p>Visit <a class="brand-link" href="https://datatwinlabs.nl" target="_blank" rel="noopener noreferrer">DataTwinLabs.nl</a> for more information and full-platform access.</p>
+        </footer>
     </main>
 
     <script>
