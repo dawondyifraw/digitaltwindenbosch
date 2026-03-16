@@ -1,10 +1,22 @@
 # Release Notes
 
+## Current Local Updates
+
+Not yet pushed as a separate release tag.
+
+- Public wording refined from `prototype` to `limited version`.
+- Welcome and help/contact copy now point users to `DataTwinLabs.nl` for a real-time full-data demo, event scheduling, municipal deployment roadmap, and full multi-streaming setup with Daniel or Prof. Jos.
+- Chat assistant can now be reopened from a floating `Odin` button after closing.
+- Municipal tree layer was hardened by switching from the unstable local source to a working public `OpenStreetMap / Overpass` trees-and-green-objects source.
+- Map labels were strengthened with a dedicated labels overlay for clearer Dutch place and city names.
+- Open-data dashboard default location handling was corrected so it opens on Den Bosch instead of `0,0`.
+- Energy-label insights were added to both the clicked-location card and the dashboard, with graceful handling when the EP-Online key is missing.
+
 ## Runner Blade V.4.1
 
 Release date: 2026-03-16
 
-This release focuses on turning the Den Bosch prototype into a stronger municipality-facing open-data showcase with a cleaner startup flow, better GIS structure, and more honest feature behavior.
+This release focuses on turning the Den Bosch limited version into a stronger municipality-facing open-data showcase with a cleaner startup flow, better GIS structure, and more honest feature behavior.
 
 ### Highlights
 

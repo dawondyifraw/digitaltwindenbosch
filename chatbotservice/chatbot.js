@@ -4,6 +4,21 @@ const sendBtn = document.getElementById('send-btn');
 const clearChatBtn = document.getElementById('clear-chat-btn');
 const closeChatBtn = document.getElementById('close-chat-btn');
 const chatContainer = document.querySelector('.chat-container');
+const toggleChatBtn = document.getElementById('toggleChatBtn');
+
+function syncChatVisibility(isClosed) {
+  if (chatContainer) {
+    chatContainer.classList.toggle('is-closed', isClosed);
+    chatContainer.style.display = '';
+  }
+
+  if (toggleChatBtn) {
+    toggleChatBtn.classList.toggle('is-hidden', !isClosed);
+    toggleChatBtn.hidden = !isClosed;
+  }
+}
+
+window.syncChatVisibility = syncChatVisibility;
 
 function getAppConfig() {
   return (window.config && window.config.conf) || {};
@@ -188,9 +203,17 @@ if (clearChatBtn && chatWindow) {
 
 if (closeChatBtn && chatContainer) {
   closeChatBtn.addEventListener('click', () => {
-    chatContainer.style.display = 'none';
+    syncChatVisibility(true);
   });
 }
+
+if (toggleChatBtn) {
+  toggleChatBtn.addEventListener('click', () => {
+    syncChatVisibility(false);
+  });
+}
+
+syncChatVisibility(false);
 
 document.addEventListener('configLoaded', () => {
   if (isPrototypeMode()) {

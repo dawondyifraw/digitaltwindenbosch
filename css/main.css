@@ -1312,6 +1312,35 @@ body.weather-water::before {
   font-family: var(--dt-font);
 }
 
+.chat-reopen-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1001;
+  min-width: 76px;
+  height: 46px;
+  border: 1px solid rgba(61, 214, 198, 0.35);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(61, 214, 198, 0.2), rgba(9, 14, 26, 0.94));
+  color: var(--dt-text);
+  font-family: var(--dt-font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 14px 34px rgba(5, 10, 20, 0.45);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.chat-reopen-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(61, 214, 198, 0.55);
+}
+
+.chat-reopen-btn.is-hidden {
+  display: none;
+}
+
 .chat-container .card {
   background: rgba(12, 18, 32, 0.9);
   border: 1px solid var(--dt-border);

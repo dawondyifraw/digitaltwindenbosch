@@ -50,13 +50,14 @@ const operationalState = {
     activeLayers: new Set()
 };
 
-const BIODIVERSITY_SERVICE_URL = "https://geoproxy.s-hertogenbosch.nl/ags_extern/rest/services/Externvrij/CO2/MapServer/11";
+const OVERPASS_API_URL = "https://overpass-api.de/api/interpreter";
 const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/wfs/v1_0";
 const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
 const CBS_WIJKBUURT_WMS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wms/v1_0";
 const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
 const KADASTER_3D_TILESET_URL = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
 const RIVM_STATIONS_URL = "https://data.rivm.nl/data/luchtmeetnet/Metadata/luchtmeetnet_meetlocaties.csv";
+const DUTCH_LABELS_TILE_URL = "https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png";
 
 // Helper to get elements
 function $(id) {
@@ -439,6 +440,7 @@ async function initCesium() {
     try {
         let terrainProvider = undefined;
         let imageryProvider = undefined;
+        let labelsLayer = null;
         if (typeof Cesium.createWorldTerrainAsync === "function") {
             terrainProvider = await Cesium.createWorldTerrainAsync();
         } else if (typeof Cesium.createWorldTerrain === "function") {
@@ -467,6 +469,20 @@ async function initCesium() {
                     url: "https://tile.openstreetmap.org/"
                 })
             );
+        }
+
+        try {
+            labelsLayer = viewer.imageryLayers.addImageryProvider(
+                new Cesium.UrlTemplateImageryProvider({
+                    url: DUTCH_LABELS_TILE_URL,
+                    credit: "Map labels"
+                })
+            );
+            labelsLayer.alpha = 0.96;
+            labelsLayer.brightness = 1.12;
+            labelsLayer.contrast = 1.08;
+        } catch (labelError) {
+            console.warn("Label overlay unavailable, continuing without dedicated labels.", labelError);
         }
 
         // Replace Cesium logo with Den Bosch logo
@@ -2072,7 +2088,7 @@ async function toggleBiodiversityStream() {
             button.textContent = "Gemeentelijke bomenlaag";
             button.setAttribute("aria-pressed", "false");
         }
-        showNotification("event", "Gemeentelijke bomenlaag verborgen. Dit zijn biodiversiteits- en boompunten uit de lokale geo service.");
+        showNotification("event", "Bomen- en groenlaag verborgen.");
         setLayerActive("biodiversity", false, "City core monitoring", "Biodiversity stream hidden");
         return;
     }
@@ -2084,7 +2100,7 @@ async function toggleBiodiversityStream() {
     }
 
     await loadBiodiversityTrees();
-    showNotification("event", "Gemeentelijke bomenlaag geladen. Dit toont biodiversiteits- en boompunten uit de Den Bosch geo service.");
+    showNotification("event", "Bomen- en groenlaag geladen.");
     biodiversityState.refreshTimer = setInterval(loadBiodiversityTrees, 5 * 60 * 1000);
     setLayerActive("biodiversity", true, "Biodiversity stream", "Biodiversity stream activated");
 }
@@ -2093,38 +2109,42 @@ async function loadBiodiversityTrees() {
     if (!viewer) return;
 
     const bbox = {
-        xmin: 5.20,
-        ymin: 51.62,
-        xmax: 5.45,
-        ymax: 51.78
+        south: 51.62,
+        west: 5.20,
+        north: 51.78,
+        east: 5.45
     };
 
-    const params = new URLSearchParams({
-        where: "1=1",
-        outFields: "*",
-        f: "json",
-        geometryType: "esriGeometryEnvelope",
-        geometry: `${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}`,
-        inSR: "4326",
-        outSR: "4326",
-        spatialRel: "esriSpatialRelIntersects",
-        resultRecordCount: "800"
-    });
-
-    const requestUrl = `${BIODIVERSITY_SERVICE_URL}/query?${params.toString()}`;
+    const overpassQuery = `
+[out:json][timeout:25];
+(
+  node["natural"="tree"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+  node["landuse"="forest"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+  way["landuse"="forest"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+  relation["landuse"="forest"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+);
+out center 800;
+    `.trim();
 
     try {
         const controller = new AbortController();
         const timeoutId = window.setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(requestUrl, { signal: controller.signal });
+        const response = await fetch(OVERPASS_API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+            },
+            body: `data=${encodeURIComponent(overpassQuery)}`,
+            signal: controller.signal
+        });
         clearTimeout(timeoutId);
         if (!response.ok) {
             throw new Error(`Biodiversity fetch failed: ${response.status}`);
         }
         const data = await response.json();
-        const features = Array.isArray(data.features) ? data.features : [];
-        if (!features.length) {
-            showNotification("event", "Geen boompunten gevonden in het huidige kaartgebied.");
+        const elements = Array.isArray(data.elements) ? data.elements : [];
+        if (!elements.length) {
+            showNotification("event", "Geen boom- of groenobjecten gevonden in het huidige kaartgebied.");
             return;
         }
 
@@ -2138,25 +2158,38 @@ async function loadBiodiversityTrees() {
         const pointColor = Cesium.Color.fromCssColorString("#3dd6c6").withAlpha(0.85);
         const outlineColor = Cesium.Color.fromCssColorString("#0b1220");
 
-        features.forEach((feature) => {
-            if (!feature || !feature.geometry) return;
-            const { x, y } = feature.geometry;
-            if (typeof x !== "number" || typeof y !== "number") return;
+        elements.forEach((element) => {
+            if (!element) return;
+            const lon = typeof element.lon === "number" ? element.lon : (element.center && typeof element.center.lon === "number" ? element.center.lon : null);
+            const lat = typeof element.lat === "number" ? element.lat : (element.center && typeof element.center.lat === "number" ? element.center.lat : null);
+            if (typeof lon !== "number" || typeof lat !== "number") return;
 
-            const attributes = feature.attributes || {};
+            const tags = element.tags || {};
             const title =
-                attributes.Boomsoort ||
-                attributes.Soort ||
-                attributes.naam ||
-                attributes.Naam ||
-                "Tree";
+                tags.name ||
+                tags.species ||
+                tags.genus ||
+                (tags.natural === "tree" ? "Boom" : "Groenobject");
+
+            const attributes = {
+                bron: "OpenStreetMap / Overpass",
+                type: element.type || "object",
+                objecttype: tags.natural || tags.landuse || "groenobject",
+                naam: tags.name || "",
+                soort: tags.species || "",
+                genus: tags.genus || "",
+                bladtype: tags.leaf_type || "",
+                bladcyclus: tags.leaf_cycle || "",
+                hoogte: tags.height || "",
+                stamdiameter: tags.circumference || ""
+            };
 
             const description = buildAttributesTable(attributes);
 
             biodiversityState.dataSource.entities.add({
-                position: Cesium.Cartesian3.fromDegrees(x, y, 0),
+                position: Cesium.Cartesian3.fromDegrees(lon, lat, 0),
                 point: {
-                    pixelSize: 5,
+                    pixelSize: tags.natural === "tree" ? 6 : 5,
                     color: pointColor,
                     outlineColor: outlineColor,
                     outlineWidth: 1
@@ -2167,7 +2200,7 @@ async function loadBiodiversityTrees() {
         });
     } catch (error) {
         console.error("Biodiversity stream error:", error);
-        showNotification("event", "Gemeentelijke bomenlaag niet beschikbaar (bron offline of geblokkeerd).");
+        showNotification("event", "Bomen- en groenlaag niet beschikbaar.");
     }
 }
 
@@ -2745,9 +2778,9 @@ function addCombinedContextMenu(viewer) {
             displayDiv.style.display = "block";
             displayDiv.innerHTML = `
                 <h2>Help & Contact</h2>
-                <p>Runner Blade V.4.1 is a public digital twin prototype for Den Bosch.</p>
+                <p>Runner Blade V.4.1 is the limited version of the Digital Twin Den Bosch experience.</p>
                 <p><strong>Project contact</strong><br>Daniel Adenew Wonyifraw<br><a href="mailto:info@datatwinlabs.nl">info@datatwinlabs.nl</a></p>
-                <p><strong>Platform partner</strong><br>DataTwinLabs<br>For the full multi-streaming platform, backend integration, and municipality deployment path, please get in touch by email.</p>
+                <p><strong>Platform partner</strong><br>DataTwinLabs<br>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a real-time full-data demo and event with Daniel or Prof. Jos for the full multi-streaming platform setup and municipal deployment roadmap.</p>
                 <p><strong>Academic collaboration</strong><br>Prof. Jos van Hillegersberg</p>
                 <button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>
             `;

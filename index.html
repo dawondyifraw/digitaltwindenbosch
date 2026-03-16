@@ -92,7 +92,7 @@
     <div class="inner">
       <p class="welcome-kicker">DataTwinLabs presents</p>
       <h1>Digital Twin • ’s‑Hertogenbosch</h1>
-      <p class="welcome-lead">A civic intelligence prototype for live urban insight, planning, mobility, environment, and municipal storytelling.</p>
+      <p class="welcome-lead">A civic intelligence limited version for live urban insight, planning, mobility, environment, and municipal storytelling.</p>
       <p id="loadingText">Loading modules and data…</p>
       <div class="logo-container" aria-hidden="true">
         <img src="https://www.persberichten.com/bestanden/bedrijven/7718/logo/JADS-GR.png" alt="DataTwinLabs" class="logo" />
@@ -116,7 +116,7 @@
       <div class="welcome-footer">
         <strong>Developed by DataTwinLabs, 2026</strong>
         <span>Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
-        <span>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">datatwinlabs.nl</a> for more enquiries and platform information.</span>
+        <span>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a real-time full-data demo and event with Daniel or Prof. Jos for the full multi-streaming platform setup and municipal deployment roadmap.</span>
         <span>Release note: Runner Blade V.4.1 adds a municipal object catalog, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, a static open-data dashboard, condensed analysis panels, and improved weather-reactive scene behavior.</span>
       </div>
     </div>
@@ -178,7 +178,7 @@
       </div>
       <div id="sidebarBriefingPanel" class="sidebar-briefing" hidden>
         <h3 id="sidebarBriefingTitle">Prototypebriefing</h3>
-        <p id="sidebarBriefingText">Demoversie. Voor het volledige multi-streaming platform neem contact op met Daniel via info@datatwinlabs.nl.</p>
+        <p id="sidebarBriefingText">Beperkte versie. Bezoek DataTwinLabs.nl om een real-time full-data demo en event in te plannen met Daniel of Prof. Jos voor het volledige multi-streaming platform en de gemeentelijke uitrolroadmap.</p>
       </div>
     </section>
 
@@ -412,6 +412,7 @@
       </div>
     </div>
   </section>
+  <button id="toggleChatBtn" class="chat-reopen-btn is-hidden" type="button" aria-label="Open chat" hidden>Odin</button>
 
   <script defer src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
@@ -610,7 +611,7 @@
           setWelcomeReady('System ready. Launch the Digital Twin when you are ready.');
         } else if (waited > 8000) {
           clearInterval(tick);
-          setWelcomeReady('Core modules loaded. You can enter the prototype now.');
+          setWelcomeReady('Core modules loaded. You can enter the limited version now.');
         }
       },150);
       verificationCheckBtn?.addEventListener('click', validateVerification);
@@ -676,10 +677,18 @@ const adminInfoBody = document.getElementById('adminInfoBody');
 const adminInfoCloseBtn = document.getElementById('adminInfoCloseBtn');
 
 closeChatBtn?.addEventListener('click', () => {
+  if (window.syncChatVisibility) {
+    window.syncChatVisibility(true);
+    return;
+  }
   chatContainer?.classList.add('is-closed');
 });
 
 toggleChatBtn?.addEventListener('click', () => {
+  if (window.syncChatVisibility) {
+    window.syncChatVisibility(false);
+    return;
+  }
   chatContainer?.classList.toggle('is-closed');
 });
 
@@ -744,11 +753,11 @@ const adminPanelContent = {
   readiness: {
     title: 'Operational readiness',
     body: `
-      <p><strong>Current prototype state</strong></p>
+      <p><strong>Current limited-version state</strong></p>
       <ul>
-        <li>Static frontend ready for GitHub Pages or simple web hosting</li>
+        <li>Frontend ready for simple web hosting</li>
         <li>Open data feeds active for weather, traffic, CBS, RIVM, BAG and heritage</li>
-        <li>Backend-dependent modules remain optional for this public prototype</li>
+        <li>Backend-dependent modules remain optional in this limited version</li>
       </ul>
       <p>This view explains what is already deployable today versus what belongs to the full platform version.</p>
     `
@@ -759,7 +768,7 @@ const adminPanelContent = {
       <p><strong>Current data posture</strong></p>
       <ul>
         <li>Public sources are shown with source labels and timestamps where available</li>
-        <li>The prototype still mixes open data with presentation-oriented visual layers</li>
+        <li>This limited version still mixes open data with presentation-oriented visual layers</li>
         <li>Full audit logging and lineage belong to the backend platform phase</li>
       </ul>
       <p>For the production twin, this section should later expose source lineage, freshness, permissions and audit trails.</p>
@@ -774,7 +783,7 @@ const adminPanelContent = {
         <li>Next phase: connect to the Digital Twin Den Bosch backend services</li>
         <li>Production phase: municipality-grade hosting, secured APIs, identity, audit and orchestration</li>
       </ul>
-      <p>Contact DataTwinLabs for the full multi-streaming platform setup and municipal deployment roadmap.</p>
+      <p>Visit DataTwinLabs.nl to schedule a real-time full-data demo and event with Daniel or Prof. Jos for the full multi-streaming platform setup and municipal deployment roadmap.</p>
     `
   }
 };

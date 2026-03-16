@@ -250,7 +250,7 @@
             <article class="panel hero-card">
                 <p class="eyebrow">Runner Blade V.4.1</p>
                 <h1 id="dashboardTitle">Digital Twin Den Bosch</h1>
-                <p id="dashboardIntro">Realtime prototypeanalyse voor weer, luchtkwaliteit, verkeersdruk en nabij erfgoed op basis van browservriendelijke publieke databronnen.</p>
+                <p id="dashboardIntro">Realtime analyse voor weer, luchtkwaliteit, verkeersdruk en nabij erfgoed op basis van browservriendelijke publieke databronnen.</p>
                 <div class="toolbar">
                     <button class="button-primary" id="refreshDashboardBtn">Data vernieuwen</button>
                     <button id="useCityCoreBtn">Gebruik binnenstad</button>
@@ -393,8 +393,8 @@
 
         function getQueryLocation() {
             const params = new URLSearchParams(window.location.search);
-            const lat = Number(params.get("lat"));
-            const lon = Number(params.get("lon"));
+            const lat = params.has("lat") ? Number(params.get("lat")) : NaN;
+            const lon = params.has("lon") ? Number(params.get("lon")) : NaN;
             const name = params.get("name");
             if (Number.isFinite(lat) && Number.isFinite(lon)) {
                 return {
@@ -903,7 +903,7 @@
                 "RIVM / Luchtmeetnet officiële meetpunten",
                 "PDOK / CBS buurtprofielen",
                 "PDOK / RCE erfgoed",
-                "Lokale prototypeconfiguratie"
+                "Lokale beperkte configuratie"
             ].forEach((label) => {
                 const li = document.createElement("li");
                 li.textContent = label;
