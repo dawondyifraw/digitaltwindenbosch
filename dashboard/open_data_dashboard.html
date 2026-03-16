@@ -336,7 +336,7 @@
             </article>
 
             <article class="panel info-panel">
-                <h2>TomTom incidenten</h2>
+                <h2>Incidenten gemeld</h2>
                 <div class="banner">Actuele verkeersincidenten, afsluitingen en verstoringen in de buurt van de gekozen locatie.</div>
                 <ul class="sensor-list" id="incidentList">
                     <li>Bezig met laden…</li>
@@ -869,7 +869,7 @@
 
             if (!incidents.length) {
                 const item = document.createElement("li");
-                item.textContent = "Geen actuele TomTom incidenten in de directe omgeving.";
+                item.textContent = "Geen actuele verkeersincidenten in de directe omgeving.";
                 list.appendChild(item);
                 return;
             }

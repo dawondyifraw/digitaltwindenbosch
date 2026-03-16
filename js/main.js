@@ -1184,7 +1184,7 @@ async function fetchAndDisplayTrafficIncidents(latitude, longitude) {
     if (!incidents.length) {
         target.textContent = window.udtI18n
             ? window.udtI18n.t("no_traffic_incidents")
-            : "Geen actuele TomTom incidenten in de directe omgeving.";
+            : "Geen actuele verkeersincidenten in de directe omgeving.";
         target.dataset.hasData = "false";
         return;
     }
@@ -1722,7 +1722,7 @@ async function refreshTrafficIncidentOverlay(latitude = 51.686, longitude = 5.29
                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000)
             },
             description: `
-                <h2>TomTom incident</h2>
+                <h2>Verkeersincident</h2>
                 <p><strong>Status:</strong> ${display.description}</p>
                 <p><strong>Ernst:</strong> ${display.severity || "Onbekend"}</p>
                 <p><strong>Van:</strong> ${props.from || "Onbekend"}</p>

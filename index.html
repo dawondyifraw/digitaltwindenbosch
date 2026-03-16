@@ -101,20 +101,22 @@
       <div class="loading-bar" aria-hidden="true"><div></div></div>
       <div class="welcome-verification" id="welcomeVerification" aria-live="polite">
         <p class="welcome-verification__label">Human verification</p>
-        <p class="welcome-verification__question" id="verificationQuestion">Loading challenge…</p>
+        <p class="welcome-verification__question" id="verificationQuestion">Enter the security code shown below.</p>
+        <canvas id="verificationCanvas" class="welcome-verification__canvas" width="280" height="84" aria-label="Security verification code"></canvas>
         <div class="welcome-verification__row">
-          <input id="verificationAnswer" type="text" inputmode="numeric" autocomplete="off" placeholder="Answer" aria-label="Verification answer" />
+          <input id="verificationAnswer" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" placeholder="Security code" aria-label="Verification answer" />
           <button id="verificationCheckBtn" type="button">Verify</button>
           <button id="verificationRefreshBtn" type="button" aria-label="New challenge">↻</button>
         </div>
-        <p class="welcome-verification__status" id="verificationStatus">Please solve the check to enter the twin.</p>
+        <p class="welcome-verification__status" id="verificationStatus">Complete the captcha to unlock the twin.</p>
       </div>
       <div class="welcome-actions">
-        <button id="enterTwinBtn" class="enter-twin-btn" type="button" disabled>Enter Digital Twin</button>
+        <button id="enterTwinBtn" class="enter-twin-btn is-hidden" type="button" disabled>Enter Digital Twin</button>
       </div>
       <div class="welcome-footer">
         <strong>Developed by DataTwinLabs, 2026</strong>
         <span>Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
+        <span>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">datatwinlabs.nl</a> for more enquiries and platform information.</span>
         <span>Release note: Runner Blade V.4.1 adds a municipal object catalog, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, a static open-data dashboard, condensed analysis panels, and improved weather-reactive scene behavior.</span>
       </div>
     </div>
@@ -159,7 +161,10 @@
   <!-- Sidebar: commercial layout with dropdowns -->
   <nav id="menu" aria-label="Main navigation" class="sidebar">
     <div class="sidebar-header">
-      <div class="brand">UDT Console</div>
+      <div>
+        <div class="brand">UDT Console</div>
+        <a class="sidebar-header__link" href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">datatwinlabs.nl</a>
+      </div>
       <div class="version">Runner Blade V.4.1</div>
     </div>
 
@@ -345,7 +350,7 @@
         <div id="trafficStateContent">Nog geen locatie geselecteerd.</div>
       </div>
       <div class="location-info-card__section">
-        <h5 id="trafficIncidentsHeading">TomTom incidenten</h5>
+        <h5 id="trafficIncidentsHeading">Incidenten gemeld</h5>
         <div id="trafficIncidentsContent">Nog geen locatie geselecteerd.</div>
       </div>
       <div class="location-info-card__actions">
@@ -380,9 +385,6 @@
   </aside>
 
   <!-- Minimap -->
-  <section id="minimap-container" aria-label="Overview map">
-    <div id="minimap" role="img" aria-label="Minimap"></div>
-  </section>
 
   <!-- Chat -->
   <section class="chat-container" aria-label="Assistant chat">
@@ -420,7 +422,6 @@
   <script defer src="js/main.js?v=20260316a"></script>
   <script defer src="notificationservice/notifications_alert.js?v=20260316a"></script>
 <script defer src="realtimestream/kafka.js?v=20260316a"></script>
-  <script defer src="minimap/OSM.js?v=20260316a"></script>
   <script defer src="chatbotservice/chatbot.js?v=20260316a"></script>
 
   <script>
@@ -432,6 +433,7 @@
       const loadingText = document.getElementById('loadingText');
       const enterTwinBtn = document.getElementById('enterTwinBtn');
       const verificationQuestion = document.getElementById('verificationQuestion');
+      const verificationCanvas = document.getElementById('verificationCanvas');
       const verificationAnswer = document.getElementById('verificationAnswer');
       const verificationStatus = document.getElementById('verificationStatus');
       const verificationCheckBtn = document.getElementById('verificationCheckBtn');
@@ -440,6 +442,7 @@
       let verificationReady = false;
       let verificationExpected = null;
       let visitorSessionId = null;
+      let splashReady = false;
 
       const makeVisitorRecord = (eventName, extra = {}) => ({
         event: eventName,
@@ -491,30 +494,90 @@
         sendVisitorRecord(makeVisitorRecord('landing_view'));
       };
 
+      const updateEnterVisibility = () => {
+        if (!enterTwinBtn) return;
+        const unlocked = verificationReady && splashReady;
+        enterTwinBtn.disabled = !unlocked;
+        enterTwinBtn.classList.toggle('is-hidden', !unlocked);
+      };
+
+      const drawVerificationCanvas = (text) => {
+        const ctx = verificationCanvas?.getContext('2d');
+        if (!ctx || !verificationCanvas) return;
+
+        const { width, height } = verificationCanvas;
+        ctx.clearRect(0, 0, width, height);
+
+        const background = ctx.createLinearGradient(0, 0, width, height);
+        background.addColorStop(0, '#09111d');
+        background.addColorStop(1, '#101e31');
+        ctx.fillStyle = background;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 24; i += 1) {
+          ctx.strokeStyle = `rgba(${40 + Math.floor(Math.random() * 120)}, ${120 + Math.floor(Math.random() * 90)}, ${140 + Math.floor(Math.random() * 90)}, 0.18)`;
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * width, Math.random() * height);
+          ctx.lineTo(Math.random() * width, Math.random() * height);
+          ctx.stroke();
+        }
+
+        for (let i = 0; i < 48; i += 1) {
+          ctx.fillStyle = `rgba(255,255,255,${0.04 + Math.random() * 0.12})`;
+          ctx.beginPath();
+          ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2.2 + 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const chars = text.split('');
+        const step = width / (chars.length + 1);
+        chars.forEach((char, index) => {
+          const x = step * (index + 1);
+          const y = height / 2 + 10 + (Math.random() * 10 - 5);
+          const angle = (Math.random() * 0.7) - 0.35;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.font = `${32 + Math.floor(Math.random() * 6)}px "Segoe UI", sans-serif`;
+          ctx.fillStyle = ['#d8fff4', '#8cf0ff', '#ffd58a', '#f7a0ff'][index % 4];
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+          ctx.shadowBlur = 6;
+          ctx.fillText(char, -10, 0);
+          ctx.restore();
+        });
+
+        ctx.strokeStyle = 'rgba(61, 214, 198, 0.45)';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(10, height * 0.72);
+        for (let x = 10; x < width - 10; x += 18) {
+          ctx.lineTo(x, height * (0.32 + Math.random() * 0.4));
+        }
+        ctx.stroke();
+      };
+
       const refreshVerification = () => {
-        const a = Math.floor(Math.random() * 8) + 2;
-        const b = Math.floor(Math.random() * 7) + 3;
-        verificationExpected = a + b;
-        if (verificationQuestion) verificationQuestion.textContent = `What is ${a} + ${b}?`;
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        verificationExpected = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+        if (verificationQuestion) verificationQuestion.textContent = 'Enter the security code shown below.';
+        drawVerificationCanvas(verificationExpected);
         if (verificationAnswer) verificationAnswer.value = '';
-        if (verificationStatus) verificationStatus.textContent = 'Please solve the check to enter the twin.';
+        if (verificationStatus) verificationStatus.textContent = 'Complete the captcha to unlock the twin.';
         verificationReady = false;
-        if (enterTwinBtn) enterTwinBtn.disabled = true;
+        updateEnterVisibility();
       };
 
       const validateVerification = () => {
-        const answer = Number((verificationAnswer?.value || '').trim());
+        const answer = (verificationAnswer?.value || '').trim().toUpperCase();
         if (answer === verificationExpected) {
           verificationReady = true;
-          if (verificationStatus) verificationStatus.textContent = 'Verification complete. You can enter once the core modules are ready.';
-          if (splash?.classList.contains('is-ready') && enterTwinBtn) {
-            enterTwinBtn.disabled = false;
-          }
+          if (verificationStatus) verificationStatus.textContent = 'Verification complete. The twin is unlocked.';
+          updateEnterVisibility();
           sendVisitorRecord(makeVisitorRecord('verification_passed'));
         } else {
           verificationReady = false;
-          if (verificationStatus) verificationStatus.textContent = 'Verification failed. Please try again.';
-          if (enterTwinBtn) enterTwinBtn.disabled = true;
+          if (verificationStatus) verificationStatus.textContent = 'Verification failed. A new captcha has been generated.';
+          updateEnterVisibility();
           sendVisitorRecord(makeVisitorRecord('verification_failed'));
           refreshVerification();
         }
@@ -530,7 +593,8 @@
       const setWelcomeReady = (message) => {
         if (loadingText && message) loadingText.textContent = message;
         splash?.classList.add('is-ready');
-        if (enterTwinBtn) enterTwinBtn.disabled = !verificationReady;
+        splashReady = true;
+        updateEnterVisibility();
       };
       initVisitorSession();
       refreshVerification();

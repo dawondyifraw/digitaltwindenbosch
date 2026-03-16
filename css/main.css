@@ -400,6 +400,20 @@ body.weather-water::before {
   font-size: 1.05rem;
 }
 
+.sidebar-header__link {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--dt-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.sidebar-header__link:hover {
+  text-decoration: underline;
+}
+
 .sidebar .version {
   color: var(--dt-muted);
   font-size: 0.82rem;
@@ -1142,6 +1156,17 @@ body.weather-water::before {
   font-weight: 600;
 }
 
+.welcome-verification__canvas {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: 84px;
+  margin: 0 0 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 12, 21, 0.96);
+}
+
 .welcome-verification__row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -1198,6 +1223,10 @@ body.weather-water::before {
   transition: opacity 0.2s ease, transform 0.2s ease, border 0.2s ease;
 }
 
+.enter-twin-btn.is-hidden {
+  display: none;
+}
+
 .enter-twin-btn:disabled {
   cursor: wait;
 }
@@ -1224,6 +1253,15 @@ body.weather-water::before {
 .welcome-footer strong,
 .welcome-footer span {
   display: block;
+}
+
+.welcome-footer a {
+  color: var(--dt-accent);
+  text-decoration: none;
+}
+
+.welcome-footer a:hover {
+  text-decoration: underline;
 }
 
 .logo-container {
