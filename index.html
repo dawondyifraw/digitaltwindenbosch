@@ -117,7 +117,7 @@
         <strong>Developed by DataTwinLabs, 2026</strong>
         <span>Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg for the Digital Twin Den Bosch initiative.</span>
         <span>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a live full-data demo with Daniel or Prof. Jos and explore the full platform and municipal deployment roadmap.</span>
-        <span>Release note: Runner Blade V.4.1 adds a municipal object catalog, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, an open-data dashboard, condensed analysis panels, and improved weather-reactive scene behavior.</span>
+        <span>Release note: Runner Blade V.4.2 adds condensed forecast panels, stronger mobility overlays, official RIVM/CBS/BAG/PDOK integration, an open-data dashboard, and improved weather-reactive scene behavior.</span>
       </div>
     </div>
   </div>
@@ -324,34 +324,18 @@
       <div class="chart-container">
         <div class="chart-container__header">
           <span id="temperatureChartEyebrow" class="chart-container__eyebrow">Weather</span>
-          <strong id="temperatureChartTitle" class="chart-container__title">Temperature forecast</strong>
+          <strong id="temperatureChartTitle" class="chart-container__title">Temperature and humidity</strong>
           <span id="temperatureChartMeta" class="chart-container__meta">Next 21 hours</span>
         </div>
         <canvas id="temperatureChart" aria-label="Temperature forecast" role="img"></canvas>
       </div>
       <div class="chart-container">
         <div class="chart-container__header">
-          <span id="humidityChartEyebrow" class="chart-container__eyebrow">Weather</span>
-          <strong id="humidityChartTitle" class="chart-container__title">Humidity trend</strong>
-          <span id="humidityChartMeta" class="chart-container__meta">Relative humidity</span>
-        </div>
-        <canvas id="humidityChart" aria-label="Humidity forecast" role="img"></canvas>
-      </div>
-      <div class="chart-container">
-        <div class="chart-container__header">
           <span id="aqiChartEyebrow" class="chart-container__eyebrow">Air</span>
-          <strong id="aqiChartTitle" class="chart-container__title">PM2.5 estimate</strong>
+          <strong id="aqiChartTitle" class="chart-container__title">PM2.5 and NO₂</strong>
           <span id="aqiChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
         </div>
         <canvas id="aqiChart" aria-label="Air Quality Index" role="img"></canvas>
-      </div>
-      <div class="chart-container">
-        <div class="chart-container__header">
-          <span id="no2ChartEyebrow" class="chart-container__eyebrow">Air</span>
-          <strong id="no2ChartTitle" class="chart-container__title">NO₂ concentration</strong>
-          <span id="no2ChartMeta" class="chart-container__meta">Current proxy across the horizon</span>
-        </div>
-        <canvas id="no2Chart" aria-label="NO₂ concentrations" role="img"></canvas>
       </div>
     </div>
   </aside>
@@ -556,7 +540,7 @@
   <script defer src="js/features/incidents.js?v=20260316c"></script>
   <script defer src="js/features/traffic.js?v=20260316c"></script>
   <script defer src="js/features/location-analysis.js?v=20260316d"></script>
-  <script defer src="dashboard/charts.js?v=20260316c"></script>
+  <script defer src="dashboard/charts.js?v=20260316d"></script>
   <script defer src="js/main.js?v=20260316b"></script>
   <script defer src="notificationservice/notifications_alert.js?v=20260316a"></script>
 <script defer src="realtimestream/kafka.js?v=20260316a"></script>

@@ -2090,7 +2090,7 @@ function addCombinedContextMenu(viewer) {
     if (showInfo) {
         showInfo.addEventListener("click", () => {
             displayDiv.style.display = "block";
-            displayDiv.innerHTML = `<h2>Info</h2><p>Runner Blade V.4.1 for the Digital Twin Den Bosch initiative, developed by DataTwinLabs in 2026. Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg.</p><button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>`;
+            displayDiv.innerHTML = `<h2>Info</h2><p>Runner Blade V.4.2 for the Digital Twin Den Bosch initiative, developed by DataTwinLabs in 2026. Created by Daniel Adenew Wonyifraw with Prof. Jos van Hillegersberg.</p><button onclick="document.getElementById('displayDiv').style.display='none'">Close</button>`;
             hideContextMenu();
         });
     }
@@ -2108,7 +2108,7 @@ function addCombinedContextMenu(viewer) {
             displayDiv.style.display = "block";
             displayDiv.innerHTML = `
                 <h2>Help & Contact</h2>
-                <p>Runner Blade V.4.1 is the limited version of the Digital Twin Den Bosch experience.</p>
+                <p>Runner Blade V.4.2 is the limited version of the Digital Twin Den Bosch experience.</p>
                 <p><strong>Project contact</strong><br>Daniel Adenew Wonyifraw<br><a href="mailto:info@datatwinlabs.nl">info@datatwinlabs.nl</a></p>
                 <p><strong>Platform partner</strong><br>DataTwinLabs<br>Visit <a href="https://datatwinlabs.nl" target="_blank" rel="noreferrer">DataTwinLabs.nl</a> to schedule a live full-data demo with Daniel or Prof. Jos and explore the full platform and municipal deployment roadmap.</p>
                 <p><strong>Academic collaboration</strong><br>Prof. Jos van Hillegersberg</p>
