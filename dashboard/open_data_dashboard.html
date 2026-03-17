@@ -15,10 +15,13 @@
             --border: rgba(255, 255, 255, 0.08);
             --text: #ecf3fb;
             --muted: #98abc1;
-            --accent: #38d6c5;
-            --accent-soft: rgba(56, 214, 197, 0.15);
-            --warn: #f59e0b;
-            --danger: #fb7185;
+            --accent: #59c8a7;
+            --accent-soft: rgba(89, 200, 167, 0.16);
+            --accent-forest: #75b798;
+            --accent-sky: #79b8d6;
+            --warn: #d6a85f;
+            --danger: #d87b7b;
+            --neutral-tint: #88a6c3;
             --shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
             --radius: 18px;
         }
@@ -36,14 +39,14 @@
         }
 
         body {
-            padding: 24px;
+            padding: 20px;
         }
 
         .shell {
-            max-width: 1440px;
+            max-width: 1480px;
             margin: 0 auto;
             display: grid;
-            gap: 18px;
+            gap: 20px;
         }
 
         .hero {
@@ -61,7 +64,35 @@
         }
 
         .hero-card {
-            padding: 22px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(89, 200, 167, 0.08), rgba(121, 184, 214, 0.04) 40%, rgba(10, 18, 31, 0.96) 75%),
+                var(--panel);
+        }
+
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(89, 200, 167, 0.22), rgba(89, 200, 167, 0));
+            pointer-events: none;
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(180deg, rgba(0,0,0,0.32), transparent 70%);
+            pointer-events: none;
         }
 
         .brand-strip {
@@ -117,6 +148,11 @@
             color: var(--muted);
         }
 
+        .hero-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
         .toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -141,14 +177,17 @@
         }
 
         .button-primary {
-            background: linear-gradient(135deg, rgba(56, 214, 197, 0.2), rgba(8, 109, 139, 0.2));
-            border-color: rgba(56, 214, 197, 0.28);
+            background: linear-gradient(135deg, rgba(89, 200, 167, 0.26), rgba(121, 184, 214, 0.18));
+            border-color: rgba(89, 200, 167, 0.3);
         }
 
         .hero-side {
-            padding: 22px;
+            padding: 24px;
             display: grid;
-            gap: 14px;
+            gap: 16px;
+            background:
+                linear-gradient(180deg, rgba(121, 184, 214, 0.08), rgba(10, 18, 31, 0.96)),
+                var(--panel);
         }
 
         .state-line {
@@ -156,42 +195,423 @@
             justify-content: space-between;
             gap: 12px;
             font-size: 0.95rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .kpis {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(8, minmax(0, 1fr));
             gap: 16px;
         }
 
         .kpi {
+            min-height: 122px;
             padding: 18px;
+            position: relative;
+            overflow: hidden;
+            display: grid;
+            align-content: end;
+            gap: 8px;
+        }
+
+        .kpi::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            opacity: 0.95;
+        }
+
+        .kpi::after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -28px;
+            top: -28px;
+            border-radius: 999px;
+            opacity: 0.22;
+            filter: blur(10px);
+        }
+
+        .kpi--good {
+            background: linear-gradient(180deg, rgba(117, 183, 152, 0.18), rgba(10, 18, 31, 0.94));
+            border-color: rgba(117, 183, 152, 0.24);
+        }
+
+        .kpi--warn {
+            background: linear-gradient(180deg, rgba(214, 168, 95, 0.18), rgba(10, 18, 31, 0.94));
+            border-color: rgba(214, 168, 95, 0.24);
+        }
+
+        .kpi--danger {
+            background: linear-gradient(180deg, rgba(216, 123, 123, 0.18), rgba(10, 18, 31, 0.94));
+            border-color: rgba(216, 123, 123, 0.24);
+        }
+
+        .kpi--neutral {
+            background: linear-gradient(180deg, rgba(121, 184, 214, 0.16), rgba(10, 18, 31, 0.94));
+            border-color: rgba(121, 184, 214, 0.22);
         }
 
         .kpi span {
             display: block;
-            margin-bottom: 8px;
             color: var(--muted);
-            font-size: 0.8rem;
+            font-size: 0.74rem;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+            max-width: 13ch;
         }
 
         .kpi strong {
-            font-size: 1.8rem;
+            font-size: clamp(1.45rem, 1.5vw, 1.9rem);
             line-height: 1.1;
+        }
+
+        .environment-panel {
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            align-items: start;
+            background:
+                radial-gradient(900px 420px at 0% 0%, rgba(117, 183, 152, 0.18), transparent 62%),
+                radial-gradient(700px 320px at 100% 20%, rgba(89, 200, 167, 0.12), transparent 58%),
+                linear-gradient(180deg, rgba(82, 146, 114, 0.22), rgba(11, 24, 21, 0.96) 42%, rgba(10, 18, 31, 0.98) 100%),
+                var(--panel);
+            border-color: rgba(117, 183, 152, 0.22);
+            box-shadow:
+                0 20px 46px rgba(0, 0, 0, 0.34),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .environment-panel__header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            grid-column: 1 / -1;
+        }
+
+        .environment-panel__header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #edf7f0;
+        }
+
+        .environment-panel__header p {
+            margin: 6px 0 0;
+            color: #bfd4c8;
+            max-width: 760px;
+        }
+
+        .environment-panel .eyebrow {
+            color: #9ed3ae;
+        }
+
+        .environment-cards {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .environment-card {
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: grid;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            grid-column: span 4;
+        }
+
+        .environment-card--feature {
+            min-height: 250px;
+            align-content: end;
+            grid-column: span 6;
+        }
+
+        .environment-card--feature .environment-card__value {
+            font-size: clamp(2.5rem, 3vw, 3.6rem);
+        }
+
+        .environment-card--feature .environment-card__meta {
+            max-width: 30ch;
+        }
+
+        .environment-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            opacity: 0.95;
+        }
+
+        .environment-card::after {
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            right: -42px;
+            top: -42px;
+            border-radius: 999px;
+            opacity: 0.22;
+            filter: blur(14px);
+        }
+
+        .environment-card--good {
+            background: linear-gradient(180deg, rgba(117, 183, 152, 0.18), rgba(255, 255, 255, 0.03));
+            border-color: rgba(117, 183, 152, 0.22);
+        }
+
+        .environment-card--warn {
+            background: linear-gradient(180deg, rgba(214, 168, 95, 0.18), rgba(255, 255, 255, 0.03));
+            border-color: rgba(214, 168, 95, 0.22);
+        }
+
+        .environment-card--danger {
+            background: linear-gradient(180deg, rgba(216, 123, 123, 0.18), rgba(255, 255, 255, 0.03));
+            border-color: rgba(216, 123, 123, 0.22);
+        }
+
+        .environment-card--neutral {
+            background: linear-gradient(180deg, rgba(121, 184, 214, 0.15), rgba(255, 255, 255, 0.03));
+            border-color: rgba(121, 184, 214, 0.2);
+        }
+
+        .environment-card__top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .environment-card__label {
+            color: #dce8f6;
+            font-size: 0.74rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .environment-card__status {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .environment-card__status--good {
+            background: rgba(117, 183, 152, 0.22);
+            color: #d8f4df;
+            border: 1px solid rgba(117, 183, 152, 0.28);
+        }
+
+        .environment-card__status--warn {
+            background: rgba(214, 168, 95, 0.22);
+            color: #f8e8c4;
+            border: 1px solid rgba(214, 168, 95, 0.28);
+        }
+
+        .environment-card__status--danger {
+            background: rgba(216, 123, 123, 0.22);
+            color: #f7dad9;
+            border: 1px solid rgba(216, 123, 123, 0.28);
+        }
+
+        .environment-card__status--neutral {
+            background: rgba(121, 184, 214, 0.18);
+            color: #d7edf7;
+            border: 1px solid rgba(121, 184, 214, 0.24);
+        }
+
+        .environment-card__value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .kpi[data-brand="air"]::before,
+        .environment-card[data-brand="air"]::before {
+            background: linear-gradient(90deg, #8ad9bf, #4eb89d);
+        }
+
+        .kpi[data-brand="air"]::after,
+        .environment-card[data-brand="air"]::after {
+            background: radial-gradient(circle, rgba(117, 183, 152, 0.95), rgba(117, 183, 152, 0));
+        }
+
+        .kpi[data-brand="weather"]::before,
+        .environment-card[data-brand="weather"]::before {
+            background: linear-gradient(90deg, #8fc8df, #5ea8c7);
+        }
+
+        .kpi[data-brand="weather"]::after,
+        .environment-card[data-brand="weather"]::after {
+            background: radial-gradient(circle, rgba(121, 184, 214, 0.95), rgba(121, 184, 214, 0));
+        }
+
+        .kpi[data-brand="traffic"]::before,
+        .environment-card[data-brand="traffic"]::before {
+            background: linear-gradient(90deg, #f0c977, #d9a34a);
+        }
+
+        .kpi[data-brand="traffic"]::after,
+        .environment-card[data-brand="traffic"]::after {
+            background: radial-gradient(circle, rgba(214, 168, 95, 0.95), rgba(214, 168, 95, 0));
+        }
+
+        .kpi[data-brand="heritage"]::before,
+        .environment-card[data-brand="heritage"]::before {
+            background: linear-gradient(90deg, #c8b2db, #9c7fba);
+        }
+
+        .kpi[data-brand="heritage"]::after,
+        .environment-card[data-brand="heritage"]::after {
+            background: radial-gradient(circle, rgba(156, 127, 186, 0.9), rgba(156, 127, 186, 0));
+        }
+
+        .environment-card[data-brand="green"]::before {
+            background: linear-gradient(90deg, #9cd17d, #5fa86e);
+        }
+
+        .environment-card[data-brand="green"]::after {
+            background: radial-gradient(circle, rgba(111, 168, 110, 0.95), rgba(111, 168, 110, 0));
+        }
+
+        .environment-card[data-brand="co2"]::before {
+            background: linear-gradient(90deg, #df9c9c, #c77777);
+        }
+
+        .environment-card[data-brand="co2"]::after {
+            background: radial-gradient(circle, rgba(216, 123, 123, 0.92), rgba(216, 123, 123, 0));
+        }
+
+        .environment-card__meta {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.4;
+        }
+
+        .assistant-fab {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 60;
+            border-radius: 999px;
+            padding: 13px 16px;
+            background: linear-gradient(135deg, rgba(56, 214, 197, 0.22), rgba(8, 109, 139, 0.22));
+            border-color: rgba(56, 214, 197, 0.28);
+            box-shadow: var(--shadow);
+        }
+
+        .assistant-popup {
+            position: fixed;
+            right: 24px;
+            bottom: 84px;
+            width: min(380px, calc(100vw - 32px));
+            max-height: min(70vh, 620px);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+            z-index: 61;
+        }
+
+        .assistant-popup[hidden] {
+            display: none;
+        }
+
+        .assistant-popup__header,
+        .assistant-popup__footer {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .assistant-popup__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .assistant-popup__header strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .assistant-popup__header span {
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .assistant-popup__messages {
+            min-height: 220px;
+            max-height: 42vh;
+            overflow-y: auto;
+            padding: 14px 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .assistant-message {
+            padding: 12px 14px;
+            border-radius: 14px;
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
+
+        .assistant-message--bot {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .assistant-message--user {
+            background: rgba(56, 214, 197, 0.12);
+            border: 1px solid rgba(56, 214, 197, 0.18);
+        }
+
+        .assistant-popup__footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 0;
+        }
+
+        .assistant-popup__form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+        }
+
+        .assistant-popup__form input {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: 12px 14px;
+            font: inherit;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1.15fr 1.15fr 0.7fr;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
             gap: 18px;
         }
 
         .chart-panel,
         .info-panel {
             padding: 18px;
+            min-height: 100%;
         }
+
+        .grid-span-3 { grid-column: span 3; }
+        .grid-span-4 { grid-column: span 4; }
+        .grid-span-5 { grid-column: span 5; }
+        .grid-span-6 { grid-column: span 6; }
 
         .chart-panel h2,
         .info-panel h2 {
@@ -204,7 +624,7 @@
             min-height: 260px;
             padding: 10px 12px 6px;
             border-radius: 14px;
-            background: rgba(255, 255, 255, 0.03);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
             border: 1px solid rgba(255, 255, 255, 0.06);
             overflow: hidden;
         }
@@ -259,16 +679,16 @@
         .banner {
             padding: 14px 16px;
             border-radius: 14px;
-            background: rgba(245, 158, 11, 0.12);
-            border: 1px solid rgba(245, 158, 11, 0.24);
-            color: #fde9b2;
+            background: rgba(121, 184, 214, 0.12);
+            border: 1px solid rgba(121, 184, 214, 0.22);
+            color: #dceef9;
         }
 
         .status-note {
             padding: 12px 14px;
             border-radius: 12px;
-            background: var(--accent-soft);
-            border: 1px solid rgba(56, 214, 197, 0.2);
+            background: linear-gradient(135deg, rgba(89, 200, 167, 0.18), rgba(121, 184, 214, 0.14));
+            border: 1px solid rgba(89, 200, 167, 0.2);
             color: #dffef8;
             font-size: 0.92rem;
         }
@@ -297,9 +717,18 @@
 
         @media (max-width: 1180px) {
             .hero,
+            .environment-panel,
+            .environment-cards,
             .dashboard-grid,
             .kpis {
                 grid-template-columns: 1fr;
+            }
+
+            .grid-span-3,
+            .grid-span-4,
+            .grid-span-5,
+            .grid-span-6 {
+                grid-column: span 1;
             }
         }
     </style>
@@ -334,18 +763,79 @@
         </section>
 
         <section class="kpis">
-            <article class="panel kpi"><span>Temperatuur</span><strong id="kpiTemp">-</strong></article>
-            <article class="panel kpi"><span>Luchtkwaliteit</span><strong id="kpiAqi">-</strong></article>
-            <article class="panel kpi"><span>Luchtvochtigheid</span><strong id="kpiHumidity">-</strong></article>
-            <article class="panel kpi"><span>PM2.5</span><strong id="kpiPm25">-</strong></article>
-            <article class="panel kpi"><span>Verkeerssnelheid</span><strong id="kpiTraffic">-</strong></article>
-            <article class="panel kpi"><span>NO₂</span><strong id="kpiNo2">-</strong></article>
-            <article class="panel kpi"><span>Netwerkvertrouwen</span><strong id="kpiTrafficConfidence">-</strong></article>
-            <article class="panel kpi"><span>Nabij erfgoed</span><strong id="kpiHeritage">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiTempCard" data-brand="weather"><span>Temperatuur</span><strong id="kpiTemp">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiAqiCard" data-brand="air"><span>Luchtkwaliteit</span><strong id="kpiAqi">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiHumidityCard" data-brand="weather"><span>Luchtvochtigheid</span><strong id="kpiHumidity">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiPm25Card" data-brand="air"><span>PM2.5</span><strong id="kpiPm25">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiTrafficCard" data-brand="traffic"><span>Verkeerssnelheid</span><strong id="kpiTraffic">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiNo2Card" data-brand="air"><span>NO₂</span><strong id="kpiNo2">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiTrafficConfidenceCard" data-brand="traffic"><span>Netwerkvertrouwen</span><strong id="kpiTrafficConfidence">-</strong></article>
+            <article class="panel kpi kpi--neutral" id="kpiHeritageCard" data-brand="heritage"><span>Nabij erfgoed</span><strong id="kpiHeritage">-</strong></article>
+        </section>
+
+        <section class="panel environment-panel">
+            <div class="environment-panel__header">
+                <div>
+                    <p class="eyebrow">Sustainability Monitoring</p>
+                    <h2>Environmental Insights</h2>
+                    <p>Environmental context for this location, combining air quality, mobility, greenery, monitoring stations, and building performance.</p>
+                </div>
+                <div class="status-note" id="environmentStatus">Environmental data loading…</div>
+            </div>
+            <div class="environment-cards">
+                <article class="environment-card environment-card--feature" data-brand="air">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Air Quality Index</span>
+                        <span class="environment-card__status" id="envAqiStatus">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envAqiValue">-</div>
+                    <div class="environment-card__meta" id="envAqiMeta">Loading current air quality.</div>
+                </article>
+                <article class="environment-card" data-brand="traffic">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Traffic Flow</span>
+                        <span class="environment-card__status" id="envTrafficStatus">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envTrafficValue">-</div>
+                    <div class="environment-card__meta" id="envTrafficMeta">Loading local traffic conditions.</div>
+                </article>
+                <article class="environment-card" data-brand="heritage">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Nearby Heritage</span>
+                        <span class="environment-card__status" id="envHeritageStatus">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envHeritageValue">-</div>
+                    <div class="environment-card__meta" id="envHeritageMeta">Loading nearby heritage records.</div>
+                </article>
+                <article class="environment-card" data-brand="weather">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Nearest RIVM Station</span>
+                        <span class="environment-card__status" id="envRivmStatus">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envRivmValue">-</div>
+                    <div class="environment-card__meta" id="envRivmMeta">Loading official monitoring station details.</div>
+                </article>
+                <article class="environment-card" data-brand="green">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Green Objects Nearby</span>
+                        <span class="environment-card__status" id="envGreenStatus">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envGreenValue">-</div>
+                    <div class="environment-card__meta" id="envGreenMeta">Counting nearby trees and green spaces.</div>
+                </article>
+                <article class="environment-card" data-brand="co2">
+                    <div class="environment-card__top">
+                        <span class="environment-card__label">Building CO₂</span>
+                        <span class="environment-card__status" id="envCo2Status">-</span>
+                    </div>
+                    <div class="environment-card__value" id="envCo2Value">-</div>
+                    <div class="environment-card__meta" id="envCo2Meta">Checking building emissions data.</div>
+                </article>
+            </div>
         </section>
 
         <section class="dashboard-grid">
-            <article class="panel chart-panel">
+            <article class="panel chart-panel grid-span-5">
                 <h2>Weersverwachting</h2>
                 <div class="banner">Temperatuur en luchtvochtigheid voor de komende meetmomenten op deze locatie.</div>
                 <div class="chart-wrap"><canvas id="weatherChart"></canvas></div>
@@ -356,7 +846,7 @@
                 </dl>
             </article>
 
-            <article class="panel chart-panel">
+            <article class="panel chart-panel grid-span-4">
                 <h2>Luchtkwaliteitstrend</h2>
                 <div class="banner">PM2.5, NO₂ en O₃ voor de actuele luchtkwaliteitsverwachting rond dit punt.</div>
                 <div class="chart-wrap"><canvas id="airChart"></canvas></div>
@@ -367,7 +857,7 @@
                 </dl>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-3">
                 <h2>Locatieoverzicht</h2>
                 <div class="info-grid">
                     <dl class="summary-list">
@@ -385,17 +875,17 @@
                 </div>
             </article>
 
-            <article class="panel chart-panel">
+            <article class="panel chart-panel grid-span-4">
                 <h2>Verkeersprofiel</h2>
                 <div class="chart-wrap"><canvas id="trafficChart"></canvas></div>
             </article>
 
-            <article class="panel chart-panel">
+            <article class="panel chart-panel grid-span-4">
                 <h2>Comfort en drukte</h2>
                 <div class="chart-wrap"><canvas id="cityStateChart"></canvas></div>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-4">
                 <h2>CBS buurtprofiel</h2>
                 <div class="info-grid">
                     <dl class="summary-list">
@@ -410,7 +900,7 @@
                 </div>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-4">
                 <h2>Energielabel en gebouwprestatie</h2>
                 <div class="banner">Gebaseerd op RVO EP-Online voor het geselecteerde adres zodra een geldige API-sleutel beschikbaar is.</div>
                 <dl class="summary-list">
@@ -425,7 +915,7 @@
                 </dl>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-4">
                 <h2>Officiele RIVM meetpunten</h2>
                 <div class="banner">Dichtstbijzijnde actieve meetpunten uit het actuele RIVM/Luchtmeetnet-open-datapakket.</div>
                 <ul class="sensor-list" id="sensorList">
@@ -433,7 +923,7 @@
                 </ul>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-4">
                 <h2>Incidenten gemeld</h2>
                 <div class="banner">Actuele verkeersincidenten, afsluitingen en verstoringen in de buurt van de gekozen locatie.</div>
                 <ul class="sensor-list" id="incidentList">
@@ -441,7 +931,7 @@
                 </ul>
             </article>
 
-            <article class="panel info-panel">
+            <article class="panel info-panel grid-span-4">
                 <h2>Nederlands erfgoed in de buurt</h2>
                 <div class="banner">PDOK/RCE-gegevens worden binnen een kleine straal rond het gekozen punt opgehaald.</div>
                 <ul class="heritage-list" id="heritageList">
@@ -455,18 +945,41 @@
         </footer>
     </main>
 
+    <button class="assistant-fab" id="openAssistantBtn" type="button">Assistant</button>
+    <section class="panel assistant-popup" id="assistantPopup" hidden>
+        <div class="assistant-popup__header">
+            <div>
+                <strong>City Assistant</strong>
+                <span>Ask about the environmental and dashboard data shown here.</span>
+            </div>
+            <button id="closeAssistantBtn" type="button" aria-label="Close assistant">×</button>
+        </div>
+        <div class="assistant-popup__messages" id="assistantMessages">
+            <div class="assistant-message assistant-message--bot">Live dashboard assistant ready. Ask about air quality, traffic, weather, green objects, CO₂, or nearby heritage at this location.</div>
+        </div>
+        <div class="assistant-popup__footer">
+            <form class="assistant-popup__form" id="assistantForm" autocomplete="off">
+                <input id="assistantInput" type="text" placeholder="Ask about this location..." />
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </section>
+
     <script>
         const DEFAULT_LOCATION = {
             lat: 51.6889,
             lon: 5.3031,
             name: "Den Bosch centrum"
         };
+        const OVERPASS_API_URL = "https://overpass-api.de/api/interpreter";
         const HERITAGE_SERVICE_URL = "https://service.pdok.nl/rce/ps-ch/wfs/v1_0";
         const CBS_WIJKBUURT_WFS_URL = "https://service.pdok.nl/cbs/wijkenbuurten/2024/wfs/v1_0";
         const RIVM_STATIONS_URL = "https://data.rivm.nl/data/luchtmeetnet/Metadata/luchtmeetnet_meetlocaties.csv";
         const chartInstances = {};
         let currentLocation = { ...DEFAULT_LOCATION };
         let config = null;
+        let latestDashboardData = null;
+        let loadingStatusInterval = null;
 
         async function loadConfig() {
             try {
@@ -521,6 +1034,61 @@
             const status = document.getElementById("dashboardStatus");
             status.textContent = message;
             document.getElementById("dataMode").textContent = demoMode ? "Demo fallback" : "Live publieke feeds";
+        }
+
+        function setEnvironmentLoadingState(message = "Environmental data loading…") {
+            document.getElementById("environmentStatus").textContent = message;
+            [
+                ["envAqi", "Loading", "…", "Checking current air quality."],
+                ["envTraffic", "Loading", "…", "Checking local traffic conditions."],
+                ["envHeritage", "Loading", "…", "Checking nearby heritage records."],
+                ["envRivm", "Loading", "…", "Checking official monitoring stations."],
+                ["envGreen", "Loading", "…", "Checking nearby trees and green spaces."],
+                ["envCo2", "Loading", "…", "Checking building emissions data."]
+            ].forEach(([baseId, status, value, meta]) => setEnvironmentCard(baseId, status, value, meta));
+        }
+
+        function setPanelLoadingLists() {
+            document.getElementById("heritageList").innerHTML = "<li>Erfgoeddata wordt geladen…</li>";
+            document.getElementById("sensorList").innerHTML = "<li>Meetpunten worden geladen…</li>";
+            document.getElementById("incidentList").innerHTML = "<li>Incidenten worden geladen…</li>";
+            document.getElementById("sourceList").innerHTML = "<li>Bronnen worden gecontroleerd…</li>";
+        }
+
+        function setDashboardLoadingState(isLoading) {
+            const refreshBtn = document.getElementById("refreshDashboardBtn");
+            if (isLoading) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = "Dashboard laden…";
+                setStatus("Open-data dashboard laden…", false);
+                setEnvironmentLoadingState("Environmental data loading…");
+                setPanelLoadingLists();
+                return;
+            }
+
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = "Data vernieuwen";
+        }
+
+        function startLoadingTicker() {
+            const messages = [
+                "Open-data dashboard laden…",
+                "Live weer- en luchtdata worden opgehaald…",
+                "Verkeer, buurtinformatie en erfgoed worden opgehaald…",
+                "Groen, meetpunten en gebouwdata worden gecontroleerd…"
+            ];
+            let index = 0;
+            clearInterval(loadingStatusInterval);
+            setStatus(messages[0], false);
+            loadingStatusInterval = window.setInterval(() => {
+                index = (index + 1) % messages.length;
+                setStatus(messages[index], false);
+            }, 1400);
+        }
+
+        function stopLoadingTicker() {
+            clearInterval(loadingStatusInterval);
+            loadingStatusInterval = null;
         }
 
         function formatTime(date = new Date()) {
@@ -645,6 +1213,11 @@
                     wmoClientenPer1000: null
                 },
                 energyLabel: null,
+                greenStats: {
+                    greenCount: 34,
+                    treeCount: 21,
+                    radiusKm: 0.8
+                },
                 rivmSensors: [
                     { stationId: "NL10230", stationName: "Biest Houtakker-Biestsestraat", place: "Houtakker", source: "LML", distanceKm: 19.4, values: { PM25: 11.7, NO2: 14.2, O3: 52.1 } },
                     { stationId: "NL10248", stationName: "Nistelrode-Gagelstraat", place: "Nistelrode", source: "LML", distanceKm: 16.8, values: { PM25: 10.4, NO2: 8.1, O3: 49.6 } }
@@ -862,6 +1435,49 @@
             }
         }
 
+        async function fetchGreenStats(lat, lon) {
+            const cacheKey = `green_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+            const cached = cacheGet(cacheKey);
+            if (cached) return cached;
+
+            const radiusMeters = 800;
+            const query = `
+[out:json][timeout:20];
+(
+  node["natural"="tree"](around:${radiusMeters},${lat},${lon});
+  way["landuse"="forest"](around:${radiusMeters},${lat},${lon});
+  way["leisure"="park"](around:${radiusMeters},${lat},${lon});
+  way["natural"="wood"](around:${radiusMeters},${lat},${lon});
+  way["natural"="scrub"](around:${radiusMeters},${lat},${lon});
+  relation["leisure"="park"](around:${radiusMeters},${lat},${lon});
+  relation["natural"="wood"](around:${radiusMeters},${lat},${lon});
+);
+out ids;
+`;
+
+            try {
+                const response = await fetch(OVERPASS_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                    },
+                    body: `data=${encodeURIComponent(query)}`
+                });
+                if (!response.ok) throw new Error(`Overpass HTTP ${response.status}`);
+                const data = await response.json();
+                const elements = Array.isArray(data && data.elements) ? data.elements : [];
+                const treeCount = elements.filter((element) => element.type === "node").length;
+                const greenCount = elements.length;
+                const result = { greenCount, treeCount, radiusKm: radiusMeters / 1000 };
+                cacheSet(cacheKey, result, 60 * 60 * 1000);
+                return result;
+            } catch (error) {
+                const fallback = fallbackData().greenStats;
+                cacheSet(cacheKey, fallback, 15 * 60 * 1000);
+                return fallback;
+            }
+        }
+
         async function fetchEnergyLabelByAddress(bagInfo, apiKey) {
             if (!apiKey) return { unavailableReason: "missingKey" };
             if (!bagInfo || !bagInfo.postcode || !bagInfo.huisnummer) return { unavailableReason: "missingAddress" };
@@ -908,15 +1524,22 @@
             }
         }
 
-        async function fetchDashboardData() {
+        async function fetchPrimaryDashboardData() {
             const weatherKey = getWeatherApiKey();
             const tomtomKey = getTomTomKey();
-            const energyLabelKey = getEnergyLabelKey();
             const lat = currentLocation.lat;
             const lon = currentLocation.lon;
 
             if (!weatherKey || !tomtomKey) {
-                return { ...fallbackData(), demoMode: true };
+                const fallback = fallbackData();
+                return {
+                    ...fallback,
+                    energyLabel: null,
+                    greenStats: null,
+                    rivmSensors: [],
+                    bagInfo: null,
+                    demoMode: true
+                };
             }
 
             const heritageParams = new URLSearchParams({
@@ -939,9 +1562,7 @@
                 incidents,
                 reverse,
                 heritage,
-                cbs,
-                rivmSensors,
-                bagInfo
+                cbs
             ] = await Promise.all([
                 fetchJson(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
                 fetchJson(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${weatherKey}&units=metric`),
@@ -951,16 +1572,20 @@
                 fetchTomTomIncidents(lat, lon, tomtomKey),
                 fetchJson(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${tomtomKey}`),
                 fetchJson(`${HERITAGE_SERVICE_URL}?${heritageParams.toString()}`),
-                fetchCbsNeighborhoodStats(lat, lon),
-                fetchNearestRivmSensors(lat, lon),
-                fetchNearestBagBuildingInfo(lat, lon)
+                fetchCbsNeighborhoodStats(lat, lon)
             ]);
-
-            const energyLabel = await fetchEnergyLabelByAddress(bagInfo, energyLabelKey);
 
             const liveUsable = weatherCurrent && weatherForecast && airCurrent && traffic;
             if (!liveUsable) {
-                return { ...fallbackData(), demoMode: true };
+                const fallback = fallbackData();
+                return {
+                    ...fallback,
+                    energyLabel: null,
+                    greenStats: null,
+                    rivmSensors: [],
+                    bagInfo: null,
+                    demoMode: true
+                };
             }
 
             return {
@@ -971,13 +1596,153 @@
                 traffic,
                 incidents,
                 cbs,
-                energyLabel,
-                rivmSensors,
                 heritage,
-                bagInfo,
+                energyLabel: null,
+                greenStats: null,
+                rivmSensors: [],
+                bagInfo: null,
                 address: reverse && reverse.addresses && reverse.addresses[0] ? reverse.addresses[0].address.freeformAddress : currentLocation.name,
                 demoMode: false
             };
+        }
+
+        async function fetchSecondaryDashboardData() {
+            const lat = currentLocation.lat;
+            const lon = currentLocation.lon;
+            const energyLabelKey = getEnergyLabelKey();
+
+            const [rivmSensors, bagInfo, greenStats] = await Promise.all([
+                fetchNearestRivmSensors(lat, lon),
+                fetchNearestBagBuildingInfo(lat, lon),
+                fetchGreenStats(lat, lon)
+            ]);
+            const energyLabel = await fetchEnergyLabelByAddress(bagInfo, energyLabelKey);
+
+            return {
+                rivmSensors,
+                bagInfo,
+                greenStats,
+                energyLabel
+            };
+        }
+
+        function aqiLabel(aqiValue) {
+            return ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very poor"][aqiValue] || "Unknown";
+        }
+
+        function airBand(value, type) {
+            if (!Number.isFinite(value)) return "Unknown";
+            const limits = {
+                pm25: [[10, "Low"], [20, "Elevated"], [35, "High"]],
+                no2: [[40, "Low"], [90, "Elevated"], [120, "High"]],
+                o3: [[60, "Low"], [100, "Elevated"], [140, "High"]],
+                co2: [[3000, "Low"], [7000, "Elevated"], [12000, "High"]]
+            };
+            const thresholds = limits[type] || [];
+            for (const [limit, label] of thresholds) {
+                if (value <= limit) return label;
+            }
+            return "Very high";
+        }
+
+        function statusTone(status) {
+            const normalized = String(status || "").toLowerCase();
+            if (["good", "fair", "low", "green-rich"].includes(normalized)) return "good";
+            if (["moderate", "elevated", "mixed"].includes(normalized)) return "warn";
+            if (["poor", "very poor", "high", "very high", "sparse"].includes(normalized)) return "danger";
+            return "neutral";
+        }
+
+        function setEnvironmentCard(baseId, status, value, meta) {
+            const statusEl = document.getElementById(`${baseId}Status`);
+            const cardEl = statusEl.closest(".environment-card");
+            const tone = statusTone(status);
+            statusEl.textContent = status;
+            statusEl.className = `environment-card__status environment-card__status--${tone}`;
+            if (cardEl) {
+                cardEl.className = `environment-card environment-card--${tone}`;
+            }
+            document.getElementById(`${baseId}Value`).textContent = value;
+            document.getElementById(`${baseId}Meta`).textContent = meta;
+        }
+
+        function renderEnvironmentInsights(data) {
+            const air = data.airCurrent && Array.isArray(data.airCurrent.list) ? data.airCurrent.list[0] : null;
+            const components = air ? air.components || {} : {};
+            const aqi = air && air.main ? air.main.aqi : null;
+            const greenStats = data.greenStats;
+            const co2 = data.energyLabel && data.energyLabel.BerekendeCO2Emissie != null
+                ? Number(data.energyLabel.BerekendeCO2Emissie)
+                : null;
+            const traffic = data.traffic && data.traffic.flowSegmentData ? data.traffic.flowSegmentData : null;
+            const greenDensity = greenStats && greenStats.radiusKm ? (greenStats.greenCount / greenStats.radiusKm) : null;
+            const heritageCount = Array.isArray(data.heritage && data.heritage.features) ? data.heritage.features.length : 0;
+            const nearestRivm = Array.isArray(data.rivmSensors) && data.rivmSensors.length ? data.rivmSensors[0] : null;
+
+            setEnvironmentCard(
+                "envAqi",
+                aqiLabel(aqi),
+                aqi != null ? `AQI ${aqi}` : "n/a",
+                traffic
+                    ? `Air quality at ${currentLocation.name}. Nearby traffic is currently moving at ${traffic.currentSpeed} km/h.`
+                    : `Air quality at ${currentLocation.name}. Traffic data is not available right now.`
+            );
+            setEnvironmentCard(
+                "envTraffic",
+                traffic
+                    ? (Number(traffic.currentSpeed) >= 30 ? "Smooth" : Number(traffic.currentSpeed) >= 18 ? "Busy" : "Slow")
+                    : "Loading",
+                traffic ? `${traffic.currentSpeed} km/h` : "…",
+                traffic
+                    ? `Current speed on ${traffic.roadName || "the nearby corridor"} compared with ${traffic.freeFlowSpeed || "-"} km/h free flow.`
+                    : "Checking local traffic conditions."
+            );
+            setEnvironmentCard(
+                "envHeritage",
+                heritageCount > 0 ? "Found" : "Limited",
+                `${heritageCount}`,
+                heritageCount > 0
+                    ? `${heritageCount} heritage records found near this location.`
+                    : "No nearby heritage record was found in the current search area."
+            );
+            setEnvironmentCard(
+                "envRivm",
+                nearestRivm ? "Active" : "Loading",
+                nearestRivm ? `${nearestRivm.distanceKm.toFixed(1)} km` : "…",
+                nearestRivm
+                    ? `${nearestRivm.stationName} is the nearest official air-monitoring station.`
+                    : "Checking official monitoring station details."
+            );
+            setEnvironmentCard(
+                "envGreen",
+                greenStats
+                    ? (greenDensity >= 40 ? "Green-rich" : greenDensity >= 20 ? "Mixed" : "Sparse")
+                    : "Loading",
+                greenStats ? `${greenStats.greenCount}` : "…",
+                greenStats
+                    ? `${greenStats.treeCount} mapped trees and ${greenStats.greenCount} green locations found within about ${greenStats.radiusKm.toFixed(1)} km.`
+                    : "Checking nearby trees and green spaces."
+            );
+            setEnvironmentCard(
+                "envCo2",
+                data.energyLabel == null
+                    ? "Loading"
+                    : co2 != null ? airBand(co2, "co2") : "Unavailable",
+                data.energyLabel == null
+                    ? "…"
+                    : co2 != null ? `${Math.round(co2).toLocaleString("nl-NL")} kg/yr` : "n/a",
+                data.energyLabel == null
+                    ? "Checking building emissions data."
+                    : co2 != null
+                        ? "Estimated yearly building emissions for this address."
+                        : "No building emissions record is available for this address right now."
+            );
+
+            document.getElementById("environmentStatus").textContent = data.greenStats == null || data.energyLabel == null || !data.rivmSensors.length
+                ? "Loading additional location details…"
+                : data.demoMode
+                ? "Some live feeds are temporarily unavailable, so fallback values are shown where needed."
+                : "Current environmental data loaded for this location.";
         }
 
         function renderSources(demoMode) {
@@ -1107,6 +1872,19 @@
             document.getElementById("summaryEnergyDate").textContent = energyLabel && energyLabel.Registratiedatum ? energyLabel.Registratiedatum : unknown;
         }
 
+        function setKpiTone(cardId, tone) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            card.className = `panel kpi kpi--${tone}`;
+        }
+
+        function tempTone(temp) {
+            if (!Number.isFinite(temp)) return "neutral";
+            if (temp <= 22) return "good";
+            if (temp <= 28) return "warn";
+            return "danger";
+        }
+
         function renderSummary(data) {
             const weather = data.weatherCurrent;
             const air = data.airCurrent.list[0];
@@ -1136,6 +1914,15 @@
             document.getElementById("kpiNo2").textContent = `${Math.round((air.components.no2 || 0) * 10) / 10} µg/m³`;
             document.getElementById("kpiTrafficConfidence").textContent = `${Math.round((traffic.confidence || 0) * 100)}%`;
             document.getElementById("kpiHeritage").textContent = `${Array.isArray(data.heritage && data.heritage.features) ? data.heritage.features.length : 0}`;
+
+            setKpiTone("kpiTempCard", tempTone(Number(weather.main.temp)));
+            setKpiTone("kpiAqiCard", statusTone(aqiLabel(air.main.aqi)));
+            setKpiTone("kpiHumidityCard", Number(weather.main.humidity) <= 70 ? "good" : Number(weather.main.humidity) <= 85 ? "warn" : "danger");
+            setKpiTone("kpiPm25Card", statusTone(airBand(Number(air.components.pm2_5), "pm25")));
+            setKpiTone("kpiTrafficCard", Number(traffic.currentSpeed) >= 30 ? "good" : Number(traffic.currentSpeed) >= 18 ? "warn" : "danger");
+            setKpiTone("kpiNo2Card", statusTone(airBand(Number(air.components.no2), "no2")));
+            setKpiTone("kpiTrafficConfidenceCard", Number(traffic.confidence) >= 0.8 ? "good" : Number(traffic.confidence) >= 0.6 ? "warn" : "danger");
+            setKpiTone("kpiHeritageCard", Array.isArray(data.heritage && data.heritage.features) && data.heritage.features.length > 0 ? "good" : "neutral");
         }
 
         function renderCharts(data) {
@@ -1201,23 +1988,131 @@
             chartInstances.demographics.update();
         }
 
+        function assistantReply(question, data) {
+            const q = question.toLowerCase();
+            const air = data.airCurrent && Array.isArray(data.airCurrent.list) ? data.airCurrent.list[0] : null;
+            const components = air ? air.components || {} : {};
+            const traffic = data.traffic && data.traffic.flowSegmentData ? data.traffic.flowSegmentData : null;
+            const greenStats = data.greenStats || fallbackData().greenStats;
+            const co2 = data.energyLabel && data.energyLabel.BerekendeCO2Emissie != null
+                ? Number(data.energyLabel.BerekendeCO2Emissie)
+                : null;
+
+            if (q.includes("air") || q.includes("aqi") || q.includes("lucht")) {
+                return `Current air quality at ${currentLocation.name} is ${aqiLabel(air?.main?.aqi)} with ${Number.isFinite(Number(components.pm2_5)) ? `PM2.5 at ${Number(components.pm2_5).toFixed(1)} µg/m³` : "no PM2.5 reading"} and ${Number.isFinite(Number(components.no2)) ? `NO2 at ${Number(components.no2).toFixed(1)} µg/m³` : "no NO2 reading"}.`;
+            }
+            if (q.includes("pm2") || q.includes("particle")) {
+                return Number.isFinite(Number(components.pm2_5))
+                    ? `PM2.5 is ${Number(components.pm2_5).toFixed(1)} µg/m³ right now, which I’d describe as ${airBand(Number(components.pm2_5), "pm25").toLowerCase()} for this dashboard view.`
+                    : "PM2.5 is not available right now for this location.";
+            }
+            if (q.includes("no2") || q.includes("nitrogen")) {
+                return Number.isFinite(Number(components.no2))
+                    ? `NO2 is ${Number(components.no2).toFixed(1)} µg/m³, which helps indicate traffic-related pressure near the selected point.`
+                    : "NO2 is not available right now for this location.";
+            }
+            if (q.includes("o3") || q.includes("ozone")) {
+                return Number.isFinite(Number(components.o3))
+                    ? `Ozone is ${Number(components.o3).toFixed(1)} µg/m³ for the current air feed around ${currentLocation.name}.`
+                    : "Ozone is not available right now for this location.";
+            }
+            if (q.includes("green") || q.includes("tree") || q.includes("park")) {
+                return `I found ${greenStats.greenCount} mapped green objects nearby, including ${greenStats.treeCount} trees, within about ${greenStats.radiusKm.toFixed(1)} km of ${currentLocation.name}.`;
+            }
+            if (q.includes("co2") || q.includes("energy") || q.includes("building")) {
+                return co2 != null
+                    ? `The selected building has an estimated annual CO2 emission of ${Math.round(co2).toLocaleString("nl-NL")} kg per year based on EP-Online data.`
+                    : "There is no EP-Online CO2 value available for the selected building right now.";
+            }
+            if (q.includes("traffic") || q.includes("verkeer") || q.includes("road")) {
+                return traffic
+                    ? `Traffic is currently moving at ${traffic.currentSpeed} km/h versus a free-flow speed of ${traffic.freeFlowSpeed} km/h, with ${(traffic.confidence * 100).toFixed(0)}% confidence on ${traffic.roadName || "the nearby corridor"}.`
+                    : "Traffic data is not available right now.";
+            }
+            if (q.includes("weather") || q.includes("temperature") || q.includes("weer")) {
+                return `The current weather at ${currentLocation.name} is ${Math.round(data.weatherCurrent.main.temp)} °C with ${data.weatherCurrent.main.humidity}% humidity and ${data.weatherCurrent.weather[0].description}.`;
+            }
+            if (q.includes("heritage") || q.includes("erfgoed")) {
+                const count = Array.isArray(data.heritage && data.heritage.features) ? data.heritage.features.length : 0;
+                return `I found ${count} nearby heritage records in the PDOK/RCE feed for this dashboard view.`;
+            }
+
+            return "I can help with air quality, PM2.5, NO2, O3, traffic, weather, green objects, building CO2, and nearby heritage for the selected location.";
+        }
+
+        function appendAssistantMessage(role, text) {
+            const container = document.getElementById("assistantMessages");
+            const item = document.createElement("div");
+            item.className = `assistant-message assistant-message--${role}`;
+            item.textContent = text;
+            container.appendChild(item);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function initAssistant() {
+            const openBtn = document.getElementById("openAssistantBtn");
+            const closeBtn = document.getElementById("closeAssistantBtn");
+            const popup = document.getElementById("assistantPopup");
+            const form = document.getElementById("assistantForm");
+            const input = document.getElementById("assistantInput");
+
+            openBtn.addEventListener("click", () => {
+                popup.hidden = false;
+                openBtn.hidden = true;
+                input.focus();
+            });
+
+            closeBtn.addEventListener("click", () => {
+                popup.hidden = true;
+                openBtn.hidden = false;
+            });
+
+            form.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const question = input.value.trim();
+                if (!question) return;
+                appendAssistantMessage("user", question);
+                const response = latestDashboardData
+                    ? assistantReply(question, latestDashboardData)
+                    : "The dashboard data is still loading. Try again in a moment.";
+                appendAssistantMessage("bot", response);
+                input.value = "";
+            });
+        }
+
         async function loadDashboard() {
-            setStatus("Open-data dashboard laden…", false);
+            setDashboardLoadingState(true);
+            startLoadingTicker();
             updateLocationHeader();
-            const data = await fetchDashboardData();
-            renderSummary(data);
-            renderCharts(data);
-            renderHeritage(data.heritage);
-            renderRivmSensors(data.rivmSensors);
-            renderIncidents(data.incidents);
-            renderSources(data.demoMode);
-            document.getElementById("lastUpdated").textContent = formatTime(new Date());
-            setStatus(
-                data.demoMode
-                    ? "Live feed niet volledig beschikbaar. Dashboard toont waar nodig demo-fallbacks, maar blijft bruikbaar voor publieke presentaties."
-                    : "Live weer-, lucht-, verkeers-, CBS-buurt- en erfgoedinformatie geladen voor deze locatie.",
-                data.demoMode
-            );
+            try {
+                const primaryData = await fetchPrimaryDashboardData();
+                latestDashboardData = primaryData;
+                renderSummary(primaryData);
+                renderCharts(primaryData);
+                renderEnvironmentInsights(primaryData);
+                renderHeritage(primaryData.heritage);
+                renderRivmSensors(primaryData.rivmSensors);
+                renderIncidents(primaryData.incidents);
+                renderSources(primaryData.demoMode);
+                document.getElementById("lastUpdated").textContent = formatTime(new Date());
+                setStatus(
+                    primaryData.demoMode
+                        ? "Some live data is temporarily unavailable. The dashboard is showing the best available values for this location."
+                        : "Live weer-, lucht-, verkeers-, CBS-buurt- en erfgoedinformatie geladen voor deze locatie.",
+                    primaryData.demoMode
+                );
+                setDashboardLoadingState(false);
+                stopLoadingTicker();
+
+                const secondaryData = await fetchSecondaryDashboardData();
+                latestDashboardData = { ...latestDashboardData, ...secondaryData };
+                renderEnvironmentInsights(latestDashboardData);
+                renderRivmSensors(latestDashboardData.rivmSensors);
+                renderEnergySummary(latestDashboardData.energyLabel);
+            } finally {
+                stopLoadingTicker();
+                setDashboardLoadingState(false);
+            }
         }
 
         document.getElementById("refreshDashboardBtn").addEventListener("click", loadDashboard);
@@ -1232,6 +2127,7 @@
             await loadConfig();
             currentLocation = getQueryLocation();
             initCharts();
+            initAssistant();
             await loadDashboard();
         })();
     </script>

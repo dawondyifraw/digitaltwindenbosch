@@ -17,10 +17,12 @@ let sceneTimeSyncTimer = null;
 let kadasterLoadState = "idle";
 let osmLoadState = "loading";
 const ENABLE_BUILDING_PINS = false;
-const DEN_BOSCH_CITY_CENTER = {
-    longitude: 5.3043,
-    latitude: 51.6863,
-    height: 900
+const IKDB_START_VIEW = {
+    longitude: 5.291,
+    latitude: 51.686,
+    height: 500,
+    heading: 0,
+    pitch: -30
 };
 const PRESENTATION_THEME = {
     neutralBuilding: "#c8c8c8",
@@ -762,13 +764,13 @@ async function loadTileset() {
         }
         viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(
-                DEN_BOSCH_CITY_CENTER.longitude,
-                DEN_BOSCH_CITY_CENTER.latitude,
-                DEN_BOSCH_CITY_CENTER.height
+                IKDB_START_VIEW.longitude,
+                IKDB_START_VIEW.latitude,
+                IKDB_START_VIEW.height
             ),
             orientation: {
-                heading: Cesium.Math.toRadians(8.0),
-                pitch: Cesium.Math.toRadians(-38.0),
+                heading: Cesium.Math.toRadians(IKDB_START_VIEW.heading),
+                pitch: Cesium.Math.toRadians(IKDB_START_VIEW.pitch),
                 roll: 0.0
             },
             duration: 4
@@ -1242,13 +1244,13 @@ function toggleRightPanel() {
 function flytoIKDB() {
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
-            DEN_BOSCH_CITY_CENTER.longitude,
-            DEN_BOSCH_CITY_CENTER.latitude,
-            DEN_BOSCH_CITY_CENTER.height
+            IKDB_START_VIEW.longitude,
+            IKDB_START_VIEW.latitude,
+            IKDB_START_VIEW.height
         ),
         orientation: {
-            heading: Cesium.Math.toRadians(8),
-            pitch: Cesium.Math.toRadians(-38),
+            heading: Cesium.Math.toRadians(IKDB_START_VIEW.heading),
+            pitch: Cesium.Math.toRadians(IKDB_START_VIEW.pitch),
             roll: 0.0
         },
       duration: 3.0
