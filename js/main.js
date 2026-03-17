@@ -17,6 +17,7 @@ let sceneTimeSyncTimer = null;
 let kadasterLoadState = "idle";
 let osmLoadState = "loading";
 const ENABLE_BUILDING_PINS = false;
+const DASHBOARD_VERSION = "20260317n";
 const IKDB_START_VIEW = {
     longitude: 5.291,
     latitude: 51.686,
@@ -90,6 +91,23 @@ const ENABLE_LABEL_OVERLAY = false;
 // Helper to get elements
 function $(id) {
     return document.getElementById(id);
+}
+
+function buildDashboardUrl(locationOverride = null) {
+    const params = new URLSearchParams({
+        v: DASHBOARD_VERSION
+    });
+
+    try {
+        const location = locationOverride || JSON.parse(localStorage.getItem("udt_last_location") || "null");
+        if (location && Number.isFinite(location.lat) && Number.isFinite(location.lon)) {
+            params.set("lat", String(location.lat));
+            params.set("lon", String(location.lon));
+            params.set("name", location.name || "");
+        }
+    } catch (error) { }
+
+    return `dashboard/open_data_dashboard.html?${params.toString()}`;
 }
 
 function markOperationalUpdate(label, focus) {
@@ -2014,19 +2032,7 @@ function addCombinedContextMenu(viewer) {
     const dashboardBtn = $("dashboardBtn");
     if (dashboardBtn) {
         dashboardBtn.addEventListener("click", () => {
-            let targetUrl = "dashboard/open_data_dashboard.html";
-            try {
-                const lastLocation = JSON.parse(localStorage.getItem("udt_last_location") || "null");
-                if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
-                    const params = new URLSearchParams({
-                        lat: String(lastLocation.lat),
-                        lon: String(lastLocation.lon),
-                        name: lastLocation.name || ""
-                    });
-                    targetUrl += `?${params.toString()}`;
-                }
-            } catch (error) { }
-            window.open(targetUrl, "_blank");
+            window.open(buildDashboardUrl(), "_blank");
             hideContextMenu();
         });
     }
@@ -2339,12 +2345,11 @@ function addCombinedContextMenu(viewer) {
                 const openAnalyzeDashboardBtn = document.getElementById('openAnalyzeDashboard');
                 if (openAnalyzeDashboardBtn) {
                     openAnalyzeDashboardBtn.onclick = () => {
-                        const params = new URLSearchParams({
-                            lat: String(lat),
-                            lon: String(lon),
+                        window.open(buildDashboardUrl({
+                            lat: Number(lat),
+                            lon: Number(lon),
                             name: name || ""
-                        });
-                        window.open(`dashboard/open_data_dashboard.html?${params.toString()}`, "_blank");
+                        }), "_blank");
                     };
                 }
                 markOperationalUpdate("Analyse vernieuwd", "Locatieanalyse");

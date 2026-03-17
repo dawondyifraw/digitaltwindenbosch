@@ -1,5 +1,6 @@
 (function () {
   const PANEL_STORAGE_KEY = 'udt_window_panel_state';
+  const DASHBOARD_VERSION = '20260317n';
 
   function loadPanelState() {
     try {
@@ -44,19 +45,16 @@
   }
 
   function getDashboardUrl() {
-    let targetUrl = 'dashboard/open_data_dashboard.html';
+    const params = new URLSearchParams({ v: DASHBOARD_VERSION });
     try {
       const lastLocation = JSON.parse(localStorage.getItem('udt_last_location') || 'null');
       if (lastLocation && Number.isFinite(lastLocation.lat) && Number.isFinite(lastLocation.lon)) {
-        const params = new URLSearchParams({
-          lat: String(lastLocation.lat),
-          lon: String(lastLocation.lon),
-          name: lastLocation.name || ''
-        });
-        targetUrl += `?${params.toString()}`;
+        params.set('lat', String(lastLocation.lat));
+        params.set('lon', String(lastLocation.lon));
+        params.set('name', lastLocation.name || '');
       }
     } catch (error) { }
-    return targetUrl;
+    return `dashboard/open_data_dashboard.html?${params.toString()}`;
   }
 
   function initDraggablePanels() {
