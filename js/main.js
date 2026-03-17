@@ -14,24 +14,29 @@ let currentTrafficIncidents = [];
 let mobilityOverlayState = [];
 let buildingThemeMode = "function";
 let sceneTimeSyncTimer = null;
+let kadasterLoadState = "idle";
+let osmLoadState = "loading";
+const ENABLE_BUILDING_PINS = false;
 const DEN_BOSCH_CITY_CENTER = {
     longitude: 5.3043,
     latitude: 51.6863,
     height: 900
 };
 const PRESENTATION_THEME = {
-    neutralBuilding: "#b7c8b7",
-    residential: "#89c97b",
-    commercial: "#57b875",
-    industrial: "#2f7d57",
-    retail: "#9ed667",
-    education: "#75cf98",
-    health: "#c5e86c",
-    civic: "#4fbf8f",
-    fallback: "#8ea293",
-    kadasterTint: "#a5cf86",
-    footprintFill: "#9fd97a",
-    footprintEdge: "#dcf9c7"
+    neutralBuilding: "#c8c8c8",
+    residential: "#87ceeb",
+    commercial: "#00008b",
+    industrial: "#a0522d",
+    retail: "#ffa500",
+    education: "#4682b4",
+    health: "#ff4500",
+    civic: "#9400d3",
+    hospitality: "#ffdf00",
+    office: "#696969",
+    fallback: "#c8c8c8",
+    kadasterTint: "#d5d9de",
+    footprintFill: "#d8dde3",
+    footprintEdge: "#f1f3f5"
 };
 
 // API keys filled from config.json
@@ -78,6 +83,7 @@ const BAG_WFS_URL = "https://service.pdok.nl/lv/bag/wfs/v2_0";
 const KADASTER_3D_TILESET_URL = "https://api.pdok.nl/kadaster/3d-basisvoorziening/ogc/v1/collections/gebouwen/3dtiles";
 const RIVM_STATIONS_URL = "https://data.rivm.nl/data/luchtmeetnet/Metadata/luchtmeetnet_meetlocaties.csv";
 const DUTCH_LABELS_TILE_URL = "https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png";
+const ENABLE_LABEL_OVERLAY = false;
 
 // Helper to get elements
 function $(id) {
@@ -141,6 +147,22 @@ function setLayerLoadingState(active, label) {
         bagButton.disabled = active;
         bagButton.textContent = active ? "Loading Kadaster…" : "Kadaster Buildings";
     }
+}
+
+function setKadasterLoadStatus(state, label) {
+    kadasterLoadState = state;
+    const statusEl = $("kadasterLoadStatus");
+    if (!statusEl) return;
+    statusEl.dataset.state = state;
+    statusEl.textContent = label;
+}
+
+function setOsmLoadStatus(state, label) {
+    osmLoadState = state;
+    const statusEl = $("osmLoadStatus");
+    if (!statusEl) return;
+    statusEl.dataset.state = state;
+    statusEl.textContent = label;
 }
 
 // Wait until window.config.conf is ready
@@ -324,6 +346,7 @@ function toggleBuildings() {
             bagFootprintState.active = false;
         }
         isBuildingsLoaded = false;
+        setKadasterLoadStatus("idle", "Kadaster status: not loaded");
         setLayerActive("kadaster", false, "City core monitoring", "Kadaster 3D buildings hidden");
         showNotification("event", "Kadaster 3D buildings hidden.");
     } else {
@@ -333,10 +356,12 @@ function toggleBuildings() {
 
 // Load Kadaster 3D tiles (BAG)
 async function loadBuildings3DTiles() {
+    setKadasterLoadStatus("loading", "Kadaster status: loading 3D tiles...");
     setLayerLoadingState(true, "Loading Kadaster buildings…");
     try {
         await loadKadaster3DTiles();
         isBuildingsLoaded = true;
+        setKadasterLoadStatus("3d", "Kadaster status: true 3D tiles loaded");
         showNotification("event", "Kadaster 3D BAG-gebouwen geladen.");
         setLayerActive("kadaster", true, "Kadaster 3D BAG buildings", "Kadaster 3D BAG buildings loaded");
     } catch (error) {
@@ -344,11 +369,13 @@ async function loadBuildings3DTiles() {
         try {
             await loadBagFootprintFallback();
             isBuildingsLoaded = true;
+            setKadasterLoadStatus("fallback", "Kadaster status: BAG footprint fallback loaded");
             showNotification("event", "Officiële BAG-gebouwlaag geladen vanuit Kadaster / PDOK.");
             setLayerActive("kadaster", true, "Kadaster BAG buildings", "Official BAG building layer loaded");
         } catch (fallbackError) {
             console.error("BAG fallback also failed:", fallbackError);
             isBuildingsLoaded = false;
+            setKadasterLoadStatus("error", "Kadaster status: failed to load");
             showNotification("event", "Kadaster 3D buildings could not be loaded.");
         }
     } finally {
@@ -379,11 +406,11 @@ function styleImageryLayers() {
     for (let index = 0; index < viewer.imageryLayers.length; index += 1) {
         const layer = viewer.imageryLayers.get(index);
         if (!layer) continue;
-        layer.brightness = index === 0 ? 0.98 : 1.08;
-        layer.contrast = index === 0 ? 1.12 : 1.04;
-        layer.gamma = 0.95;
-        layer.saturation = index === 0 ? 0.82 : 0.96;
-        layer.hue = index === 0 ? -0.12 : 0;
+        layer.brightness = 1.0;
+        layer.contrast = 1.0;
+        layer.gamma = 1.0;
+        layer.saturation = 1.0;
+        layer.hue = 0.0;
     }
 }
 
@@ -525,41 +552,36 @@ async function initCesium() {
         viewer = new Cesium.Viewer("cesiumContainer", {
             terrainProvider,
             baseLayer: imageryProvider ? new Cesium.ImageryLayer(imageryProvider) : false,
-            requestRenderMode: true,
-            animation: false,
-            timeline: false,
+            requestRenderMode: false,
+            animation: true,
+            timeline: true,
             sceneMode: Cesium.SceneMode.SCENE3D,
             baseLayerPicker: false,
-            shouldAnimate: false,
+            shouldAnimate: true,
             infoBox: false,
             selectionIndicator: false
         });
 
-        if (viewer.imageryLayers.length === 0) {
-            viewer.imageryLayers.addImageryProvider(
-                new Cesium.OpenStreetMapImageryProvider({
-                    url: "https://tile.openstreetmap.org/"
-                })
-            );
-        }
-
-        try {
-            labelsLayer = viewer.imageryLayers.addImageryProvider(
-                new Cesium.UrlTemplateImageryProvider({
-                    url: DUTCH_LABELS_TILE_URL,
-                    credit: "Map labels"
-                })
-            );
-            labelsLayer.alpha = 0.96;
-            labelsLayer.brightness = 1.12;
-            labelsLayer.contrast = 1.08;
-        } catch (labelError) {
-            console.warn("Label overlay unavailable, continuing without dedicated labels.", labelError);
+        if (ENABLE_LABEL_OVERLAY) {
+            try {
+                labelsLayer = viewer.imageryLayers.addImageryProvider(
+                    new Cesium.UrlTemplateImageryProvider({
+                        url: DUTCH_LABELS_TILE_URL,
+                        credit: "Map labels"
+                    })
+                );
+                labelsLayer.alpha = 0.96;
+                labelsLayer.brightness = 1.12;
+                labelsLayer.contrast = 1.08;
+            } catch (labelError) {
+                console.warn("Label overlay unavailable, continuing without dedicated labels.", labelError);
+            }
         }
 
         // Replace Cesium logo with Den Bosch logo
         viewer.scene.postRender.addEventListener(() => {
             const creditContainer = document.querySelector(".cesium-credit-logoContainer");
+            const creditTextContainer = document.querySelector(".cesium-credit-textContainer");
             if (creditContainer) {
                 creditContainer.innerHTML = `
                     <a href="https://www.denbosch.nl" target="_blank">
@@ -568,10 +590,15 @@ async function initCesium() {
                              style="width: 150px;">
                     </a>`;
             }
+            if (creditTextContainer) {
+                creditTextContainer.style.display = "none";
+            }
         });
 
         viewer.scene.globe.depthTestAgainstTerrain = true;
-        viewer.scene.skyBox.show = false;
+        if (viewer.scene.skyBox) {
+            viewer.scene.skyBox.show = false;
+        }
         viewer.scene.backgroundColor = Cesium.Color.BLACK;
         viewer.scene.globe.enableLighting = true;
         viewer.scene.fog.enabled = true;
@@ -603,6 +630,7 @@ async function initCesium() {
 // Load base 3D tiles + OSM buildings and style them
 async function loadTileset() {
     console.log("Loading main tileset and OSM buildings");
+    setOsmLoadStatus("loading", "OSM status: loading 3D buildings...");
 
     try {
         try {
@@ -611,13 +639,9 @@ async function loadTileset() {
                 ? await Cesium.Cesium3DTileset.fromUrl(cityResource)
                 : new Cesium.Cesium3DTileset({ url: cityResource });
             viewer.scene.primitives.add(cityContextTileset);
-            if (Cesium.Cesium3DTileColorBlendMode) {
-                cityContextTileset.colorBlendMode = Cesium.Cesium3DTileColorBlendMode.MIX;
-                cityContextTileset.colorBlendAmount = 0.5;
-            }
-            cityContextTileset.style = new Cesium.Cesium3DTileStyle({
-                color: "color('#dcebdd', 0.3)"
-            });
+            cityContextTileset.maximumScreenSpaceError = 12;
+            cityContextTileset.skipLevelOfDetail = false;
+            cityContextTileset.dynamicScreenSpaceError = true;
         } catch (cityError) {
             console.warn("Primary city context tileset unavailable, continuing with OSM buildings.", cityError);
             cityContextTileset = null;
@@ -629,6 +653,18 @@ async function loadTileset() {
             osmBuildingsTileset = viewer.scene.primitives.add(Cesium.createOsmBuildings());
         } else {
             osmBuildingsTileset = null;
+        }
+
+        if (osmBuildingsTileset) {
+            setOsmLoadStatus("3d", "OSM status: 3D buildings loaded");
+        } else {
+            setOsmLoadStatus("error", "OSM status: unavailable");
+        }
+
+        if (osmBuildingsTileset) {
+            osmBuildingsTileset.maximumScreenSpaceError = 10;
+            osmBuildingsTileset.skipLevelOfDetail = false;
+            osmBuildingsTileset.dynamicScreenSpaceError = true;
         }
 
         applyBuildingTheme(buildingThemeMode);
@@ -686,36 +722,38 @@ async function loadTileset() {
             });
         }
 
-        let lastProcessedTime = Date.now();
-        const throttleDelay = 1000;
+        if (ENABLE_BUILDING_PINS && osmBuildingsTileset) {
+            let lastProcessedTime = Date.now();
+            const throttleDelay = 1000;
 
-        osmBuildingsTileset.tileVisible.addEventListener((tile) => {
-            const currentTime = Date.now();
-            if (currentTime - lastProcessedTime < throttleDelay) return;
-            lastProcessedTime = currentTime;
+            osmBuildingsTileset.tileVisible.addEventListener((tile) => {
+                const currentTime = Date.now();
+                if (currentTime - lastProcessedTime < throttleDelay) return;
+                lastProcessedTime = currentTime;
 
-            const features = tile.content.featuresLength;
-            for (let i = 0; i < features; i++) {
-                const feature = tile.content.getFeature(i);
-                const buildingType = feature.getProperty("building");
+                const features = tile.content.featuresLength;
+                for (let i = 0; i < features; i++) {
+                    const feature = tile.content.getFeature(i);
+                    const buildingType = feature.getProperty("building");
 
-                let latitude = feature.getProperty("cesium#latitude");
-                let longitude = feature.getProperty("cesium#longitude");
+                    let latitude = feature.getProperty("cesium#latitude");
+                    let longitude = feature.getProperty("cesium#longitude");
 
-                if (!latitude || !longitude) {
-                    const cartesianPosition = feature.getProperty("cesium#position");
-                    if (cartesianPosition) {
-                        const cartographicPosition = Cesium.Cartographic.fromCartesian(cartesianPosition);
-                        latitude = Cesium.Math.toDegrees(cartographicPosition.latitude);
-                        longitude = Cesium.Math.toDegrees(cartographicPosition.longitude);
+                    if (!latitude || !longitude) {
+                        const cartesianPosition = feature.getProperty("cesium#position");
+                        if (cartesianPosition) {
+                            const cartographicPosition = Cesium.Cartographic.fromCartesian(cartesianPosition);
+                            latitude = Cesium.Math.toDegrees(cartographicPosition.latitude);
+                            longitude = Cesium.Math.toDegrees(cartographicPosition.longitude);
+                        }
+                    }
+
+                    if (latitude && longitude && buildingType) {
+                        addBuildingPin(buildingType, latitude, longitude);
                     }
                 }
-
-                if (latitude && longitude && buildingType) {
-                    addBuildingPin(buildingType, latitude, longitude);
-                }
-            }
-        });
+            });
+        }
 
         if (cityContextTileset) {
             await viewer.zoomTo(cityContextTileset);
@@ -736,6 +774,7 @@ async function loadTileset() {
             duration: 4
         });
     } catch (error) {
+        setOsmLoadStatus("error", "OSM status: failed to load");
         console.error("Error loading tileset:", error);
     }
 }
@@ -1860,8 +1899,7 @@ function applyBuildingTheme(mode = "function") {
     const legend = $("buildingThemeLegend");
 
     if (cityContextTileset) {
-        // In thematic mode, let the colorized OSM layer read clearly above the cinematic city context.
-        cityContextTileset.show = mode === "neutral";
+        cityContextTileset.show = true;
     }
 
     if (legend) {
@@ -1879,7 +1917,7 @@ function applyBuildingTheme(mode = "function") {
 
     if (mode === "neutral") {
         osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
-            color: `color('${PRESENTATION_THEME.neutralBuilding}', 0.82)`
+            color: `color('${PRESENTATION_THEME.neutralBuilding}', 0.32)`
         });
         if (viewer?.scene) {
             viewer.scene.requestRender();
@@ -1890,14 +1928,19 @@ function applyBuildingTheme(mode = "function") {
     osmBuildingsTileset.style = new Cesium.Cesium3DTileStyle({
         color: {
             conditions: [
-                ["${building} === 'house' || ${building} === 'residential' || ${building} === 'apartments'", `color('${PRESENTATION_THEME.residential}', 0.88)`],
-                ["${building} === 'office' || ${building} === 'commercial'", `color('${PRESENTATION_THEME.commercial}', 0.88)`],
-                ["${building} === 'industrial' || ${building} === 'warehouse'", `color('${PRESENTATION_THEME.industrial}', 0.9)`],
-                ["${building} === 'retail' || ${building} === 'shop' || ${building} === 'supermarket' || ${building} === 'kiosk'", `color('${PRESENTATION_THEME.retail}', 0.9)`],
-                ["${building} === 'school' || ${building} === 'university' || ${building} === 'college' || ${building} === 'kindergarten'", `color('${PRESENTATION_THEME.education}', 0.9)`],
-                ["${building} === 'hospital' || ${building} === 'clinic'", `color('${PRESENTATION_THEME.health}', 0.9)`],
-                ["${building} === 'church' || ${building} === 'civic' || ${building} === 'public' || ${building} === 'parking' || ${building} === 'hotel'", `color('${PRESENTATION_THEME.civic}', 0.86)`],
-                ["true", `color('${PRESENTATION_THEME.fallback}', 0.78)`]
+                ["${building} === 'school'", `color('${PRESENTATION_THEME.education}', 0.42)`],
+                ["${building} === 'university' || ${building} === 'college' || ${building} === 'kindergarten'", "color('rgba(34, 139, 34, 0.42)')"],
+                ["${building} === 'hospital' || ${building} === 'clinic'", `color('${PRESENTATION_THEME.health}', 0.42)`],
+                ["${building} === 'parking'", "color('rgba(128, 128, 128, 0.34)')"],
+                ["${building} === 'church' || ${building} === 'civic' || ${building} === 'public'", `color('${PRESENTATION_THEME.civic}', 0.42)`],
+                ["${building} === 'retail' || ${building} === 'shop' || ${building} === 'supermarket' || ${building} === 'kiosk'", `color('${PRESENTATION_THEME.retail}', 0.42)`],
+                ["${building} === 'industrial' || ${building} === 'warehouse'", `color('${PRESENTATION_THEME.industrial}', 0.42)`],
+                ["${building} === 'commercial'", `color('${PRESENTATION_THEME.commercial}', 0.42)`],
+                ["${building} === 'hotel'", `color('${PRESENTATION_THEME.hospitality}', 0.42)`],
+                ["${building} === 'house'", "color('rgba(255, 182, 193, 0.42)')"],
+                ["${building} === 'apartments' || ${building} === 'residential'", `color('${PRESENTATION_THEME.residential}', 0.42)`],
+                ["${building} === 'office'", `color('${PRESENTATION_THEME.office}', 0.42)`],
+                ["true", `color('${PRESENTATION_THEME.fallback}', 0.24)`]
             ]
         }
     });

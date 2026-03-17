@@ -642,6 +642,27 @@ body.weather-water::before {
   border: 1px dashed rgba(255, 255, 255, 0.07);
 }
 
+.kadaster-load-status {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.kadaster-load-status[data-state="loading"] {
+  color: #facc15;
+}
+
+.kadaster-load-status[data-state="3d"] {
+  color: #86efac;
+}
+
+.kadaster-load-status[data-state="fallback"] {
+  color: #7dd3fc;
+}
+
+.kadaster-load-status[data-state="error"] {
+  color: #fca5a5;
+}
+
 .catalog-check {
   display: flex;
   align-items: flex-start;
