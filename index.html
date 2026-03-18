@@ -620,12 +620,6 @@
         const endpoint = window.config?.conf?.SERVICES?.visitorLogUrl;
         if (!endpoint) return false;
         const payload = JSON.stringify(record);
-        try {
-          if (navigator.sendBeacon) {
-            const blob = new Blob([payload], { type: 'application/json' });
-            return navigator.sendBeacon(endpoint, blob);
-          }
-        } catch (error) {}
         fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
