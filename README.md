@@ -88,7 +88,7 @@ node scripts/visitor_log_server.js
 This starts a small HTTP server on `http://localhost:8787` with:
 
 - `POST /visitor-log` to store visitor events
-- `GET /visitor-log` to inspect recent entries
+- `GET /visitor-log` to inspect recent entries with an admin token
 - `GET /health` for a basic health check
 
 Saved records are written to `logs/visitor-log.jsonl`.
@@ -112,6 +112,19 @@ Each stored record includes:
 - `path`
 - `ip`
 - `userAgent`
+
+Security settings:
+
+- `ALLOWED_ORIGIN` controls which browser origin can post logs
+- `ADMIN_TOKEN` is required to read logs from `GET /visitor-log`
+
+Example:
+
+```bash
+ALLOWED_ORIGIN=https://digitaltwindenbosch.nl \
+ADMIN_TOKEN=replace-with-a-long-random-token \
+node scripts/visitor_log_server.js
+```
 
 ## Project Layout
 
