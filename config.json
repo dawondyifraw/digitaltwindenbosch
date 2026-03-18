@@ -9,6 +9,6 @@
         "streamUrl": "",
         "chatApi": "",
         "dashboardApi": "",
-        "visitorLogUrl": "https://digitaltwindenbosch-visitor-log.fly.dev/visitor-log"
+        "visitorLogUrl": "https://dtb-monitor-service.fly.dev/visitor-log"
     }
 }
