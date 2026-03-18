@@ -567,7 +567,7 @@ body.weather-water::before {
 }
 
 .submenu.open {
-  max-height: 360px;
+  max-height: var(--submenu-max-height, 360px);
 }
 
 .catalog-shell {

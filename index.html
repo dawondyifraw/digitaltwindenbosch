@@ -754,12 +754,32 @@
 
       // Sidebar dropdowns
       const toggles = document.querySelectorAll('.menu-toggle');
+      const updateSubmenuHeight = (menu) => {
+        if (!menu || !menu.classList.contains('open')) return;
+        menu.style.setProperty('--submenu-max-height', `${menu.scrollHeight}px`);
+      };
+      const syncAncestorSubmenuHeights = (element) => {
+        let current = element && element.parentElement;
+        while (current) {
+          if (current.classList && current.classList.contains('submenu')) {
+            updateSubmenuHeight(current);
+          }
+          current = current.parentElement;
+        }
+      };
       const setOpen = (btn, open) => {
         const id = btn.getAttribute('aria-controls');
         const menu = document.getElementById(id);
         if (!menu) return;
         btn.setAttribute('aria-expanded', String(open));
         menu.classList.toggle('open', open);
+        if (open) {
+          updateSubmenuHeight(menu);
+          requestAnimationFrame(() => updateSubmenuHeight(menu));
+        } else {
+          menu.style.setProperty('--submenu-max-height', '0px');
+        }
+        syncAncestorSubmenuHeights(menu);
       };
       const loadState = () => JSON.parse(localStorage.getItem('udt_menu_state') || '{}');
       const saveState = (state) => localStorage.setItem('udt_menu_state', JSON.stringify(state));
@@ -770,6 +790,18 @@
         setOpen(btn, open);
         btn.addEventListener('click', () => { const next = !(btn.getAttribute('aria-expanded') === 'true'); setOpen(btn, next); state[id] = next; saveState(state); });
         btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); } });
+      });
+
+      document.querySelectorAll('.submenu details').forEach(section => {
+        section.addEventListener('toggle', () => {
+          const parentSubmenu = section.closest('.submenu');
+          updateSubmenuHeight(parentSubmenu);
+          syncAncestorSubmenuHeights(parentSubmenu);
+        });
+      });
+
+      window.addEventListener('resize', () => {
+        document.querySelectorAll('.submenu.open').forEach(updateSubmenuHeight);
       });
 
       // Chat submit
