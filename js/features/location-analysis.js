@@ -1,6 +1,7 @@
 (function () {
   const UDT_CACHE = {};
   const deps = {};
+  let hasWarnedAboutRivmCors = false;
 
   function configure(nextDeps = {}) {
     Object.assign(deps, nextDeps);
@@ -64,6 +65,12 @@
       toast.classList.add("is-hiding");
       window.setTimeout(() => toast.remove(), 220);
     }, 3200);
+  }
+
+  function getRivmUnavailableMessage() {
+    return window.udtI18n
+      ? window.udtI18n.t("no_official_sensor_data")
+      : "Official RIVM station data is currently unavailable for this browser session.";
   }
 
   function prepareLocationCard(latitude, longitude) {
@@ -295,22 +302,33 @@
   async function fetchRivmStations() {
     const cacheKey = "rivm_stations_metadata";
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
-
-    const response = await fetch(getDep("getRivmStationsUrl"));
-    if (!response.ok) {
-      throw new Error(`RIVM station metadata unavailable: ${response.status}`);
+    if (Array.isArray(cached)) return cached;
+    if (cached && cached.unavailable) {
+      throw new Error(cached.reason || "RIVM station metadata unavailable");
     }
 
-    const text = await response.text();
-    const rows = parseSemicolonCsv(text);
-    const headers = rows[0] || [];
-    const stations = rows.slice(1)
-      .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])))
-      .filter((row) => !row.meetlocatie_einddatumtijd && row.breedtegraad && row.lengtegraad);
+    try {
+      const response = await fetch(getDep("getRivmStationsUrl"));
+      if (!response.ok) {
+        throw new Error(`RIVM station metadata unavailable: ${response.status}`);
+      }
 
-    cacheSet(cacheKey, stations, 12 * 60 * 60 * 1000);
-    return stations;
+      const text = await response.text();
+      const rows = parseSemicolonCsv(text);
+      const headers = rows[0] || [];
+      const stations = rows.slice(1)
+        .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])))
+        .filter((row) => !row.meetlocatie_einddatumtijd && row.breedtegraad && row.lengtegraad);
+
+      cacheSet(cacheKey, stations, 12 * 60 * 60 * 1000);
+      return stations;
+    } catch (error) {
+      const reason = error instanceof TypeError
+        ? "RIVM station metadata blocked by browser CORS policy"
+        : (error.message || "RIVM station metadata unavailable");
+      cacheSet(cacheKey, { unavailable: true, reason }, 15 * 60 * 1000);
+      throw new Error(reason);
+    }
   }
 
   async function fetchRivmComponentLatest(filename, stationId) {
@@ -405,8 +423,19 @@
     if (cached) return cached;
 
     const wkt = `Point(${lon} ${lat})`;
-    const sparql = `SELECT ?item ?itemLabel ?population WHERE { ?item wdt:P625 ?coord . SERVICE wikibase:around { ?item wdt:P625 ?location . bd:serviceParam wikibase:center "${wkt}"^^geo:wktLiteral; bd:serviceParam wikibase:radius "2". } OPTIONAL { ?item wdt:P1082 ?population. } SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } ORDER BY DESC(?population) LIMIT 1`;
-    const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}`;
+    const sparql = `PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+SELECT ?item ?itemLabel ?population WHERE {
+  SERVICE wikibase:around {
+    ?item wdt:P625 ?location .
+    bd:serviceParam wikibase:center "${wkt}"^^geo:wktLiteral ;
+                    wikibase:radius "2" .
+  }
+  OPTIONAL { ?item wdt:P1082 ?population. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+ORDER BY DESC(?population)
+LIMIT 1`;
+    const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`;
 
     try {
       const response = await fetch(url, { headers: { Accept: "application/sparql-results+json" } });
@@ -685,10 +714,11 @@
         deps.markOperationalUpdate("Official RIVM station data updated", "Official sensor monitoring");
       }
     } catch (error) {
-      console.error("Error fetching official RIVM station data:", error);
-      rivmTarget.textContent = window.udtI18n
-        ? window.udtI18n.t("no_official_sensor_data")
-        : "Geen actuele officiele meetpunten gevonden voor deze locatie.";
+      if (!hasWarnedAboutRivmCors) {
+        console.warn("Official RIVM station data unavailable in-browser:", error.message || error);
+        hasWarnedAboutRivmCors = true;
+      }
+      rivmTarget.textContent = getRivmUnavailableMessage();
       rivmTarget.dataset.hasData = "false";
     }
   }
