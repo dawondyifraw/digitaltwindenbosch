@@ -593,6 +593,7 @@
       let splashReady = false;
       let verificationPassed = false;
       let verificationCode = '';
+      const pendingVisitorRecords = [];
 
       const makeVisitorRecord = (eventName, extra = {}) => {
         const timestamp = new Date();
@@ -615,16 +616,14 @@
         } catch (error) {}
       };
 
-      const sendVisitorRecord = (record) => {
-        storeVisitorRecord(record);
+      const postVisitorRecord = (record) => {
         const endpoint = window.config?.conf?.SERVICES?.visitorLogUrl;
-        if (!endpoint) return;
+        if (!endpoint) return false;
         const payload = JSON.stringify(record);
         try {
           if (navigator.sendBeacon) {
             const blob = new Blob([payload], { type: 'application/json' });
-            navigator.sendBeacon(endpoint, blob);
-            return;
+            return navigator.sendBeacon(endpoint, blob);
           }
         } catch (error) {}
         fetch(endpoint, {
@@ -633,6 +632,22 @@
           body: payload,
           keepalive: true
         }).catch(() => {});
+        return true;
+      };
+
+      const flushPendingVisitorRecords = () => {
+        if (!window.config?.conf?.SERVICES?.visitorLogUrl || !pendingVisitorRecords.length) return;
+        while (pendingVisitorRecords.length) {
+          const record = pendingVisitorRecords.shift();
+          postVisitorRecord(record);
+        }
+      };
+
+      const sendVisitorRecord = (record) => {
+        storeVisitorRecord(record);
+        if (!postVisitorRecord(record)) {
+          pendingVisitorRecords.push(record);
+        }
       };
 
       const initVisitorSession = () => {
@@ -809,6 +824,7 @@
       document.getElementById('toggleStreamBtn')?.addEventListener('click', function(){ togglePressed(this); });
 
       document.addEventListener('configLoaded', function () {
+        flushPendingVisitorRecords();
         const conf = window.config && window.config.conf ? window.config.conf : {};
         const isPrototype = conf.APP_MODE !== 'production';
         document.documentElement.setAttribute('data-app-mode', conf.APP_MODE || 'prototype');
