@@ -9,7 +9,8 @@ const defaultConfig = {
     SERVICES: {
         streamUrl: "",
         chatApi: "",
-        dashboardApi: ""
+        dashboardApi: "",
+        visitorLogUrl: ""
     }
 };
 

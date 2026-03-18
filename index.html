@@ -594,28 +594,24 @@
       let verificationPassed = false;
       let verificationCode = '';
 
-      const makeVisitorRecord = (eventName, extra = {}) => ({
-        event: eventName,
-        sessionId: visitorSessionId,
-        timestamp: new Date().toISOString(),
-        href: window.location.href,
-        referrer: document.referrer || '',
-        language: navigator.language || '',
-        languages: Array.isArray(navigator.languages) ? navigator.languages.join(', ') : '',
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-        userAgent: navigator.userAgent || '',
-        platform: navigator.platform || '',
-        screen: `${window.screen.width}x${window.screen.height}`,
-        viewport: `${window.innerWidth}x${window.innerHeight}`,
-        ...extra
-      });
+      const makeVisitorRecord = (eventName, extra = {}) => {
+        const timestamp = new Date();
+        return {
+          event: eventName,
+          sessionId: visitorSessionId,
+          timestamp: timestamp.toISOString(),
+          date: timestamp.toISOString().slice(0, 10),
+          path: window.location.pathname || "/",
+          ...extra
+        };
+      };
 
       const storeVisitorRecord = (record) => {
         try {
           const key = 'udt_visitor_log';
           const existing = JSON.parse(localStorage.getItem(key) || '[]');
           existing.unshift(record);
-          localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+          localStorage.setItem(key, JSON.stringify(existing.slice(0, 100)));
         } catch (error) {}
       };
 

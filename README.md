@@ -75,6 +75,43 @@ The frontend can work as a static app, but some integrations expect a backend or
 - `realtimestream/kafka.js` defaults to `http://localhost:5000`
 - Kafka is not included in this repo
 - Socket.IO integration is optional for local frontend work
+- `scripts/visitor_log_server.js` is a tiny optional logger for visitor events
+
+### Visitor Log Server
+
+If you want server-side visitor logs with IP addresses, run:
+
+```bash
+node scripts/visitor_log_server.js
+```
+
+This starts a small HTTP server on `http://localhost:8787` with:
+
+- `POST /visitor-log` to store visitor events
+- `GET /visitor-log` to inspect recent entries
+- `GET /health` for a basic health check
+
+Saved records are written to `logs/visitor-log.jsonl`.
+
+To connect the frontend, set this in `config.json`:
+
+```json
+{
+  "SERVICES": {
+    "visitorLogUrl": "http://localhost:8787/visitor-log"
+  }
+}
+```
+
+Each stored record includes:
+
+- `event`
+- `sessionId`
+- `timestamp`
+- `date`
+- `path`
+- `ip`
+- `userAgent`
 
 ## Project Layout
 

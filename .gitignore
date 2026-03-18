@@ -2,3 +2,4 @@
 sync.ffs_lock
 index copy.html
 indexnew.html
+logs/*.jsonl
